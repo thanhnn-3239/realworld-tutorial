@@ -1,0 +1,19 @@
+{
+  "hello": "Hello",
+  "welcome": "Welcome to RealWorld API",
+  "success": "Operation completed successfully",
+  "error": {
+    "notFound": "Resource not found",
+    "unauthorized": "Unauthorized access",
+    "forbidden": "Access forbidden",
+    "badRequest": "Bad request",
+    "internalError": "Internal server error"
+  },
+  "validation": {
+    "required": "{field} is required",
+    "invalid": "{field} is invalid",
+    "minLength": "{field} must be at least {min} characters",
+    "maxLength": "{field} must be at most {max} characters",
+    "email": "Please provide a valid email address"
+  }
+}
