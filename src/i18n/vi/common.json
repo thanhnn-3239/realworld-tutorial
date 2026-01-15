@@ -1,0 +1,19 @@
+{
+  "hello": "Xin chào",
+  "welcome": "Chào mừng đến với RealWorld API",
+  "success": "Thao tác thành công",
+  "error": {
+    "notFound": "Không tìm thấy tài nguyên",
+    "unauthorized": "Truy cập không được phép",
+    "forbidden": "Truy cập bị từ chối",
+    "badRequest": "Yêu cầu không hợp lệ",
+    "internalError": "Lỗi máy chủ nội bộ"
+  },
+  "validation": {
+    "required": "{field} là bắt buộc",
+    "invalid": "{field} không hợp lệ",
+    "minLength": "{field} phải có ít nhất {min} ký tự",
+    "maxLength": "{field} không được vượt quá {max} ký tự",
+    "email": "Vui lòng cung cấp địa chỉ email hợp lệ"
+  }
+}
