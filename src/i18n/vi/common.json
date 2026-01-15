@@ -7,7 +7,10 @@
     "unauthorized": "Truy cập không được phép",
     "forbidden": "Truy cập bị từ chối",
     "badRequest": "Yêu cầu không hợp lệ",
-    "internalError": "Lỗi máy chủ nội bộ"
+    "internalError": "Lỗi máy chủ nội bộ",
+    "userNotFound": "Không tìm thấy người dùng",
+    "emailInUse": "Email đã được sử dụng",
+    "usernameInUse": "Tên người dùng đã tồn tại"
   },
   "validation": {
     "required": "{field} là bắt buộc",

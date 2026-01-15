@@ -7,7 +7,10 @@
     "unauthorized": "Unauthorized access",
     "forbidden": "Access forbidden",
     "badRequest": "Bad request",
-    "internalError": "Internal server error"
+    "internalError": "Internal server error",
+    "userNotFound": "User not found",
+    "emailInUse": "Email already in use",
+    "usernameInUse": "Username already in use"
   },
   "validation": {
     "required": "{field} is required",
