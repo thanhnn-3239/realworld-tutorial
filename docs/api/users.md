@@ -43,7 +43,7 @@ Updates user profile settings.
 }
 ```
 
-**Accepted Fields:** `email`, `username`, `password`, `image`, `bio`
+**Accepted Fields:** `email`, `username`, `image`, `bio`
 
 **Response:**
 ```json

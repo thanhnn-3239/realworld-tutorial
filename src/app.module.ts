@@ -14,6 +14,8 @@ import { PrismaModule } from './prisma/prisma.module';
 import { APP_FILTER } from '@nestjs/core';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { LoggerModule } from './logger/logger.module';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -34,6 +36,8 @@ import { LoggerModule } from './logger/logger.module';
     }),
     PrismaModule,
     LoggerModule.register(),
+    AuthModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [
@@ -44,4 +48,4 @@ import { LoggerModule } from './logger/logger.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }
