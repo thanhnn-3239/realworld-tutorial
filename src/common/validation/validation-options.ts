@@ -10,9 +10,12 @@ function formatI18nMessage(constraint: string): string {
   const i18n = I18nContext.current();
   if (!i18n) return constraint;
 
-  // Parse i18n validation message format: "key|{...args}"
-  if (constraint.includes('|')) {
-    const [key, argsString] = constraint.split('|');
+  const separatorIndex = constraint.indexOf('|');
+
+  if (separatorIndex !== -1) {
+    const key = constraint.substring(0, separatorIndex);
+    const argsString = constraint.substring(separatorIndex + 1);
+
     try {
       const args = JSON.parse(argsString);
       return i18n.t(key, { args });

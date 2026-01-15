@@ -9,6 +9,6 @@ export const AUTH_VALIDATION = {
   },
   password: {
     minLength: 6,
-    maxLength: 128,
+    maxLength: 30,
   },
 } as const;

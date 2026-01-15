@@ -65,5 +65,11 @@ export class RegisterDto {
       min: AUTH_VALIDATION.password.minLength,
     }),
   })
+  @MaxLength(AUTH_VALIDATION.password.maxLength, {
+    message: i18nValidationMessage('common.validation.maxLength', {
+      field: 'Password',
+      max: AUTH_VALIDATION.password.maxLength,
+    }),
+  })
   password: string;
 }

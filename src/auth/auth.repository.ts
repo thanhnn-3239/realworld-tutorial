@@ -20,6 +20,16 @@ export class AuthRepository {
     });
   }
 
+  /**
+   * Finds a user by email and includes the password field.
+   *
+   * ⚠️ WARNING: This method returns sensitive password data.
+   * Should ONLY be used for authentication purposes (login verification).
+   * For all other use cases, use findByEmail() instead.
+   *
+   * @param email - The user's email address
+   * @returns User object with password field included, or null if not found
+   */
   async findByEmailWithPassword(email: string) {
     return this.prisma.user.findUnique({
       where: { email },

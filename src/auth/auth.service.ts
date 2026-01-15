@@ -8,12 +8,8 @@ import * as bcrypt from 'bcrypt';
 import { AuthRepository } from './auth.repository';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-
-interface UserPayload {
-  id: number;
-  email: string;
-  username: string;
-}
+import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { ConfigService } from '@nestjs/config';
 
 export interface AuthResponse {
   email: string;
@@ -25,10 +21,15 @@ export interface AuthResponse {
 
 @Injectable()
 export class AuthService {
+  private readonly saltRounds: number;
+
   constructor(
     private readonly authRepository: AuthRepository,
     private readonly jwtService: JwtService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.saltRounds = this.configService.get<number>('BCRYPT_SALT_ROUNDS', 10);
+  }
 
   async register(dto: RegisterDto): Promise<AuthResponse> {
     const { email, username, password } = dto;
@@ -43,7 +44,7 @@ export class AuthService {
       throw new ConflictException('Username already exists');
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, this.saltRounds);
 
     const user = await this.authRepository.create({
       email,
@@ -94,7 +95,7 @@ export class AuthService {
     };
   }
 
-  private generateToken(payload: UserPayload): string {
+  private generateToken(payload: JwtPayload): string {
     return this.jwtService.sign(payload);
   }
 }
