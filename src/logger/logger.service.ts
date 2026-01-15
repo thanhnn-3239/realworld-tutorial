@@ -32,7 +32,9 @@ export class CustomLoggerService extends ConsoleLogger {
       format: winston.format.combine(
         winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
         winston.format.printf(({ timestamp, level, message, context }) => {
-          return `[${timestamp}] [${level.toUpperCase()}] [${context || 'Application'}] ${message}`;
+          const ctx = typeof context === 'string' ? context : 'Application';
+          const msg = typeof message === 'string' ? message : String(message);
+          return `[${String(timestamp)}] [${level.toUpperCase()}] [${ctx}] ${msg}`;
         }),
       ),
       transports: [new winston.transports.File({ filename: filePath })],
@@ -43,7 +45,11 @@ export class CustomLoggerService extends ConsoleLogger {
   }
 
   log(message: unknown, context?: string): void {
-    super.log(message, context);
+    if (context) {
+      super.log(message, context);
+    } else {
+      super.log(message);
+    }
     this.writeToFile('info', message, context);
   }
 
@@ -54,33 +60,48 @@ export class CustomLoggerService extends ConsoleLogger {
   }
 
   warn(message: unknown, context?: string): void {
-    super.warn(message, context);
+    if (context) {
+      super.warn(message, context);
+    } else {
+      super.warn(message);
+    }
     this.writeToFile('warn', message, context);
   }
 
   debug(message: unknown, context?: string): void {
-    super.debug(message, context);
+    if (context) {
+      super.debug(message, context);
+    } else {
+      super.debug(message);
+    }
     this.writeToFile('debug', message, context);
   }
 
   verbose(message: unknown, context?: string): void {
-    super.verbose(message, context);
+    if (context) {
+      super.verbose(message, context);
+    } else {
+      super.verbose(message);
+    }
     this.writeToFile('verbose', message, context);
   }
 
-  logTo(fileName: string, level: string, message: unknown, context?: string): void {
-    const msg = typeof message === 'string' ? message : JSON.stringify(message);
-    const logger = this.getLogger(fileName);
-    logger.log(level, msg, { context: context || this.context });
-  }
-
-  private writeToFile(
+  logTo(
+    fileName: string,
     level: string,
     message: unknown,
     context?: string,
   ): void {
     const msg = typeof message === 'string' ? message : JSON.stringify(message);
+    const logger = this.getLogger(fileName);
+    logger.log(level, msg, { context: context || this.context });
+  }
+
+  private writeToFile(level: string, message: unknown, context?: string): void {
+    const msg = typeof message === 'string' ? message : JSON.stringify(message);
     const fileName = this.currentFileName || this.defaultFileName;
-    this.getLogger(fileName).log(level, msg, { context: context || this.context });
+    this.getLogger(fileName).log(level, msg, {
+      context: context || this.context,
+    });
   }
 }

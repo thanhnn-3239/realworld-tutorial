@@ -9,7 +9,19 @@ Returns the currently logged-in user.
 | **Endpoint** | `/user` |
 | **Auth** | Yes |
 
-**Response:** `User` object.
+**Response:**
+```json
+{
+  "statusCode": 200,
+  "message": "User retrieved successfully",
+  "data": {
+    "email": "jake@jake.jake",
+    "username": "jake",
+    "bio": "I work at statefarm",
+    "image": null
+  }
+}
+```
 
 ---
 
@@ -25,30 +37,24 @@ Updates user profile settings.
 **Request Body:**
 ```json
 {
-  "user": {
-    "email": "jake@jake.jake",
-    "bio": "I like to skateboard",
-    "image": "https://i.stack.imgur.com/xHWG8.jpg"
-  }
+  "email": "jake@jake.jake",
+  "bio": "I like to skateboard",
+  "image": "https://i.stack.imgur.com/xHWG8.jpg"
 }
 ```
 
 **Accepted Fields:** `email`, `username`, `password`, `image`, `bio`
 
-**Response:** Updated `User` object.
-
----
-
-## Response Format
-
+**Response:**
 ```json
 {
-  "user": {
+  "statusCode": 200,
+  "message": "User updated successfully",
+  "data": {
     "email": "jake@jake.jake",
-    "token": "jwt.token.here",
     "username": "jake",
-    "bio": "I work at statefarm",
-    "image": null
+    "bio": "I like to skateboard",
+    "image": "https://i.stack.imgur.com/xHWG8.jpg"
   }
 }
 ```

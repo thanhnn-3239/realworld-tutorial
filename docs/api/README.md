@@ -11,6 +11,48 @@ All authenticated endpoints require:
 Authorization: Token jwt.token.here
 ```
 
+## Common Response Format
+
+All API responses follow a standardized format:
+
+### Success Response
+```json
+{
+  "statusCode": 200,
+  "message": "Success",
+  "data": { ... }
+}
+```
+
+### Success Response with Pagination
+```json
+{
+  "statusCode": 200,
+  "message": "Success",
+  "data": [ ... ],
+  "meta": {
+    "total": 100,
+    "page": 1,
+    "last_page": 10,
+    "limit": 10,
+    "has_next_page": true,
+    "has_prev_page": false
+  }
+}
+```
+
+### Error Response
+```json
+{
+  "statusCode": 422,
+  "message": "Validation Error",
+  "errors": {
+    "email": "email must be an email",
+    "password": "password is too short"
+  }
+}
+```
+
 ## Endpoints
 
 | File | Description |

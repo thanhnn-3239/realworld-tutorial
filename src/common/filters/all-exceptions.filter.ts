@@ -4,77 +4,131 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
-  Logger,
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
+import { Prisma } from '@prisma/client';
+import { CustomLoggerService } from '../../logger/logger.service';
 
-import { CustomLoggerService } from './../../logger/logger.service';
+interface ExceptionResponse {
+  statusCode: number;
+  message: string;
+  errors?: Record<string, unknown>;
+}
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   constructor(
     private readonly httpAdapterHost: HttpAdapterHost,
     private readonly logger: CustomLoggerService,
-  ) {
-    this.logger.setContext(AllExceptionsFilter.name);
-  }
+  ) {}
 
-  catch(exception: unknown, host: ArgumentsHost): void {
+  catch(exception: unknown, host: ArgumentsHost) {
     const { httpAdapter } = this.httpAdapterHost;
-
     const ctx = host.switchToHttp();
 
-    const httpStatus =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+    const response = this.handleException(exception);
+    httpAdapter.reply(ctx.getResponse(), response, response.statusCode);
+  }
 
-    const exceptionResponse =
-      exception instanceof HttpException
-        ? exception.getResponse()
-        : { message: 'Internal Server Error' };
-
-    let errorMessage =
-      (exceptionResponse as any).message || 'Internal Server Error';
-    let errorName = (exceptionResponse as any).error || 'Internal Server Error';
-    let errors = null;
-
-    // Handle Validation Errors (UnprocessableEntity)
-    if (
-      httpStatus === HttpStatus.UNPROCESSABLE_ENTITY &&
-      (exceptionResponse as any).errors
-    ) {
-      errors = (exceptionResponse as any).errors;
-      errorMessage = 'Validation Failed';
+  private handleException(exception: unknown): ExceptionResponse {
+    if (exception instanceof HttpException) {
+      return this.handleHttpException(exception);
     }
 
-    // Handle generic object responses that might contain error info
-    if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
-      if ((exceptionResponse as any).message) {
-        if (Array.isArray((exceptionResponse as any).message)) {
-          errorMessage = (exceptionResponse as any).message[0];
-        } else {
-          errorMessage = (exceptionResponse as any).message;
-        }
-      }
+    if (exception instanceof Prisma.PrismaClientKnownRequestError) {
+      return this.handlePrismaException(exception);
     }
 
-    if (httpStatus === HttpStatus.INTERNAL_SERVER_ERROR) {
-      this.logger.error(exception);
+    if (exception instanceof Error) {
+      return this.handleGenericError(exception);
     }
 
-    // Normalize simple boolean/string messages
-    if (typeof errorMessage !== 'string') {
-      errorMessage = JSON.stringify(errorMessage);
+    return this.handleUnknownError(exception);
+  }
+
+  private handleHttpException(exception: HttpException): ExceptionResponse {
+    const statusCode = exception.getStatus();
+    const responseBody = exception.getResponse();
+
+    if (typeof responseBody !== 'object' || responseBody === null) {
+      return { statusCode, message: exception.message };
     }
 
-    const responseBody = {
-      statusCode: httpStatus,
-      message: errorMessage,
-      error: errorName,
-      ...(errors ? { errors } : {}),
+    const data = responseBody as Record<string, unknown>;
+
+    if (data.errors) {
+      return {
+        statusCode,
+        message: (data.message as string) || 'Validation Error',
+        errors: data.errors as Record<string, unknown>,
+      };
+    }
+
+    if (Array.isArray(data.message)) {
+      return {
+        statusCode,
+        message: 'Validation Error',
+        errors: this.arrayToErrorObject(data.message),
+      };
+    }
+
+    return {
+      statusCode,
+      message: (data.message as string) || exception.message,
     };
+  }
 
-    httpAdapter.reply(ctx.getResponse(), responseBody, httpStatus);
+  private handlePrismaException(
+    exception: Prisma.PrismaClientKnownRequestError,
+  ): ExceptionResponse {
+    this.logger.error(`Prisma Error [${exception.code}]: ${exception.message}`);
+
+    const PRISMA_UNIQUE_CONSTRAINT = 'P2002';
+    const PRISMA_RECORD_NOT_FOUND = 'P2025';
+
+    switch (exception.code) {
+      case PRISMA_UNIQUE_CONSTRAINT:
+        return {
+          statusCode: HttpStatus.CONFLICT,
+          message: `Duplicate value for field: ${String(exception.meta?.target)}`,
+        };
+
+      case PRISMA_RECORD_NOT_FOUND:
+        return {
+          statusCode: HttpStatus.NOT_FOUND,
+          message: 'Record not found in database',
+        };
+
+      default:
+        return {
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+          message: 'Database operation failed',
+        };
+    }
+  }
+
+  private handleGenericError(exception: Error): ExceptionResponse {
+    this.logger.error('System Error:', exception.stack);
+
+    return {
+      statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+      message: 'Internal server error',
+    };
+  }
+
+  private handleUnknownError(exception: unknown): ExceptionResponse {
+    this.logger.error('Unknown Error:', String(exception));
+
+    return {
+      statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+      message: 'Internal server error',
+    };
+  }
+
+  private arrayToErrorObject(messages: unknown[]): Record<string, unknown> {
+    return messages.reduce<Record<string, unknown>>((acc, curr, index) => {
+      acc[`error_${index}`] = curr;
+      return acc;
+    }, {});
   }
 }

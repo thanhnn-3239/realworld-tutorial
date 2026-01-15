@@ -9,7 +9,19 @@ Returns a user's public profile.
 | **Endpoint** | `/profiles/:username` |
 | **Auth** | Optional |
 
-**Response:** `Profile` object.
+**Response:**
+```json
+{
+  "statusCode": 200,
+  "message": "Profile retrieved successfully",
+  "data": {
+    "username": "jake",
+    "bio": "I work at statefarm",
+    "image": "https://static.productionready.io/images/smiley-cyrus.jpg",
+    "following": false
+  }
+}
+```
 
 ---
 
@@ -22,7 +34,19 @@ Follow another user.
 | **Endpoint** | `/profiles/:username/follow` |
 | **Auth** | Yes |
 
-**Response:** `Profile` object with `following: true`.
+**Response:**
+```json
+{
+  "statusCode": 200,
+  "message": "User followed successfully",
+  "data": {
+    "username": "jake",
+    "bio": "I work at statefarm",
+    "image": "https://static.productionready.io/images/smiley-cyrus.jpg",
+    "following": true
+  }
+}
+```
 
 ---
 
@@ -35,15 +59,12 @@ Unfollow a user.
 | **Endpoint** | `/profiles/:username/follow` |
 | **Auth** | Yes |
 
-**Response:** `Profile` object with `following: false`.
-
----
-
-## Response Format
-
+**Response:**
 ```json
 {
-  "profile": {
+  "statusCode": 200,
+  "message": "User unfollowed successfully",
+  "data": {
     "username": "jake",
     "bio": "I work at statefarm",
     "image": "https://static.productionready.io/images/smiley-cyrus.jpg",

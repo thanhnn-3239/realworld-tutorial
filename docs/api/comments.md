@@ -9,7 +9,27 @@ Returns all comments for an article.
 | **Endpoint** | `/articles/:slug/comments` |
 | **Auth** | Optional |
 
-**Response:** `{ comments: [...] }`
+**Response:**
+```json
+{
+  "statusCode": 200,
+  "message": "Comments retrieved successfully",
+  "data": [
+    {
+      "id": 1,
+      "createdAt": "2016-02-18T03:22:56.637Z",
+      "updatedAt": "2016-02-18T03:22:56.637Z",
+      "body": "It takes a Jacobian",
+      "author": {
+        "username": "jake",
+        "bio": "I work at statefarm",
+        "image": "https://i.stack.imgur.com/xHWG8.jpg",
+        "following": false
+      }
+    }
+  ]
+}
+```
 
 ---
 
@@ -24,15 +44,26 @@ Returns all comments for an article.
 **Request Body:**
 ```json
 {
-  "comment": {
-    "body": "His name was my name too."
-  }
+  "body": "His name was my name too."
 }
 ```
 
 **Required Fields:** `body`
 
-**Response:** Created `Comment` object.
+**Response:**
+```json
+{
+  "statusCode": 201,
+  "message": "Comment created successfully",
+  "data": {
+    "id": 1,
+    "createdAt": "2016-02-18T03:22:56.637Z",
+    "updatedAt": "2016-02-18T03:22:56.637Z",
+    "body": "His name was my name too.",
+    "author": { ... }
+  }
+}
+```
 
 ---
 
@@ -44,25 +75,11 @@ Returns all comments for an article.
 | **Endpoint** | `/articles/:slug/comments/:id` |
 | **Auth** | Yes |
 
-**Response:** `204 No Content`
-
----
-
-## Response Format
-
+**Response:**
 ```json
 {
-  "comment": {
-    "id": 1,
-    "createdAt": "2016-02-18T03:22:56.637Z",
-    "updatedAt": "2016-02-18T03:22:56.637Z",
-    "body": "It takes a Jacobian",
-    "author": {
-      "username": "jake",
-      "bio": "I work at statefarm",
-      "image": "https://i.stack.imgur.com/xHWG8.jpg",
-      "following": false
-    }
-  }
+  "statusCode": 200,
+  "message": "Comment deleted successfully",
+  "data": null
 }
 ```

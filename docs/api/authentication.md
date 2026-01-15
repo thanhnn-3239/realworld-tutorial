@@ -12,17 +12,28 @@ Creates a new user account.
 **Request Body:**
 ```json
 {
-  "user": {
-    "username": "jacob",
-    "email": "jake@jake.jake",
-    "password": "jakejake"
-  }
+  "username": "jacob",
+  "email": "jake@jake.jake",
+  "password": "jakejake"
 }
 ```
 
 **Required Fields:** `email`, `username`, `password`
 
-**Response:** `User` object with JWT token.
+**Response:**
+```json
+{
+  "statusCode": 201,
+  "message": "User registered successfully",
+  "data": {
+    "email": "jake@jake.jake",
+    "token": "jwt.token.here",
+    "username": "jake",
+    "bio": null,
+    "image": null
+  }
+}
+```
 
 ---
 
@@ -38,24 +49,19 @@ Authenticates an existing user.
 **Request Body:**
 ```json
 {
-  "user": {
-    "email": "jake@jake.jake",
-    "password": "jakejake"
-  }
+  "email": "jake@jake.jake",
+  "password": "jakejake"
 }
 ```
 
 **Required Fields:** `email`, `password`
 
-**Response:** `User` object with JWT token.
-
----
-
-## Response Format
-
+**Response:**
 ```json
 {
-  "user": {
+  "statusCode": 200,
+  "message": "Login successful",
+  "data": {
     "email": "jake@jake.jake",
     "token": "jwt.token.here",
     "username": "jake",

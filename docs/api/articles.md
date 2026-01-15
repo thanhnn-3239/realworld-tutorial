@@ -15,10 +15,25 @@ Returns a list of articles with filtering and pagination.
 | `tag` | Filter by tag | - |
 | `author` | Filter by author username | - |
 | `favorited` | Filter by user who favorited | - |
-| `limit` | Number of articles to return | 20 |
-| `offset` | Number of articles to skip | 0 |
+| `limit` | Number of articles to return | 10 |
+| `page` | Page number | 1 |
 
-**Response:** `{ articles: [...], articlesCount: number }`
+**Response:**
+```json
+{
+  "statusCode": 200,
+  "message": "Articles retrieved successfully",
+  "data": [ ... ],
+  "meta": {
+    "total": 100,
+    "page": 1,
+    "last_page": 10,
+    "limit": 10,
+    "has_next_page": true,
+    "has_prev_page": false
+  }
+}
+```
 
 ---
 
@@ -31,9 +46,9 @@ Returns articles from followed users only.
 | **Endpoint** | `/articles/feed` |
 | **Auth** | Yes |
 
-**Query Parameters:** `limit`, `offset`
+**Query Parameters:** `limit`, `page`
 
-**Response:** `{ articles: [...], articlesCount: number }`
+**Response:** Same format as List Articles with pagination.
 
 ---
 
@@ -46,79 +61,12 @@ Returns a single article by slug.
 | **Endpoint** | `/articles/:slug` |
 | **Auth** | No |
 
-**Response:** `Article` object.
-
----
-
-## Create Article
-
-| | |
-|---|---|
-| **Method** | `POST` |
-| **Endpoint** | `/articles` |
-| **Auth** | Yes |
-
-**Request Body:**
+**Response:**
 ```json
 {
-  "article": {
-    "title": "How to train your dragon",
-    "description": "Ever wonder how?",
-    "body": "You have to believe",
-    "tagList": ["reactjs", "angularjs", "dragons"]
-  }
-}
-```
-
-**Required Fields:** `title`, `description`, `body`
-**Optional Fields:** `tagList`
-
-**Response:** Created `Article` object.
-
----
-
-## Update Article
-
-| | |
-|---|---|
-| **Method** | `PUT` |
-| **Endpoint** | `/articles/:slug` |
-| **Auth** | Yes |
-
-**Request Body:**
-```json
-{
-  "article": {
-    "title": "Did you train your dragon?"
-  }
-}
-```
-
-**Optional Fields:** `title`, `description`, `body`
-
-> **Note:** The `slug` is regenerated when the `title` changes.
-
-**Response:** Updated `Article` object.
-
----
-
-## Delete Article
-
-| | |
-|---|---|
-| **Method** | `DELETE` |
-| **Endpoint** | `/articles/:slug` |
-| **Auth** | Yes |
-
-**Response:** `204 No Content`
-
----
-
-## Response Format
-
-```json
-{
-  "article": {
+  "statusCode": 200,
+  "message": "Article retrieved successfully",
+  "data": {
     "slug": "how-to-train-your-dragon",
     "title": "How to train your dragon",
     "description": "Ever wonder how?",
@@ -135,5 +83,86 @@ Returns a single article by slug.
       "following": false
     }
   }
+}
+```
+
+---
+
+## Create Article
+
+| | |
+|---|---|
+| **Method** | `POST` |
+| **Endpoint** | `/articles` |
+| **Auth** | Yes |
+
+**Request Body:**
+```json
+{
+  "title": "How to train your dragon",
+  "description": "Ever wonder how?",
+  "body": "You have to believe",
+  "tagList": ["reactjs", "angularjs", "dragons"]
+}
+```
+
+**Required Fields:** `title`, `description`, `body`
+**Optional Fields:** `tagList`
+
+**Response:**
+```json
+{
+  "statusCode": 201,
+  "message": "Article created successfully",
+  "data": { ... }
+}
+```
+
+---
+
+## Update Article
+
+| | |
+|---|---|
+| **Method** | `PUT` |
+| **Endpoint** | `/articles/:slug` |
+| **Auth** | Yes |
+
+**Request Body:**
+```json
+{
+  "title": "Did you train your dragon?"
+}
+```
+
+**Optional Fields:** `title`, `description`, `body`
+
+> **Note:** The `slug` is regenerated when the `title` changes.
+
+**Response:**
+```json
+{
+  "statusCode": 200,
+  "message": "Article updated successfully",
+  "data": { ... }
+}
+```
+
+---
+
+## Delete Article
+
+| | |
+|---|---|
+| **Method** | `DELETE` |
+| **Endpoint** | `/articles/:slug` |
+| **Auth** | Yes |
+
+**Response:**
+```json
+{
+  "statusCode": 200,
+  "message": "Article deleted successfully",
+  "data": null
 }
 ```

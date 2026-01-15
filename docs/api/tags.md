@@ -12,6 +12,8 @@ Returns a list of all tags.
 **Response:**
 ```json
 {
-  "tags": ["reactjs", "angularjs", "dragons"]
+  "statusCode": 200,
+  "message": "Tags retrieved successfully",
+  "data": ["reactjs", "angularjs", "dragons"]
 }
 ```

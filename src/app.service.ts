@@ -9,8 +9,7 @@ export class AppService {
     private readonly prisma: PrismaService,
     private readonly logger: CustomLoggerService,
     private readonly i18n: I18nService,
-  ) {
-  }
+  ) {}
 
   async getHello(): Promise<string> {
     const users = await this.prisma.user.findMany();
