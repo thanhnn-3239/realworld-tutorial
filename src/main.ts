@@ -1,6 +1,6 @@
 import { NestFactory, Reflector } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { VersioningType } from '@nestjs/common';
+import { ClassSerializerInterceptor, VersioningType } from '@nestjs/common';
 
 import { AppModule } from './app.module';
 import { CustomLoggerService } from './logger/logger.service';
@@ -12,6 +12,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true,
   });
+
+  const reflector = app.get(Reflector);
+
   app.enableShutdownHooks();
   app.useLogger(await app.resolve(CustomLoggerService));
 
@@ -22,7 +25,10 @@ async function bootstrap() {
   });
 
   app.useGlobalPipes(new ValidationPipe(validationOptions));
-  app.useGlobalInterceptors(new TransformInterceptor(app.get(Reflector)));
+  app.useGlobalInterceptors(
+    new TransformInterceptor(reflector),
+    new ClassSerializerInterceptor(reflector),
+  );
 
   // Swagger configuration
   const config = new DocumentBuilder()

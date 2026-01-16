@@ -8,6 +8,7 @@ import {
   MinLength,
 } from 'class-validator';
 import { AUTH_VALIDATION } from '../auth.config';
+import { Match } from '../../common/decorators/match.decorator';
 
 export class RegisterDto {
   @ApiProperty({
@@ -72,4 +73,23 @@ export class RegisterDto {
     }),
   })
   password: string;
+
+  @ApiProperty({
+    example: 'password123',
+    description: 'Password confirmation - must match password field',
+    minLength: AUTH_VALIDATION.password.minLength,
+  })
+  @IsString()
+  @IsNotEmpty({
+    message: i18nValidationMessage('common.validation.required', {
+      field: 'Password confirmation',
+    }),
+  })
+  @Match('password', {
+    message: i18nValidationMessage('common.validation.match', {
+      field: 'Password confirmation',
+      relatedField: 'password',
+    }),
+  })
+  password_confirmation: string;
 }

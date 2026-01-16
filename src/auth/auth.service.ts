@@ -10,14 +10,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { ConfigService } from '@nestjs/config';
-
-export interface AuthResponse {
-  email: string;
-  username: string;
-  bio: string | null;
-  image: string | null;
-  token: string;
-}
+import { AuthResponseDto } from './dto/auth-response.dto';
 
 @Injectable()
 export class AuthService {
@@ -28,10 +21,11 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {
-    this.saltRounds = this.configService.get<number>('BCRYPT_SALT_ROUNDS', 10);
+    const saltRoundsConfig = this.configService.get('BCRYPT_SALT_ROUNDS', '10');
+    this.saltRounds = parseInt(saltRoundsConfig, 10);
   }
 
-  async register(dto: RegisterDto): Promise<AuthResponse> {
+  async register(dto: RegisterDto): Promise<AuthResponseDto> {
     const { email, username, password } = dto;
 
     const existingEmail = await this.authRepository.findByEmail(email);
@@ -58,16 +52,16 @@ export class AuthService {
       username: user.username,
     });
 
-    return {
+    return new AuthResponseDto({
       email: user.email,
       username: user.username,
-      bio: user.bio,
-      image: user.image,
-      token,
-    };
+      token: token,
+      bio: null,
+      image: null,
+    });
   }
 
-  async login(dto: LoginDto): Promise<AuthResponse> {
+  async login(dto: LoginDto): Promise<AuthResponseDto> {
     const { email, password } = dto;
 
     const user = await this.authRepository.findByEmailWithPassword(email);
@@ -86,13 +80,13 @@ export class AuthService {
       username: user.username,
     });
 
-    return {
+    return new AuthResponseDto({
       email: user.email,
       username: user.username,
       bio: user.bio,
       image: user.image,
       token,
-    };
+    });
   }
 
   private generateToken(payload: JwtPayload): string {

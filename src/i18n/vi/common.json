@@ -14,6 +14,7 @@
     "invalid": "{field} không hợp lệ",
     "minLength": "{field} phải có ít nhất {min} ký tự",
     "maxLength": "{field} không được vượt quá {max} ký tự",
-    "email": "Vui lòng cung cấp địa chỉ email hợp lệ"
+    "email": "Vui lòng cung cấp địa chỉ email hợp lệ",
+    "match": "{field} phải khớp với {relatedField}"
   }
 }

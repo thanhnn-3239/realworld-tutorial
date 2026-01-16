@@ -14,6 +14,7 @@
     "invalid": "{field} is invalid",
     "minLength": "{field} must be at least {min} characters",
     "maxLength": "{field} must be at most {max} characters",
-    "email": "Please provide a valid email address"
+    "email": "Please provide a valid email address",
+    "match": "{field} must match {relatedField}"
   }
 }
