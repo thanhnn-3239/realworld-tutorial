@@ -8,29 +8,24 @@ import * as bcrypt from 'bcrypt';
 import { AuthRepository } from './auth.repository';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-
-interface UserPayload {
-  id: number;
-  email: string;
-  username: string;
-}
-
-export interface AuthResponse {
-  email: string;
-  username: string;
-  bio: string | null;
-  image: string | null;
-  token: string;
-}
+import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { ConfigService } from '@nestjs/config';
+import { AuthResponseDto } from './dto/auth-response.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly saltRounds: number;
+
   constructor(
     private readonly authRepository: AuthRepository,
     private readonly jwtService: JwtService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    const saltRoundsConfig = this.configService.get('BCRYPT_SALT_ROUNDS', '10');
+    this.saltRounds = parseInt(saltRoundsConfig, 10);
+  }
 
-  async register(dto: RegisterDto): Promise<AuthResponse> {
+  async register(dto: RegisterDto): Promise<AuthResponseDto> {
     const { email, username, password } = dto;
 
     const existingEmail = await this.authRepository.findByEmail(email);
@@ -43,7 +38,7 @@ export class AuthService {
       throw new ConflictException('Username already exists');
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, this.saltRounds);
 
     const user = await this.authRepository.create({
       email,
@@ -57,16 +52,16 @@ export class AuthService {
       username: user.username,
     });
 
-    return {
+    return new AuthResponseDto({
       email: user.email,
       username: user.username,
-      bio: user.bio,
-      image: user.image,
-      token,
-    };
+      token: token,
+      bio: null,
+      image: null,
+    });
   }
 
-  async login(dto: LoginDto): Promise<AuthResponse> {
+  async login(dto: LoginDto): Promise<AuthResponseDto> {
     const { email, password } = dto;
 
     const user = await this.authRepository.findByEmailWithPassword(email);
@@ -85,16 +80,16 @@ export class AuthService {
       username: user.username,
     });
 
-    return {
+    return new AuthResponseDto({
       email: user.email,
       username: user.username,
       bio: user.bio,
       image: user.image,
       token,
-    };
+    });
   }
 
-  private generateToken(payload: UserPayload): string {
+  private generateToken(payload: JwtPayload): string {
     return this.jwtService.sign(payload);
   }
 }
