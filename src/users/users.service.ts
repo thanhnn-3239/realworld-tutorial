@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { UsersRepository } from './users.repository';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { I18nService } from 'nestjs-i18n';
 import { PasswordService } from '../common/password/password.service';
 
 export interface UserResponse {
@@ -27,12 +28,13 @@ export class UsersService {
   constructor(
     private readonly usersRepository: UsersRepository,
     private readonly passwordService: PasswordService,
+    private readonly i18n: I18nService,
   ) {}
 
   async getCurrentUser(userId: number): Promise<UserResponse> {
     const user = await this.usersRepository.findById(userId);
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException(this.i18n.t('common.error.userNotFound'));
     }
     return {
       email: user.email,
@@ -51,7 +53,7 @@ export class UsersService {
         userId,
       );
       if (existingEmail) {
-        throw new ConflictException('Email already in use');
+        throw new ConflictException(this.i18n.t('common.error.emailInUse'));
       }
     }
 
@@ -62,7 +64,9 @@ export class UsersService {
           userId,
         );
       if (existingUsername) {
-        throw new ConflictException('Username already in use');
+        throw new ConflictException(
+          this.i18n.t('common.error.usernameInUse'),
+        );
       }
     }
 
