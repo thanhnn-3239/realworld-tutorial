@@ -26,7 +26,7 @@ import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 @Controller('user')
 @UseGuards(JwtAuthGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
+  constructor(private readonly usersService: UsersService) {}
 
   @Get()
   @HttpCode(HttpStatus.OK)

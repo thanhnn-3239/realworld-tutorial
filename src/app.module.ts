@@ -25,7 +25,7 @@ import { UsersModule } from './users/users.module';
     I18nModule.forRoot({
       fallbackLanguage: 'en',
       loaderOptions: {
-        path: path.join(__dirname, '..', 'i18n'),
+        path: path.join(__dirname, '/i18n/'),
         watch: true,
       },
       resolvers: [
@@ -48,4 +48,4 @@ import { UsersModule } from './users/users.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

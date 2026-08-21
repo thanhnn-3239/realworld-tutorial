@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { UsersRepository } from './users.repository';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { PasswordService } from '../common/password/password.service';
 
 export interface UserResponse {
   email: string;
@@ -13,9 +14,20 @@ export interface UserResponse {
   image: string | null;
 }
 
+interface UserUpdateData {
+  email?: string;
+  username?: string;
+  bio?: string | null;
+  image?: string | null;
+  password?: string;
+}
+
 @Injectable()
 export class UsersService {
-  constructor(private readonly usersRepository: UsersRepository) { }
+  constructor(
+    private readonly usersRepository: UsersRepository,
+    private readonly passwordService: PasswordService,
+  ) {}
 
   async getCurrentUser(userId: number): Promise<UserResponse> {
     const user = await this.usersRepository.findById(userId);
@@ -31,9 +43,11 @@ export class UsersService {
   }
 
   async updateUser(userId: number, dto: UpdateUserDto): Promise<UserResponse> {
-    if (dto.email) {
+    const { password, ...profileFields } = dto;
+
+    if (profileFields.email) {
       const existingEmail = await this.usersRepository.findByEmailExcluding(
-        dto.email,
+        profileFields.email,
         userId,
       );
       if (existingEmail) {
@@ -41,15 +55,24 @@ export class UsersService {
       }
     }
 
-    if (dto.username) {
+    if (profileFields.username) {
       const existingUsername =
-        await this.usersRepository.findByUsernameExcluding(dto.username, userId);
+        await this.usersRepository.findByUsernameExcluding(
+          profileFields.username,
+          userId,
+        );
       if (existingUsername) {
         throw new ConflictException('Username already in use');
       }
     }
 
-    const updatedUser = await this.usersRepository.update(userId, dto);
+    const updateData: UserUpdateData = { ...profileFields };
+
+    if (password !== undefined) {
+      updateData.password = await this.passwordService.hash(password);
+    }
+
+    const updatedUser = await this.usersRepository.update(userId, updateData);
 
     return {
       email: updatedUser.email,
