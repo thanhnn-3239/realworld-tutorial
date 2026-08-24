@@ -15,6 +15,7 @@ import { APP_FILTER } from '@nestjs/core';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { LoggerModule } from './logger/logger.module';
 import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -24,7 +25,7 @@ import { AuthModule } from './auth/auth.module';
     I18nModule.forRoot({
       fallbackLanguage: 'en',
       loaderOptions: {
-        path: path.join(__dirname, '..', 'i18n'),
+        path: path.join(__dirname, '/i18n/'),
         watch: true,
       },
       resolvers: [
@@ -36,6 +37,7 @@ import { AuthModule } from './auth/auth.module';
     PrismaModule,
     LoggerModule.register(),
     AuthModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [

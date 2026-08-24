@@ -4,26 +4,20 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
 import { AuthRepository } from './auth.repository';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
-import { ConfigService } from '@nestjs/config';
 import { AuthResponseDto } from './dto/auth-response.dto';
+import { PasswordService } from '../common/password/password.service';
 
 @Injectable()
 export class AuthService {
-  private readonly saltRounds: number;
-
   constructor(
     private readonly authRepository: AuthRepository,
     private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
-  ) {
-    const saltRoundsConfig = this.configService.get('BCRYPT_SALT_ROUNDS', '10');
-    this.saltRounds = parseInt(saltRoundsConfig, 10);
-  }
+    private readonly passwordService: PasswordService,
+  ) {}
 
   async register(dto: RegisterDto): Promise<AuthResponseDto> {
     const { email, username, password } = dto;
@@ -38,7 +32,7 @@ export class AuthService {
       throw new ConflictException('Username already exists');
     }
 
-    const hashedPassword = await bcrypt.hash(password, this.saltRounds);
+    const hashedPassword = await this.passwordService.hash(password);
 
     const user = await this.authRepository.create({
       email,
@@ -69,7 +63,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await this.passwordService.compare(
+      password,
+      user.password,
+    );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
