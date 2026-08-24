@@ -10,7 +10,11 @@
     "internalError": "Internal server error",
     "userNotFound": "User not found",
     "emailInUse": "Email already in use",
-    "usernameInUse": "Username already in use"
+    "usernameInUse": "Username already in use",
+    "articleNotFound": "Article not found",
+    "articleForbidden": "Only the author can modify this article",
+    "articleSlugConflict": "Could not allocate a unique article slug",
+    "emptyArticleUpdate": "Provide at least one article field to update"
   },
   "validation": {
     "required": "{field} is required",
@@ -18,6 +22,7 @@
     "minLength": "{field} must be at least {min} characters",
     "maxLength": "{field} must be at most {max} characters",
     "email": "Please provide a valid email address",
-    "match": "{field} must match {relatedField}"
+    "match": "{field} must match {relatedField}",
+    "nonBlank": "{field} must not be blank"
   }
 }

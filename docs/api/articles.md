@@ -1,13 +1,14 @@
 # Articles
 
 ## List Articles (Paginated)
+
 Returns a list of articles with filtering and pagination.
 
-| | |
-|---|---|
-| **Method** | `GET` |
+|              |             |
+| ------------ | ----------- |
+| **Method**   | `GET`       |
 | **Endpoint** | `/articles` |
-| **Auth** | Optional |
+| **Auth**     | Optional    |
 
 **Query Parameters:**
 | Parameter | Description | Default |
@@ -19,6 +20,7 @@ Returns a list of articles with filtering and pagination.
 | `page` | Page number | 1 |
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -38,13 +40,14 @@ Returns a list of articles with filtering and pagination.
 ---
 
 ## Feed Articles
+
 Returns articles from followed users only.
 
-| | |
-|---|---|
-| **Method** | `GET` |
+|              |                  |
+| ------------ | ---------------- |
+| **Method**   | `GET`            |
 | **Endpoint** | `/articles/feed` |
-| **Auth** | Yes |
+| **Auth**     | Yes              |
 
 **Query Parameters:** `limit`, `page`
 
@@ -53,15 +56,17 @@ Returns articles from followed users only.
 ---
 
 ## Get Article
+
 Returns a single article by slug.
 
-| | |
-|---|---|
-| **Method** | `GET` |
+|              |                   |
+| ------------ | ----------------- |
+| **Method**   | `GET`             |
 | **Endpoint** | `/articles/:slug` |
-| **Auth** | No |
+| **Auth**     | No                |
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -86,17 +91,20 @@ Returns a single article by slug.
 }
 ```
 
+**Errors:** `404` missing article.
+
 ---
 
 ## Create Article
 
-| | |
-|---|---|
-| **Method** | `POST` |
+|              |             |
+| ------------ | ----------- |
+| **Method**   | `POST`      |
 | **Endpoint** | `/articles` |
-| **Auth** | Yes |
+| **Auth**     | Yes         |
 
 **Request Body:**
+
 ```json
 {
   "title": "How to train your dragon",
@@ -109,7 +117,11 @@ Returns a single article by slug.
 **Required Fields:** `title`, `description`, `body`
 **Optional Fields:** `tagList`
 
+**Errors:** `401` unauthenticated, `409` exhausted slug retry, `422` invalid
+request.
+
 **Response:**
+
 ```json
 {
   "statusCode": 201,
@@ -122,24 +134,38 @@ Returns a single article by slug.
 
 ## Update Article
 
-| | |
-|---|---|
-| **Method** | `PUT` |
+|              |                   |
+| ------------ | ----------------- |
+| **Method**   | `PUT`             |
 | **Endpoint** | `/articles/:slug` |
-| **Auth** | Yes |
+| **Auth**     | Yes               |
 
 **Request Body:**
+
 ```json
 {
   "title": "Did you train your dragon?"
 }
 ```
 
-**Optional Fields:** `title`, `description`, `body`
+**Optional Fields:** `title`, `description`, `body`, `tagList`
 
-> **Note:** The `slug` is regenerated when the `title` changes.
+At least one optional field must be present. This endpoint performs a partial
+update even though it uses `PUT`.
+
+**Tag update semantics:**
+
+- Omit `tagList` to preserve existing tags.
+- Send `"tagList": []` to remove all tag links.
+- Send a non-empty list to replace all tag links after normalization.
+
+> **Note:** The `slug` is regenerated when the normalized title changes.
+
+**Errors:** `401` unauthenticated, `403` non-author, `404` missing article,
+`409` exhausted slug retry, `422` invalid or empty update.
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -152,13 +178,14 @@ Returns a single article by slug.
 
 ## Delete Article
 
-| | |
-|---|---|
-| **Method** | `DELETE` |
+|              |                   |
+| ------------ | ----------------- |
+| **Method**   | `DELETE`          |
 | **Endpoint** | `/articles/:slug` |
-| **Auth** | Yes |
+| **Auth**     | Yes               |
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -166,3 +193,5 @@ Returns a single article by slug.
   "data": null
 }
 ```
+
+**Errors:** `401` unauthenticated, `403` non-author, `404` missing article.

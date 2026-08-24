@@ -10,7 +10,11 @@
     "internalError": "Lỗi máy chủ nội bộ",
     "userNotFound": "Không tìm thấy người dùng",
     "emailInUse": "Email đã được sử dụng",
-    "usernameInUse": "Tên người dùng đã tồn tại"
+    "usernameInUse": "Tên người dùng đã tồn tại",
+    "articleNotFound": "Không tìm thấy bài viết",
+    "articleForbidden": "Chỉ tác giả mới được sửa hoặc xóa bài viết này",
+    "articleSlugConflict": "Không thể tạo slug duy nhất cho bài viết",
+    "emptyArticleUpdate": "Hãy cung cấp ít nhất một trường bài viết để cập nhật"
   },
   "validation": {
     "required": "{field} là bắt buộc",
@@ -18,6 +22,7 @@
     "minLength": "{field} phải có ít nhất {min} ký tự",
     "maxLength": "{field} không được vượt quá {max} ký tự",
     "email": "Vui lòng cung cấp địa chỉ email hợp lệ",
-    "match": "{field} phải khớp với {relatedField}"
+    "match": "{field} phải khớp với {relatedField}",
+    "nonBlank": "{field} không được để trống"
   }
 }
