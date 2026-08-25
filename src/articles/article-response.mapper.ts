@@ -23,4 +23,8 @@ export class ArticleResponseMapper {
       },
     };
   }
+
+  toResponseList(articles: ArticleRecord[]): ArticleResponse[] {
+    return articles.map((article) => this.toResponse(article));
+  }
 }

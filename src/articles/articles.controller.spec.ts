@@ -23,6 +23,8 @@ describe('ArticlesController', () => {
     getBySlug: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
+    list: jest.fn(),
+    feed: jest.fn(),
   };
   const controller = new ArticlesController(
     service as unknown as ArticlesService,
@@ -57,6 +59,63 @@ describe('ArticlesController', () => {
     await controller.remove(user, 'article-slug');
 
     expect(service.remove).toHaveBeenCalledWith(7, 'article-slug');
+  });
+
+  it('delegates list with the whole query DTO', async () => {
+    const query = { tag: 'dragons', page: 2, limit: 10 };
+
+    await controller.list(query);
+
+    expect(service.list).toHaveBeenCalledWith(query);
+  });
+
+  it('delegates feed with the JWT user id and the pagination DTO', async () => {
+    const query = { page: 2, limit: 10 };
+
+    await controller.feed(user, query);
+
+    expect(service.feed).toHaveBeenCalledWith(7, query);
+  });
+
+  // Nest matches routes in declaration order, so ':slug' declared first would
+  // swallow '/articles/feed' and answer 404.
+  it('declares feed before the slug route', () => {
+    const methods = Object.getOwnPropertyNames(ArticlesController.prototype);
+
+    expect(methods.indexOf('feed')).toBeGreaterThan(-1);
+    expect(methods.indexOf('feed')).toBeLessThan(methods.indexOf('getBySlug'));
+  });
+
+  it('keeps list public and guards feed', () => {
+    expect(
+      Reflect.getMetadata(GUARDS_METADATA, ArticlesController.prototype.list),
+    ).toBeUndefined();
+    expect(
+      Reflect.getMetadata(GUARDS_METADATA, ArticlesController.prototype.feed),
+    ).toContain(JwtAuthGuard);
+  });
+
+  it('declares the two read routes', () => {
+    expect(
+      Reflect.getMetadata(PATH_METADATA, ArticlesController.prototype.list),
+    ).toBe('/');
+    expect(
+      Reflect.getMetadata(PATH_METADATA, ArticlesController.prototype.feed),
+    ).toBe('feed');
+    for (const method of ['list', 'feed'] as const) {
+      expect(
+        Reflect.getMetadata(
+          METHOD_METADATA,
+          ArticlesController.prototype[method],
+        ),
+      ).toBe(RequestMethod.GET);
+      expect(
+        Reflect.getMetadata(
+          HTTP_CODE_METADATA,
+          ArticlesController.prototype[method],
+        ),
+      ).toBe(HttpStatus.OK);
+    }
   });
 
   it('keeps GET public and protects mutating routes', () => {

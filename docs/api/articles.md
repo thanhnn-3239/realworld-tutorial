@@ -19,6 +19,30 @@ Returns a list of articles with filtering and pagination.
 | `limit` | Number of articles to return | 10 |
 | `page` | Page number | 1 |
 
+Articles are always returned newest first (`createdAt` descending). Filters
+combine with AND. A filter naming a tag or user that does not exist returns
+`200` with an empty `data` and `total: 0` — not `404`. A `page` past
+`last_page` also returns `200` with an empty `data`, but `meta` still reports
+the real `total` — only the requested page comes back empty, `total` does not
+drop to `0`. When `total` is `0`, `last_page` is `0` and `has_next_page` is
+`false`. `has_prev_page` depends only on `page`, not on `total`: it is `false`
+on page `1` and `true` on any higher page, even against a zero-match filter —
+`?page=2&tag=nonexistent` still reports `has_prev_page: true`.
+
+`tag` is trimmed and lowercased before matching, exactly as tags are on write,
+so `?tag=Dragons` finds an article tagged `dragons`. A `tag` that normalizes to
+nothing is treated as no filter. `author` and `favorited` match a username
+exactly.
+
+`limit` accepts `1..100` and `page` accepts `1` upwards; anything else answers
+`422`.
+
+> **Note:** `favorited` and `author.following` are currently always `false` on
+> every article response. They become viewer-aware when
+> [#8 Favorites](https://github.com/thanhnn-3239/realworld-tutorial/issues/8)
+> and [#4 Follow](https://github.com/thanhnn-3239/realworld-tutorial/issues/4)
+> land. `GET /articles` therefore ignores any bearer token.
+
 **Response:**
 
 ```json
@@ -49,7 +73,17 @@ Returns articles from followed users only.
 | **Endpoint** | `/articles/feed` |
 | **Auth**     | Yes              |
 
-**Query Parameters:** `limit`, `page`
+**Query Parameters:** `page` (default `1`), `limit` (default `10`, max `100`)
+
+Returns articles whose author the caller follows, newest first. The caller's own
+articles are excluded unless the caller follows themselves.
+
+**Errors:** `401` missing or expired token, `422` invalid query parameter.
+
+> **Note:** follow relationships are created by
+> [#4 Public Profiles & Follow](https://github.com/thanhnn-3239/realworld-tutorial/issues/4),
+> which is not yet implemented, so this endpoint returns an empty page for every
+> caller until that lands.
 
 **Response:** Same format as List Articles with pagination.
 

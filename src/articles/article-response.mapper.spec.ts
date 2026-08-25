@@ -36,4 +36,34 @@ describe('ArticleResponseMapper', () => {
       },
     });
   });
+
+  it('maps a list preserving order and per-item shape', () => {
+    const mapper = new ArticleResponseMapper();
+    const timestamp = new Date('2026-08-24T00:00:00.000Z');
+    const record = {
+      id: 1,
+      slug: 'first',
+      title: 'First',
+      description: 'Description',
+      body: 'Body',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      authorId: 7,
+      tagList: [{ name: 'nestjs' }],
+      author: { username: 'jake', bio: null, image: null },
+      _count: { favoritedBy: 2 },
+    } satisfies ArticleRecord;
+
+    const result = mapper.toResponseList([
+      record,
+      { ...record, slug: 'second' },
+    ]);
+
+    expect(result.map((article) => article.slug)).toEqual(['first', 'second']);
+    expect(result[0]).toEqual(mapper.toResponse(record));
+  });
+
+  it('maps an empty list to an empty list', () => {
+    expect(new ArticleResponseMapper().toResponseList([])).toEqual([]);
+  });
 });

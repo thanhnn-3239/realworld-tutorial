@@ -8,6 +8,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -19,10 +20,13 @@ import {
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import { PaginationDto } from '../common/dto/api-response.dto';
 import { ResponseMessage } from '../common/decorators/response-message.decorator';
 import { ArticlesService } from './articles.service';
 import { ArticleResponseDto } from './dto/article-response.dto';
 import { CreateArticleDto } from './dto/create-article.dto';
+import { ListArticlesQueryDto } from './dto/list-articles-query.dto';
+import { PaginatedArticlesResponseDto } from './dto/paginated-articles-response.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 
 @ApiTags('Articles')
@@ -49,6 +53,43 @@ export class ArticlesController {
   })
   create(@CurrentUser() user: JwtPayload, @Body() dto: CreateArticleDto) {
     return this.articlesService.create(user.id, dto);
+  }
+
+  @Get()
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage('Articles retrieved successfully')
+  @ApiOperation({ summary: 'List articles with filters and pagination' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Articles retrieved',
+    type: PaginatedArticlesResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    description: 'Invalid query parameter',
+  })
+  list(@Query() query: ListArticlesQueryDto) {
+    return this.articlesService.list(query);
+  }
+
+  @Get('feed')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage('Feed retrieved successfully')
+  @ApiOperation({ summary: 'List articles authored by followed users' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Feed retrieved',
+    type: PaginatedArticlesResponseDto,
+  })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
+  @ApiResponse({
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    description: 'Invalid query parameter',
+  })
+  feed(@CurrentUser() user: JwtPayload, @Query() query: PaginationDto) {
+    return this.articlesService.feed(user.id, query);
   }
 
   @Get(':slug')

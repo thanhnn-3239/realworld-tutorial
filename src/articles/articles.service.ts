@@ -5,10 +5,21 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
+import { PaginationDto } from '../common/dto/api-response.dto';
+import {
+  DEFAULT_LIMIT,
+  DEFAULT_PAGE,
+  Paginated,
+} from '../prisma/prisma.extension';
 import { ArticleResponseMapper } from './article-response.mapper';
 import { ArticleSlugService } from './article-slug.service';
-import { ArticlesRepository, UpdateArticleData } from './articles.repository';
+import {
+  ArticleListFilter,
+  ArticlesRepository,
+  UpdateArticleData,
+} from './articles.repository';
 import { CreateArticleDto } from './dto/create-article.dto';
+import { ListArticlesQueryDto } from './dto/list-articles-query.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { ArticleResponse } from './interfaces/article-response.interface';
 
@@ -40,6 +51,33 @@ export class ArticlesService {
     );
 
     return this.responseMapper.toResponse(article);
+  }
+
+  async list(
+    query: ListArticlesQueryDto,
+  ): Promise<Paginated<ArticleResponse[]>> {
+    const { page = DEFAULT_PAGE, limit = DEFAULT_LIMIT } = query;
+    const { data, meta } = await this.articlesRepository.listPaginated(
+      this.buildFilter(query),
+      page,
+      limit,
+    );
+
+    return { data: this.responseMapper.toResponseList(data), meta };
+  }
+
+  async feed(
+    userId: number,
+    query: PaginationDto,
+  ): Promise<Paginated<ArticleResponse[]>> {
+    const { page = DEFAULT_PAGE, limit = DEFAULT_LIMIT } = query;
+    const { data, meta } = await this.articlesRepository.listFeedPaginated(
+      userId,
+      page,
+      limit,
+    );
+
+    return { data: this.responseMapper.toResponseList(data), meta };
   }
 
   async getBySlug(slug: string): Promise<ArticleResponse> {
@@ -118,9 +156,28 @@ export class ArticlesService {
     );
   }
 
+  /**
+   * A tag that normalizes to nothing is dropped rather than sent on: no stored
+   * tag equals the empty string, so keeping it would guarantee an empty page.
+   */
+  private buildFilter(query: ListArticlesQueryDto): ArticleListFilter {
+    const tag =
+      query.tag === undefined ? undefined : this.normalizeTag(query.tag);
+
+    return {
+      ...(tag ? { tag } : {}),
+      ...(query.author === undefined ? {} : { author: query.author }),
+      ...(query.favorited === undefined ? {} : { favorited: query.favorited }),
+    };
+  }
+
+  private normalizeTag(tag: string): string {
+    return tag.trim().toLowerCase();
+  }
+
   private normalizeTags(tags: string[]): string[] {
     return [
-      ...new Set(tags.map((tag) => tag.trim().toLowerCase()).filter(Boolean)),
+      ...new Set(tags.map((tag) => this.normalizeTag(tag)).filter(Boolean)),
     ];
   }
 }

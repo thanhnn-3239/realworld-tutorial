@@ -10,6 +10,14 @@ import { ArticlesRepository } from './articles.repository';
 import { ArticlesService } from './articles.service';
 
 const USER_ID = 7;
+const PAGE_META = {
+  total: 1,
+  page: 1,
+  last_page: 1,
+  limit: 10,
+  has_next_page: false,
+  has_prev_page: false,
+};
 const stored = {
   id: 1,
   slug: 'original',
@@ -43,6 +51,8 @@ describe('ArticlesService', () => {
     findIdentityBySlug: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+    listPaginated: jest.fn(),
+    listFeedPaginated: jest.fn(),
   };
   const slugService = { execute: jest.fn() };
   const i18n = { t: jest.fn((key: string) => `translated:${key}`) };
@@ -60,6 +70,14 @@ describe('ArticlesService', () => {
     });
     repository.update.mockResolvedValue(stored);
     repository.delete.mockResolvedValue(undefined);
+    repository.listPaginated.mockResolvedValue({
+      data: [stored],
+      meta: PAGE_META,
+    });
+    repository.listFeedPaginated.mockResolvedValue({
+      data: [stored],
+      meta: PAGE_META,
+    });
     slugService.execute.mockImplementation(
       async (_title: string, write: (slug: string) => Promise<unknown>) =>
         write('generated-slug'),
@@ -339,5 +357,103 @@ describe('ArticlesService', () => {
       await expect(service.remove(USER_ID, 'original')).resolves.toBeNull();
       expect(repository.delete).toHaveBeenCalledWith(stored.id);
     });
+  });
+
+  it('lowercases and trims a tag so the read path matches the write path', async () => {
+    await service.list({ tag: '  DRAGONS  ', page: 1, limit: 10 });
+
+    expect(repository.listPaginated).toHaveBeenCalledWith(
+      { tag: 'dragons' },
+      1,
+      10,
+    );
+  });
+
+  it('omits filters the caller did not send', async () => {
+    await service.list({ author: 'jake', page: 2, limit: 25 });
+
+    // toHaveBeenCalledWith ignores keys whose value is undefined, so a
+    // regression to `{ author: 'jake', tag: undefined, favorited: undefined }`
+    // would still pass it. toStrictEqual on the captured argument does not.
+    const [filter, page, limit] = repository.listPaginated.mock.calls[0];
+    expect(filter).toStrictEqual({ author: 'jake' });
+    expect(page).toBe(2);
+    expect(limit).toBe(25);
+  });
+
+  it('passes all three filters through together', async () => {
+    await service.list({
+      tag: 'Dragons',
+      author: 'jake',
+      favorited: 'jane',
+      page: 1,
+      limit: 10,
+    });
+
+    expect(repository.listPaginated).toHaveBeenCalledWith(
+      { tag: 'dragons', author: 'jake', favorited: 'jane' },
+      1,
+      10,
+    );
+  });
+
+  // A tag of only whitespace can match nothing, so it is no filter at all.
+  // toStrictEqual (not toHaveBeenCalledWith) so a regression that sets the
+  // key to `undefined` instead of omitting it still fails this test.
+  it('drops a blank tag instead of querying for the empty string', async () => {
+    await service.list({ tag: '   ', page: 1, limit: 10 });
+
+    const [filter, page, limit] = repository.listPaginated.mock.calls[0];
+    expect(filter).toStrictEqual({});
+    expect(page).toBe(1);
+    expect(limit).toBe(10);
+  });
+
+  it('applies the default page and limit when the query omits them', async () => {
+    await service.list({});
+
+    const [filter, page, limit] = repository.listPaginated.mock.calls[0];
+    expect(filter).toStrictEqual({});
+    expect(page).toBe(1);
+    expect(limit).toBe(10);
+  });
+
+  it('maps list rows through the mapper and forwards meta untouched', async () => {
+    const result = await service.list({ page: 1, limit: 10 });
+
+    expect(result.meta).toBe(PAGE_META);
+    expect(result.data).toEqual([
+      {
+        slug: stored.slug,
+        title: stored.title,
+        description: stored.description,
+        body: stored.body,
+        tagList: ['nestjs'],
+        createdAt: stored.createdAt,
+        updatedAt: stored.updatedAt,
+        favorited: false,
+        favoritesCount: 0,
+        author: {
+          username: 'jake',
+          bio: null,
+          image: null,
+          following: false,
+        },
+      },
+    ]);
+  });
+
+  it('asks the repository for the feed of the given user', async () => {
+    const result = await service.feed(USER_ID, { page: 3, limit: 5 });
+
+    expect(repository.listFeedPaginated).toHaveBeenCalledWith(USER_ID, 3, 5);
+    expect(result.meta).toBe(PAGE_META);
+    expect(result.data).toHaveLength(1);
+  });
+
+  it('applies the default page and limit to the feed', async () => {
+    await service.feed(USER_ID, {});
+
+    expect(repository.listFeedPaginated).toHaveBeenCalledWith(USER_ID, 1, 10);
   });
 });
