@@ -3,6 +3,10 @@
 ## Get Comments
 Returns all comments for an article.
 
+Comments are returned newest first (`createdAt` descending, then `id`
+descending to keep equal timestamps deterministic). A missing article returns
+`404`; an article without comments returns `200` with an empty `data` array.
+
 | | |
 |---|---|
 | **Method** | `GET` |
@@ -50,6 +54,10 @@ Returns all comments for an article.
 
 **Required Fields:** `body`
 
+`body` must be a string containing at least one non-whitespace character.
+
+**Errors:** `401` unauthenticated, `404` missing article, `422` invalid body.
+
 **Response:**
 ```json
 {
@@ -74,6 +82,13 @@ Returns all comments for an article.
 | **Method** | `DELETE` |
 | **Endpoint** | `/articles/:slug/comments/:id` |
 | **Auth** | Yes |
+
+Only the user who created the comment can delete it. A comment ID belonging to
+another article is treated as not found, so it cannot be deleted through a
+different article URL.
+
+**Errors:** `401` unauthenticated, `403` non-author, `404` missing article or
+comment.
 
 **Response:**
 ```json

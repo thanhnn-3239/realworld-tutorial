@@ -17,6 +17,7 @@ import { LoggerModule } from './logger/logger.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ArticlesModule } from './articles/articles.module';
+import { CommentsModule } from './comments/comments.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { ArticlesModule } from './articles/articles.module';
     AuthModule,
     UsersModule,
     ArticlesModule,
+    CommentsModule,
   ],
   controllers: [AppController],
   providers: [
