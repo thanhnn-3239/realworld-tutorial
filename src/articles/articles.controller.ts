@@ -18,7 +18,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { OptionalCurrentUser } from '../auth/decorators/optional-current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { PaginationDto } from '../common/dto/api-response.dto';
 import { ResponseMessage } from '../common/decorators/response-message.decorator';
@@ -56,6 +58,7 @@ export class ArticlesController {
   }
 
   @Get()
+  @UseGuards(OptionalJwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ResponseMessage('Articles retrieved successfully')
   @ApiOperation({ summary: 'List articles with filters and pagination' })
@@ -68,8 +71,11 @@ export class ArticlesController {
     status: HttpStatus.UNPROCESSABLE_ENTITY,
     description: 'Invalid query parameter',
   })
-  list(@Query() query: ListArticlesQueryDto) {
-    return this.articlesService.list(query);
+  list(
+    @OptionalCurrentUser() user: JwtPayload | undefined,
+    @Query() query: ListArticlesQueryDto,
+  ) {
+    return this.articlesService.list(query, user?.id);
   }
 
   @Get('feed')
@@ -93,6 +99,7 @@ export class ArticlesController {
   }
 
   @Get(':slug')
+  @UseGuards(OptionalJwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ResponseMessage('Article retrieved successfully')
   @ApiOperation({ summary: 'Get an article by slug' })
@@ -105,8 +112,11 @@ export class ArticlesController {
     status: HttpStatus.NOT_FOUND,
     description: 'Article not found',
   })
-  getBySlug(@Param('slug') slug: string) {
-    return this.articlesService.getBySlug(slug);
+  getBySlug(
+    @OptionalCurrentUser() user: JwtPayload | undefined,
+    @Param('slug') slug: string,
+  ) {
+    return this.articlesService.getBySlug(slug, user?.id);
   }
 
   @Put(':slug')

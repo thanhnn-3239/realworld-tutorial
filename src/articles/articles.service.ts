@@ -55,12 +55,14 @@ export class ArticlesService {
 
   async list(
     query: ListArticlesQueryDto,
+    viewerId?: number,
   ): Promise<Paginated<ArticleResponse[]>> {
     const { page = DEFAULT_PAGE, limit = DEFAULT_LIMIT } = query;
     const { data, meta } = await this.articlesRepository.listPaginated(
       this.buildFilter(query),
       page,
       limit,
+      viewerId,
     );
 
     return { data: this.responseMapper.toResponseList(data), meta };
@@ -80,8 +82,8 @@ export class ArticlesService {
     return { data: this.responseMapper.toResponseList(data), meta };
   }
 
-  async getBySlug(slug: string): Promise<ArticleResponse> {
-    const article = await this.articlesRepository.findBySlug(slug);
+  async getBySlug(slug: string, viewerId?: number): Promise<ArticleResponse> {
+    const article = await this.articlesRepository.findBySlug(slug, viewerId);
     if (!article) {
       throw new NotFoundException(this.i18n.t('common.error.articleNotFound'));
     }

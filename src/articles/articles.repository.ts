@@ -3,36 +3,58 @@ import { Prisma } from '../generated/prisma/client';
 import { Paginated } from '../prisma/prisma.extension';
 import { PrismaService } from '../prisma/prisma.service';
 
-const articleResponseSelect = {
+/**
+ * Builds the article select object.
+ * The author's followedBy relation is filtered down to the viewer, so the
+ * mapper can derive `following` from its length without a second query.
+ */
+function buildArticleSelect(viewerId?: number) {
+  return {
+    id: true,
+    slug: true,
+    title: true,
+    description: true,
+    body: true,
+    createdAt: true,
+    updatedAt: true,
+    authorId: true,
+    tagList: {
+      select: { name: true },
+      orderBy: { name: 'asc' as const },
+    },
+    author: {
+      select: {
+        username: true,
+        bio: true,
+        image: true,
+        // Select shape stays constant so Prisma keeps the narrow payload
+        // type; an empty `in` matches nothing, so anonymous reads yield [].
+        followedBy: {
+          where: viewerId === undefined ? { id: { in: [] } } : { id: viewerId },
+          select: { id: true },
+        },
+      },
+    },
+    _count: {
+      select: { favoritedBy: true },
+    },
+  } satisfies Prisma.ArticleSelect;
+}
+
+const articleIdentitySelect = {
   id: true,
   slug: true,
   title: true,
-  description: true,
-  body: true,
-  createdAt: true,
-  updatedAt: true,
   authorId: true,
-  tagList: {
-    select: { name: true },
-    orderBy: { name: 'asc' as const },
-  },
-  author: {
-    select: { username: true, bio: true, image: true },
-  },
-  _count: {
-    select: { favoritedBy: true },
-  },
 } satisfies Prisma.ArticleSelect;
 
+const articleSlugSelect = { slug: true } satisfies Prisma.ArticleSelect;
+
 export type ArticleRecord = Prisma.ArticleGetPayload<{
-  select: typeof articleResponseSelect;
+  select: ReturnType<typeof buildArticleSelect>;
 }>;
 
-// Shared so the list and feed queries cannot drift apart in shape or order.
-const articleListArgs = {
-  select: articleResponseSelect,
-  orderBy: { createdAt: 'desc' as const },
-};
+const articleListOrderBy = { createdAt: 'desc' as const };
 
 /**
  * Absent filters are omitted rather than set to `undefined`, so the emitted SQL
@@ -86,17 +108,17 @@ export interface UpdateArticleData {
 export class ArticlesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  findBySlug(slug: string) {
+  findBySlug(slug: string, viewerId?: number) {
     return this.prisma.article.findUnique({
       where: { slug },
-      select: articleResponseSelect,
+      select: buildArticleSelect(viewerId),
     });
   }
 
   findIdentityBySlug(slug: string): Promise<ArticleIdentity | null> {
     return this.prisma.article.findUnique({
       where: { slug },
-      select: { id: true, slug: true, title: true, authorId: true },
+      select: articleIdentitySelect,
     });
   }
 
@@ -111,7 +133,7 @@ export class ArticlesRepository {
           ? {}
           : { NOT: { id: excludeArticleId } }),
       },
-      select: { slug: true },
+      select: articleSlugSelect,
     });
     return rows.map(({ slug }) => slug);
   }
@@ -120,9 +142,11 @@ export class ArticlesRepository {
     filter: ArticleListFilter,
     page: number,
     limit: number,
+    viewerId?: number,
   ): Promise<Paginated<ArticleRecord[]>> {
     return this.prisma.extended.article.paginate({
-      ...articleListArgs,
+      select: buildArticleSelect(viewerId),
+      orderBy: articleListOrderBy,
       where: buildListWhere(filter),
       page,
       limit,
@@ -135,7 +159,8 @@ export class ArticlesRepository {
     limit: number,
   ): Promise<Paginated<ArticleRecord[]>> {
     return this.prisma.extended.article.paginate({
-      ...articleListArgs,
+      select: buildArticleSelect(userId),
+      orderBy: articleListOrderBy,
       where: { author: { followedBy: { some: { id: userId } } } },
       page,
       limit,
@@ -157,7 +182,7 @@ export class ArticlesRepository {
           })),
         },
       },
-      select: articleResponseSelect,
+      select: buildArticleSelect(),
     });
   }
 
@@ -179,7 +204,7 @@ export class ArticlesRepository {
               },
             }),
       },
-      select: articleResponseSelect,
+      select: buildArticleSelect(),
     });
   }
 

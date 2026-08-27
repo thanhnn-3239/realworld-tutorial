@@ -2,18 +2,30 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
-const commentResponseSelect = {
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  body: true,
-  author: {
-    select: { username: true, bio: true, image: true },
-  },
-} satisfies Prisma.CommentSelect;
+function buildCommentSelect(viewerId?: number) {
+  return {
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+    body: true,
+    author: {
+      select: {
+        username: true,
+        bio: true,
+        image: true,
+        // Select shape stays constant so Prisma keeps the narrow payload
+        // type; an empty `in` matches nothing, so anonymous reads yield [].
+        followedBy: {
+          where: viewerId === undefined ? { id: { in: [] } } : { id: viewerId },
+          select: { id: true },
+        },
+      },
+    },
+  } satisfies Prisma.CommentSelect;
+}
 
 export type CommentRecord = Prisma.CommentGetPayload<{
-  select: typeof commentResponseSelect;
+  select: ReturnType<typeof buildCommentSelect>;
 }>;
 
 export interface CommentIdentity {
@@ -25,10 +37,13 @@ export interface CommentIdentity {
 export class CommentsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  listByArticleId(articleId: number): Promise<CommentRecord[]> {
+  listByArticleId(
+    articleId: number,
+    viewerId?: number,
+  ): Promise<CommentRecord[]> {
     return this.prisma.comment.findMany({
       where: { articleId },
-      select: commentResponseSelect,
+      select: buildCommentSelect(viewerId),
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     });
   }
@@ -40,7 +55,7 @@ export class CommentsRepository {
   ): Promise<CommentRecord> {
     return this.prisma.comment.create({
       data: { articleId, authorId, body },
-      select: commentResponseSelect,
+      select: buildCommentSelect(),
     });
   }
 

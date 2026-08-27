@@ -37,11 +37,12 @@ exactly.
 `limit` accepts `1..100` and `page` accepts `1` upwards; anything else answers
 `422`.
 
-> **Note:** `favorited` and `author.following` are currently always `false` on
-> every article response. They become viewer-aware when
+> **Note:** `author.following` is viewer-aware: send a bearer token and it
+> reports whether you follow the author, resolved in the same query as the
+> article. Without a token it is `false`. `favorited` is still always `false`
+> on every article response until
 > [#8 Favorites](https://github.com/thanhnn-3239/realworld-tutorial/issues/8)
-> and [#4 Follow](https://github.com/thanhnn-3239/realworld-tutorial/issues/4)
-> land. `GET /articles` therefore ignores any bearer token.
+> lands.
 
 **Response:**
 
@@ -97,7 +98,7 @@ Returns a single article by slug.
 | ------------ | ----------------- |
 | **Method**   | `GET`             |
 | **Endpoint** | `/articles/:slug` |
-| **Auth**     | No                |
+| **Auth**     | Optional          |
 
 **Response:**
 

@@ -19,7 +19,7 @@ export class ArticleResponseMapper {
         username: article.author.username,
         bio: article.author.bio,
         image: article.author.image,
-        following: false,
+        following: article.author.followedBy.length > 0,
       },
     };
   }

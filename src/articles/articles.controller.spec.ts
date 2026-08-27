@@ -7,6 +7,7 @@ import {
   PATH_METADATA,
 } from '@nestjs/common/constants';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { AuthModule } from '../auth/auth.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AppModule } from '../app.module';
@@ -42,9 +43,15 @@ describe('ArticlesController', () => {
   });
 
   it('delegates get by slug without a user', async () => {
-    await controller.getBySlug('article-slug');
+    await controller.getBySlug(undefined, 'article-slug');
 
-    expect(service.getBySlug).toHaveBeenCalledWith('article-slug');
+    expect(service.getBySlug).toHaveBeenCalledWith('article-slug', undefined);
+  });
+
+  it('delegates get by slug with an authenticated user', async () => {
+    await controller.getBySlug(user, 'article-slug');
+
+    expect(service.getBySlug).toHaveBeenCalledWith('article-slug', 7);
   });
 
   it('delegates update with the JWT user id and slug', async () => {
@@ -61,12 +68,20 @@ describe('ArticlesController', () => {
     expect(service.remove).toHaveBeenCalledWith(7, 'article-slug');
   });
 
-  it('delegates list with the whole query DTO', async () => {
+  it('delegates list with the whole query DTO and without a user', async () => {
     const query = { tag: 'dragons', page: 2, limit: 10 };
 
-    await controller.list(query);
+    await controller.list(undefined, query);
 
-    expect(service.list).toHaveBeenCalledWith(query);
+    expect(service.list).toHaveBeenCalledWith(query, undefined);
+  });
+
+  it('delegates list with an authenticated user', async () => {
+    const query = { tag: 'dragons', page: 2, limit: 10 };
+
+    await controller.list(user, query);
+
+    expect(service.list).toHaveBeenCalledWith(query, 7);
   });
 
   it('delegates feed with the JWT user id and the pagination DTO', async () => {
@@ -86,10 +101,10 @@ describe('ArticlesController', () => {
     expect(methods.indexOf('feed')).toBeLessThan(methods.indexOf('getBySlug'));
   });
 
-  it('keeps list public and guards feed', () => {
+  it('guards list with optional jwt and protects feed with jwt', () => {
     expect(
       Reflect.getMetadata(GUARDS_METADATA, ArticlesController.prototype.list),
-    ).toBeUndefined();
+    ).toContain(OptionalJwtAuthGuard);
     expect(
       Reflect.getMetadata(GUARDS_METADATA, ArticlesController.prototype.feed),
     ).toContain(JwtAuthGuard);
@@ -118,13 +133,13 @@ describe('ArticlesController', () => {
     }
   });
 
-  it('keeps GET public and protects mutating routes', () => {
+  it('guards GET by slug with optional auth and protects mutating routes', () => {
     expect(
       Reflect.getMetadata(
         GUARDS_METADATA,
         ArticlesController.prototype.getBySlug,
       ),
-    ).toBeUndefined();
+    ).toContain(OptionalJwtAuthGuard);
 
     for (const method of ['create', 'update', 'remove'] as const) {
       expect(
