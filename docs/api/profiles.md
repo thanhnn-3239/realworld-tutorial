@@ -1,15 +1,17 @@
 # Profiles
 
 ## Get Profile
+
 Returns a user's public profile.
 
-| | |
-|---|---|
-| **Method** | `GET` |
+|              |                       |
+| ------------ | --------------------- |
+| **Method**   | `GET`                 |
 | **Endpoint** | `/profiles/:username` |
-| **Auth** | Optional |
+| **Auth**     | Optional              |
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -26,19 +28,24 @@ Returns a user's public profile.
 ---
 
 ## Follow User
+
 Follow another user.
 
-| | |
-|---|---|
-| **Method** | `POST` |
+This operation is idempotent. Following an already-followed user returns the
+current profile with `following: true` without creating another relation.
+
+|              |                              |
+| ------------ | ---------------------------- |
+| **Method**   | `POST`                       |
 | **Endpoint** | `/profiles/:username/follow` |
-| **Auth** | Yes |
+| **Auth**     | Yes                          |
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,
-  "message": "User followed successfully",
+  "message": "Followed successfully",
   "data": {
     "username": "jake",
     "bio": "I work at statefarm",
@@ -51,19 +58,24 @@ Follow another user.
 ---
 
 ## Unfollow User
+
 Unfollow a user.
 
-| | |
-|---|---|
-| **Method** | `DELETE` |
+This operation is idempotent. Unfollowing a user who is not currently followed
+returns the current profile with `following: false`.
+
+|              |                              |
+| ------------ | ---------------------------- |
+| **Method**   | `DELETE`                     |
 | **Endpoint** | `/profiles/:username/follow` |
-| **Auth** | Yes |
+| **Auth**     | Yes                          |
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,
-  "message": "User unfollowed successfully",
+  "message": "Unfollowed successfully",
   "data": {
     "username": "jake",
     "bio": "I work at statefarm",

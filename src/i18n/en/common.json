@@ -16,7 +16,9 @@
     "articleSlugConflict": "Could not allocate a unique article slug",
     "emptyArticleUpdate": "Provide at least one article field to update",
     "commentNotFound": "Comment not found",
-    "commentForbidden": "Only the comment author can delete this comment"
+    "commentForbidden": "Only the comment author can delete this comment",
+    "profileNotFound": "Profile not found",
+    "followSelf": "You cannot follow yourself"
   },
   "validation": {
     "required": "{field} is required",
