@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '../generated/prisma/client';
+import { Paginated } from '../prisma/prisma.extension';
 import { PrismaService } from '../prisma/prisma.service';
 
 const articleResponseSelect = {
@@ -26,6 +27,36 @@ const articleResponseSelect = {
 export type ArticleRecord = Prisma.ArticleGetPayload<{
   select: typeof articleResponseSelect;
 }>;
+
+// Shared so the list and feed queries cannot drift apart in shape or order.
+const articleListArgs = {
+  select: articleResponseSelect,
+  orderBy: { createdAt: 'desc' as const },
+};
+
+/**
+ * Absent filters are omitted rather than set to `undefined`, so the emitted SQL
+ * carries only the conditions the caller actually asked for.
+ */
+function buildListWhere(filter: ArticleListFilter): Prisma.ArticleWhereInput {
+  return {
+    ...(filter.tag === undefined
+      ? {}
+      : { tagList: { some: { name: filter.tag } } }),
+    ...(filter.author === undefined
+      ? {}
+      : { author: { username: filter.author } }),
+    ...(filter.favorited === undefined
+      ? {}
+      : { favoritedBy: { some: { username: filter.favorited } } }),
+  };
+}
+
+export interface ArticleListFilter {
+  tag?: string;
+  author?: string;
+  favorited?: string;
+}
 
 export interface ArticleIdentity {
   id: number;
@@ -83,6 +114,32 @@ export class ArticlesRepository {
       select: { slug: true },
     });
     return rows.map(({ slug }) => slug);
+  }
+
+  listPaginated(
+    filter: ArticleListFilter,
+    page: number,
+    limit: number,
+  ): Promise<Paginated<ArticleRecord[]>> {
+    return this.prisma.extended.article.paginate({
+      ...articleListArgs,
+      where: buildListWhere(filter),
+      page,
+      limit,
+    });
+  }
+
+  listFeedPaginated(
+    userId: number,
+    page: number,
+    limit: number,
+  ): Promise<Paginated<ArticleRecord[]>> {
+    return this.prisma.extended.article.paginate({
+      ...articleListArgs,
+      where: { author: { followedBy: { some: { id: userId } } } },
+      page,
+      limit,
+    });
   }
 
   create(data: CreateArticleData) {

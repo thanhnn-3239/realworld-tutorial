@@ -27,6 +27,11 @@ model Article {
   authorId    Int
   favoritedBy User[]    @relation("UserFavorites")
   comments    Comment[]
+
+  // Every listing and feed request sorts on createdAt, and Postgres creates no
+  // index for the authorId foreign key that the feed join walks.
+  @@index([createdAt])
+  @@index([authorId])
 }
 
 model Comment {
