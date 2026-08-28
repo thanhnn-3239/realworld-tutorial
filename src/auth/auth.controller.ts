@@ -43,8 +43,8 @@ export class AuthController {
         statusCode: 422,
         message: 'Validation Error',
         errors: {
-          email: 'email must be an email',
-          password: 'password must be longer than or equal to 8 characters',
+          email: 'Please provide a valid email address',
+          password: 'Password must be at least 6 characters',
         },
       },
     },
