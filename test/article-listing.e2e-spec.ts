@@ -139,7 +139,7 @@ describe('Article listing and feed (e2e)', () => {
     expect(past.body.meta).toMatchObject({ total: 5, page: 9 });
   });
 
-  it('keeps the documented article shape and the deferred flags', async () => {
+  it('keeps the documented article shape for an anonymous read', async () => {
     const author = await register('shape');
     await seedArticles(author.id, [`shape-${suiteNonce}`]);
 

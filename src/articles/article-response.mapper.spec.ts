@@ -1,10 +1,11 @@
 import { ArticleResponseMapper } from './article-response.mapper';
-import { ArticleRecord } from './articles.repository';
+import { ArticleRecord } from './article-select';
 
 const timestamp = new Date('2026-08-23T00:00:00.000Z');
 
-// Base fixture: the viewer does not follow the author. The repository always
-// selects followedBy, so anonymous reads arrive as an empty array, not as absent.
+// Base fixture: the viewer does not follow the author and has not favorited the
+// article. The repository always selects both relations, so anonymous reads
+// arrive as empty arrays, not as absent.
 const baseArticle = {
   id: 1,
   slug: 'hello',
@@ -16,6 +17,7 @@ const baseArticle = {
   authorId: 7,
   tagList: [{ name: 'nestjs' }, { name: 'prisma' }],
   author: { username: 'jake', bio: null, image: null, followedBy: [] },
+  favoritedBy: [],
   _count: { favoritedBy: 2 },
 } satisfies ArticleRecord;
 
@@ -32,6 +34,29 @@ describe('ArticleResponseMapper', () => {
       author: { ...baseArticle.author, followedBy: [{ id: 1 }] },
     } satisfies ArticleRecord;
     expect(mapper.toResponse(article).author.following).toBe(true);
+  });
+
+  it('returns favorited: false when favoritedBy is empty', () => {
+    expect(mapper.toResponse(baseArticle).favorited).toBe(false);
+  });
+
+  it('returns favorited: true when favoritedBy contains the viewer', () => {
+    const article = {
+      ...baseArticle,
+      favoritedBy: [{ id: 1 }],
+    } satisfies ArticleRecord;
+    expect(mapper.toResponse(article).favorited).toBe(true);
+  });
+
+  it('keeps favoritesCount global, independent of the viewer flag', () => {
+    const article = {
+      ...baseArticle,
+      favoritedBy: [{ id: 1 }],
+    } satisfies ArticleRecord;
+    const response = mapper.toResponse(article);
+
+    expect(response.favorited).toBe(true);
+    expect(response.favoritesCount).toBe(2);
   });
 
   it('maps all stable fields correctly', () => {
