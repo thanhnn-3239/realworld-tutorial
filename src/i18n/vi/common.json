@@ -16,7 +16,9 @@
     "articleSlugConflict": "Không thể tạo slug duy nhất cho bài viết",
     "emptyArticleUpdate": "Hãy cung cấp ít nhất một trường bài viết để cập nhật",
     "commentNotFound": "Không tìm thấy bình luận",
-    "commentForbidden": "Chỉ tác giả bình luận mới có thể xóa bình luận này"
+    "commentForbidden": "Chỉ tác giả bình luận mới có thể xóa bình luận này",
+    "profileNotFound": "Không tìm thấy hồ sơ người dùng",
+    "followSelf": "Bạn không thể theo dõi chính mình"
   },
   "validation": {
     "required": "{field} là bắt buộc",

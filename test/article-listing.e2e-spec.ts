@@ -168,6 +168,45 @@ describe('Article listing and feed (e2e)', () => {
     );
   });
 
+  // Both article read paths resolve `following` through buildArticleSelect(viewerId).
+  // Only a real query proves the relation Prisma returns is the one the mapper reads.
+  it('resolves author.following per viewer on the list and single-article paths', async () => {
+    const author = await register('fauthor');
+    const follower = await register('follower');
+    const stranger = await register('outsider');
+    const slug = `following-${suiteNonce}`;
+    await seedArticles(author.id, [slug]);
+    await request(httpServer())
+      .post(`/v1/profiles/${author.username}/follow`)
+      .set('Authorization', `Bearer ${follower.token}`)
+      .expect(HttpStatus.OK);
+
+    const listAsFollower = await request(httpServer())
+      .get(`/v1/articles?author=${author.username}`)
+      .set('Authorization', `Bearer ${follower.token}`)
+      .expect(HttpStatus.OK);
+    const listAsStranger = await request(httpServer())
+      .get(`/v1/articles?author=${author.username}`)
+      .set('Authorization', `Bearer ${stranger.token}`)
+      .expect(HttpStatus.OK);
+    const listAnonymous = await request(httpServer())
+      .get(`/v1/articles?author=${author.username}`)
+      .expect(HttpStatus.OK);
+    const oneAsFollower = await request(httpServer())
+      .get(`/v1/articles/${slug}`)
+      .set('Authorization', `Bearer ${follower.token}`)
+      .expect(HttpStatus.OK);
+    const oneAnonymous = await request(httpServer())
+      .get(`/v1/articles/${slug}`)
+      .expect(HttpStatus.OK);
+
+    expect(listAsFollower.body.data[0].author.following).toBe(true);
+    expect(listAsStranger.body.data[0].author.following).toBe(false);
+    expect(listAnonymous.body.data[0].author.following).toBe(false);
+    expect(oneAsFollower.body.data.author.following).toBe(true);
+    expect(oneAnonymous.body.data.author.following).toBe(false);
+  });
+
   it('filters by tag case-insensitively and by the user who favorited', async () => {
     const author = await register('filters');
     const fan = await register('fan');
@@ -256,6 +295,7 @@ describe('Article listing and feed (e2e)', () => {
     expect(response.body.data.map((a: { slug: string }) => a.slug)).toEqual([
       `feed-b-${suiteNonce}`,
     ]);
+    expect(response.body.data[0].author.following).toBe(true);
     expect(response.body.meta).toMatchObject({
       total: 2,
       last_page: 2,

@@ -36,7 +36,9 @@ describe('ListArticlesQueryDto', () => {
     ['limit', '0'],
     ['limit', '101'],
   ])('rejects %s=%s', async (field, value) => {
-    await expect(invalidProperties({ [field]: value })).resolves.toContain(field);
+    await expect(invalidProperties({ [field]: value })).resolves.toContain(
+      field,
+    );
   });
 
   it('accepts limit at the upper bound', async () => {

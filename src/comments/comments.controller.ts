@@ -17,7 +17,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { OptionalCurrentUser } from '../auth/decorators/optional-current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { ResponseMessage } from '../common/decorators/response-message.decorator';
 import { CommentsService } from './comments.service';
@@ -30,6 +32,7 @@ export class CommentsController {
   constructor(private readonly commentsService: CommentsService) {}
 
   @Get()
+  @UseGuards(OptionalJwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ResponseMessage('Comments retrieved successfully')
   @ApiOperation({ summary: 'List an article comments' })
@@ -43,8 +46,11 @@ export class CommentsController {
     status: HttpStatus.NOT_FOUND,
     description: 'Article not found',
   })
-  list(@Param('slug') slug: string) {
-    return this.commentsService.list(slug);
+  list(
+    @OptionalCurrentUser() user: JwtPayload | undefined,
+    @Param('slug') slug: string,
+  ) {
+    return this.commentsService.list(slug, user?.id);
   }
 
   @Post()

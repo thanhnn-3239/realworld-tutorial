@@ -235,4 +235,42 @@ describe('Article comments (e2e)', () => {
       .set('Authorization', `Bearer ${author.token}`)
       .expect(HttpStatus.NOT_FOUND);
   });
+
+  it('returns correct author.following when authenticated viewer follows comment author', async () => {
+    const author = await register('cauthor');
+    const viewer = await register('viewer');
+    const slug = await createArticle(
+      author.token,
+      `Followed comment ${suiteNonce}`,
+    );
+    await database().comment.create({
+      data: {
+        body: 'Comment from followed author',
+        article: { connect: { slug } },
+        author: { connect: { username: author.username } },
+      },
+    });
+
+    const anonRes = await request(httpServer())
+      .get(`/v1/articles/${slug}/comments`)
+      .expect(HttpStatus.OK);
+    expect(anonRes.body.data[0].author.following).toBe(false);
+
+    const viewerUnfollowedRes = await request(httpServer())
+      .get(`/v1/articles/${slug}/comments`)
+      .set('Authorization', `Bearer ${viewer.token}`)
+      .expect(HttpStatus.OK);
+    expect(viewerUnfollowedRes.body.data[0].author.following).toBe(false);
+
+    await request(httpServer())
+      .post(`/v1/profiles/${author.username}/follow`)
+      .set('Authorization', `Bearer ${viewer.token}`)
+      .expect(HttpStatus.OK);
+
+    const viewerFollowedRes = await request(httpServer())
+      .get(`/v1/articles/${slug}/comments`)
+      .set('Authorization', `Bearer ${viewer.token}`)
+      .expect(HttpStatus.OK);
+    expect(viewerFollowedRes.body.data[0].author.following).toBe(true);
+  });
 });

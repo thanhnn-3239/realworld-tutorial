@@ -60,7 +60,7 @@ export async function withAdminConnection<T>(
         const result = await adapter.queryRaw({
           sql: 'SELECT datname FROM pg_database WHERE datname LIKE $1',
           args: [likePattern],
-          argTypes: ['Text'],
+          argTypes: [{ scalarType: 'string', arity: 'scalar' }],
         });
 
         return result.rows.map((row) => String(row[0]));

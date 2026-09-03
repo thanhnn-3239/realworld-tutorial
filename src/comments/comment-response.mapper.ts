@@ -14,7 +14,7 @@ export class CommentResponseMapper {
         username: comment.author.username,
         bio: comment.author.bio,
         image: comment.author.image,
-        following: false,
+        following: comment.author.followedBy.length > 0,
       },
     };
   }

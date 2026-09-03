@@ -180,8 +180,16 @@ describe('ArticlesRepository (integration)', () => {
       );
     }
 
-    const first = await repository.listPaginated({ author: author.username }, 1, 2);
-    const second = await repository.listPaginated({ author: author.username }, 2, 2);
+    const first = await repository.listPaginated(
+      { author: author.username },
+      1,
+      2,
+    );
+    const second = await repository.listPaginated(
+      { author: author.username },
+      2,
+      2,
+    );
 
     expect(first.data.map((article) => article.slug)).toEqual([
       `${nonce}-2`,
@@ -196,7 +204,10 @@ describe('ArticlesRepository (integration)', () => {
       has_prev_page: false,
     });
     expect(second.data.map((article) => article.slug)).toEqual([`${nonce}-0`]);
-    expect(second.meta).toMatchObject({ has_next_page: false, has_prev_page: true });
+    expect(second.meta).toMatchObject({
+      has_next_page: false,
+      has_prev_page: true,
+    });
   });
 
   it('filters by tag, by author and by the user who favorited', async () => {
@@ -204,15 +215,27 @@ describe('ArticlesRepository (integration)', () => {
     const fan = await createAuthor();
     const nonce = `filter-${process.pid}-${author.id}`;
     const tag = `tag-${nonce}`;
-    await createArticleFor(author.id, `${nonce}-tagged`, new Date('2026-01-02T00:00:00.000Z'), {
-      tags: [tag],
-    });
-    await createArticleFor(author.id, `${nonce}-favorited`, new Date('2026-01-01T00:00:00.000Z'), {
-      favoritedByUserId: fan.id,
-    });
+    await createArticleFor(
+      author.id,
+      `${nonce}-tagged`,
+      new Date('2026-01-02T00:00:00.000Z'),
+      {
+        tags: [tag],
+      },
+    );
+    await createArticleFor(
+      author.id,
+      `${nonce}-favorited`,
+      new Date('2026-01-01T00:00:00.000Z'),
+      {
+        favoritedByUserId: fan.id,
+      },
+    );
 
     await expect(
-      repository.listPaginated({ tag }, 1, 10).then((result) => result.data.map((a) => a.slug)),
+      repository
+        .listPaginated({ tag }, 1, 10)
+        .then((result) => result.data.map((a) => a.slug)),
     ).resolves.toEqual([`${nonce}-tagged`]);
     await expect(
       repository
@@ -231,12 +254,22 @@ describe('ArticlesRepository (integration)', () => {
     const other = await createAuthor();
     const nonce = `combo-${process.pid}-${author.id}`;
     const tag = `tag-${nonce}`;
-    await createArticleFor(author.id, `${nonce}-match`, new Date('2026-01-01T00:00:00.000Z'), {
-      tags: [tag],
-    });
-    await createArticleFor(other.id, `${nonce}-other-author`, new Date('2026-01-01T00:00:00.000Z'), {
-      tags: [tag],
-    });
+    await createArticleFor(
+      author.id,
+      `${nonce}-match`,
+      new Date('2026-01-01T00:00:00.000Z'),
+      {
+        tags: [tag],
+      },
+    );
+    await createArticleFor(
+      other.id,
+      `${nonce}-other-author`,
+      new Date('2026-01-01T00:00:00.000Z'),
+      {
+        tags: [tag],
+      },
+    );
 
     const result = await repository.listPaginated(
       { tag, author: author.username },
@@ -244,7 +277,9 @@ describe('ArticlesRepository (integration)', () => {
       10,
     );
 
-    expect(result.data.map((article) => article.slug)).toEqual([`${nonce}-match`]);
+    expect(result.data.map((article) => article.slug)).toEqual([
+      `${nonce}-match`,
+    ]);
     expect(result.meta.total).toBe(1);
   });
 
@@ -256,7 +291,11 @@ describe('ArticlesRepository (integration)', () => {
     );
 
     expect(result.data).toEqual([]);
-    expect(result.meta).toMatchObject({ total: 0, last_page: 0, has_next_page: false });
+    expect(result.meta).toMatchObject({
+      total: 0,
+      last_page: 0,
+      has_next_page: false,
+    });
   });
 
   // `following` and `followedBy` are the two ends of one implicit self-relation
@@ -271,13 +310,27 @@ describe('ArticlesRepository (integration)', () => {
       where: { id: follower.id },
       data: { following: { connect: { id: followed.id } } },
     });
-    await createArticleFor(followed.id, `${nonce}-followed`, new Date('2026-01-03T00:00:00.000Z'));
-    await createArticleFor(stranger.id, `${nonce}-stranger`, new Date('2026-01-02T00:00:00.000Z'));
-    await createArticleFor(follower.id, `${nonce}-own`, new Date('2026-01-01T00:00:00.000Z'));
+    await createArticleFor(
+      followed.id,
+      `${nonce}-followed`,
+      new Date('2026-01-03T00:00:00.000Z'),
+    );
+    await createArticleFor(
+      stranger.id,
+      `${nonce}-stranger`,
+      new Date('2026-01-02T00:00:00.000Z'),
+    );
+    await createArticleFor(
+      follower.id,
+      `${nonce}-own`,
+      new Date('2026-01-01T00:00:00.000Z'),
+    );
 
     const result = await repository.listFeedPaginated(follower.id, 1, 10);
 
-    expect(result.data.map((article) => article.slug)).toEqual([`${nonce}-followed`]);
+    expect(result.data.map((article) => article.slug)).toEqual([
+      `${nonce}-followed`,
+    ]);
     expect(result.meta.total).toBe(1);
   });
 });

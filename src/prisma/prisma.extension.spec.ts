@@ -1,7 +1,4 @@
-import {
-  buildPaginationMeta,
-  paginationSkip,
-} from './prisma.extension';
+import { buildPaginationMeta, paginationSkip } from './prisma.extension';
 
 describe('paginationSkip', () => {
   it.each([

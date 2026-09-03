@@ -28,7 +28,7 @@ const stored = {
   updatedAt: new Date('2026-08-23T00:00:00.000Z'),
   authorId: USER_ID,
   tagList: [{ name: 'nestjs' }],
-  author: { username: 'jake', bio: null, image: null },
+  author: { username: 'jake', bio: null, image: null, followedBy: [] },
   _count: { favoritedBy: 0 },
 };
 
@@ -158,7 +158,13 @@ describe('ArticlesService', () => {
           favoritesCount: 0,
         }),
       );
-      expect(repository.findBySlug).toHaveBeenCalledWith('original');
+      expect(repository.findBySlug).toHaveBeenCalledWith('original', undefined);
+    });
+
+    it('forwards viewerId to the repository when provided', async () => {
+      await service.getBySlug('original', 42);
+
+      expect(repository.findBySlug).toHaveBeenCalledWith('original', 42);
     });
 
     it('throws a localized 404 for a missing article', async () => {
@@ -246,7 +252,7 @@ describe('ArticlesService', () => {
       expect(repository.update).not.toHaveBeenCalled();
     });
 
-    it('trims description and preserves body whitespace', async () => {
+    it('param-level checks: trims description and preserves body whitespace', async () => {
       await service.update(USER_ID, 'original', {
         description: '  Updated description  ',
         body: ' Updated body\n',
@@ -366,6 +372,7 @@ describe('ArticlesService', () => {
       { tag: 'dragons' },
       1,
       10,
+      undefined,
     );
   });
 
@@ -394,6 +401,7 @@ describe('ArticlesService', () => {
       { tag: 'dragons', author: 'jake', favorited: 'jane' },
       1,
       10,
+      undefined,
     );
   });
 
@@ -416,6 +424,12 @@ describe('ArticlesService', () => {
     expect(filter).toStrictEqual({});
     expect(page).toBe(1);
     expect(limit).toBe(10);
+  });
+
+  it('forwards viewerId to listPaginated when provided', async () => {
+    await service.list({ page: 1, limit: 10 }, 42);
+
+    expect(repository.listPaginated).toHaveBeenCalledWith({}, 1, 10, 42);
   });
 
   it('maps list rows through the mapper and forwards meta untouched', async () => {

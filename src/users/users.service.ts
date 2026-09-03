@@ -64,9 +64,7 @@ export class UsersService {
           userId,
         );
       if (existingUsername) {
-        throw new ConflictException(
-          this.i18n.t('common.error.usernameInUse'),
-        );
+        throw new ConflictException(this.i18n.t('common.error.usernameInUse'));
       }
     }
 

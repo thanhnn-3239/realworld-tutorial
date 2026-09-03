@@ -19,10 +19,12 @@ export class CommentsService {
     private readonly i18n: I18nService,
   ) {}
 
-  async list(slug: string): Promise<CommentResponse[]> {
+  async list(slug: string, viewerId?: number): Promise<CommentResponse[]> {
     const article = await this.requireArticle(slug);
-    const comments = await this.commentsRepository.listByArticleId(article.id);
-
+    const comments = await this.commentsRepository.listByArticleId(
+      article.id,
+      viewerId,
+    );
     return this.responseMapper.toResponseList(comments);
   }
 
@@ -37,7 +39,6 @@ export class CommentsService {
       userId,
       dto.body,
     );
-
     return this.responseMapper.toResponse(comment);
   }
 
@@ -55,7 +56,6 @@ export class CommentsService {
         this.i18n.t('common.error.commentForbidden'),
       );
     }
-
     await this.commentsRepository.delete(comment.id);
     return null;
   }
@@ -65,7 +65,6 @@ export class CommentsService {
     if (!article) {
       throw new NotFoundException(this.i18n.t('common.error.articleNotFound'));
     }
-
     return article;
   }
 }
