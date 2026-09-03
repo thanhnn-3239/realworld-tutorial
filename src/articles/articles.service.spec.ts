@@ -29,6 +29,7 @@ const stored = {
   authorId: USER_ID,
   tagList: [{ name: 'nestjs' }],
   author: { username: 'jake', bio: null, image: null, followedBy: [] },
+  favoritedBy: [],
   _count: { favoritedBy: 0 },
 };
 
@@ -252,31 +253,53 @@ describe('ArticlesService', () => {
       expect(repository.update).not.toHaveBeenCalled();
     });
 
+    it('passes the acting user as viewerId so favorited resolves on the response', async () => {
+      await service.update(USER_ID, 'original', { body: 'Updated' });
+
+      expect(repository.update).toHaveBeenCalledWith(
+        stored.id,
+        { body: 'Updated' },
+        USER_ID,
+      );
+    });
+
     it('param-level checks: trims description and preserves body whitespace', async () => {
       await service.update(USER_ID, 'original', {
         description: '  Updated description  ',
         body: ' Updated body\n',
       });
 
-      expect(repository.update).toHaveBeenCalledWith(stored.id, {
-        description: 'Updated description',
-        body: ' Updated body\n',
-      });
+      expect(repository.update).toHaveBeenCalledWith(
+        stored.id,
+        {
+          description: 'Updated description',
+          body: ' Updated body\n',
+        },
+        USER_ID,
+      );
     });
 
     it('preserves tags when tagList is omitted', async () => {
       await service.update(USER_ID, 'original', { body: 'Updated' });
 
-      expect(repository.update).toHaveBeenCalledWith(stored.id, {
-        body: 'Updated',
-      });
+      expect(repository.update).toHaveBeenCalledWith(
+        stored.id,
+        {
+          body: 'Updated',
+        },
+        USER_ID,
+      );
       expect(repository.update.mock.calls[0][1]).not.toHaveProperty('tags');
     });
 
     it('clears all tag links when tagList is empty', async () => {
       await service.update(USER_ID, 'original', { tagList: [] });
 
-      expect(repository.update).toHaveBeenCalledWith(stored.id, { tags: [] });
+      expect(repository.update).toHaveBeenCalledWith(
+        stored.id,
+        { tags: [] },
+        USER_ID,
+      );
     });
 
     it('normalizes and replaces a non-empty tag list', async () => {
@@ -284,15 +307,23 @@ describe('ArticlesService', () => {
         tagList: [' NestJS ', 'nestjs', '', 'PRISMA'],
       });
 
-      expect(repository.update).toHaveBeenCalledWith(stored.id, {
-        tags: ['nestjs', 'prisma'],
-      });
+      expect(repository.update).toHaveBeenCalledWith(
+        stored.id,
+        {
+          tags: ['nestjs', 'prisma'],
+        },
+        USER_ID,
+      );
     });
 
     it('treats tags that normalize to empty as clearing all tag links', async () => {
       await service.update(USER_ID, 'original', { tagList: ['', '   '] });
 
-      expect(repository.update).toHaveBeenCalledWith(stored.id, { tags: [] });
+      expect(repository.update).toHaveBeenCalledWith(
+        stored.id,
+        { tags: [] },
+        USER_ID,
+      );
     });
 
     it('regenerates the slug when the trimmed title changes', async () => {
@@ -303,19 +334,27 @@ describe('ArticlesService', () => {
         expect.any(Function),
         stored.id,
       );
-      expect(repository.update).toHaveBeenCalledWith(stored.id, {
-        title: 'New title',
-        slug: 'generated-slug',
-      });
+      expect(repository.update).toHaveBeenCalledWith(
+        stored.id,
+        {
+          title: 'New title',
+          slug: 'generated-slug',
+        },
+        USER_ID,
+      );
     });
 
     it('does not regenerate the slug when trimming leaves the title unchanged', async () => {
       await service.update(USER_ID, 'original', { title: '  Original  ' });
 
       expect(slugService.execute).not.toHaveBeenCalled();
-      expect(repository.update).toHaveBeenCalledWith(stored.id, {
-        title: 'Original',
-      });
+      expect(repository.update).toHaveBeenCalledWith(
+        stored.id,
+        {
+          title: 'Original',
+        },
+        USER_ID,
+      );
     });
 
     it('returns the mapped updated article', async () => {

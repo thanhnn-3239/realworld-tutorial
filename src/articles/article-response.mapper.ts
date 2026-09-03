@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ArticleRecord } from './articles.repository';
+import { ArticleRecord } from './article-select';
 import { ArticleResponse } from './interfaces/article-response.interface';
 
 @Injectable()
@@ -13,7 +13,7 @@ export class ArticleResponseMapper {
       tagList: article.tagList.map(({ name }) => name),
       createdAt: article.createdAt,
       updatedAt: article.updatedAt,
-      favorited: false,
+      favorited: article.favoritedBy.length > 0,
       favoritesCount: article._count.favoritedBy,
       author: {
         username: article.author.username,

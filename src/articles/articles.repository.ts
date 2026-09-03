@@ -2,44 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '../generated/prisma/client';
 import { Paginated } from '../prisma/prisma.extension';
 import { PrismaService } from '../prisma/prisma.service';
-
-/**
- * Builds the article select object.
- * The author's followedBy relation is filtered down to the viewer, so the
- * mapper can derive `following` from its length without a second query.
- */
-function buildArticleSelect(viewerId?: number) {
-  return {
-    id: true,
-    slug: true,
-    title: true,
-    description: true,
-    body: true,
-    createdAt: true,
-    updatedAt: true,
-    authorId: true,
-    tagList: {
-      select: { name: true },
-      orderBy: { name: 'asc' as const },
-    },
-    author: {
-      select: {
-        username: true,
-        bio: true,
-        image: true,
-        // Select shape stays constant so Prisma keeps the narrow payload
-        // type; an empty `in` matches nothing, so anonymous reads yield [].
-        followedBy: {
-          where: viewerId === undefined ? { id: { in: [] } } : { id: viewerId },
-          select: { id: true },
-        },
-      },
-    },
-    _count: {
-      select: { favoritedBy: true },
-    },
-  } satisfies Prisma.ArticleSelect;
-}
+import { ArticleRecord, buildArticleSelect } from './article-select';
 
 const articleIdentitySelect = {
   id: true,
@@ -49,10 +12,6 @@ const articleIdentitySelect = {
 } satisfies Prisma.ArticleSelect;
 
 const articleSlugSelect = { slug: true } satisfies Prisma.ArticleSelect;
-
-export type ArticleRecord = Prisma.ArticleGetPayload<{
-  select: ReturnType<typeof buildArticleSelect>;
-}>;
 
 const articleListOrderBy = { createdAt: 'desc' as const };
 
@@ -186,7 +145,7 @@ export class ArticlesRepository {
     });
   }
 
-  update(id: number, data: UpdateArticleData) {
+  update(id: number, data: UpdateArticleData, viewerId?: number) {
     const { tags, ...articleFields } = data;
     return this.prisma.article.update({
       where: { id },
@@ -204,7 +163,7 @@ export class ArticlesRepository {
               },
             }),
       },
-      select: buildArticleSelect(),
+      select: buildArticleSelect(viewerId),
     });
   }
 
