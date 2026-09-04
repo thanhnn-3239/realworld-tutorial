@@ -1,15 +1,17 @@
 # Authentication
 
 ## Registration (Sign Up)
+
 Creates a new user account.
 
-| | |
-|---|---|
-| **Method** | `POST` |
-| **Endpoint** | `/users` |
-| **Auth** | No |
+|              |                     |
+| ------------ | ------------------- |
+| **Method**   | `POST`              |
+| **Endpoint** | `/v1/auth/register` |
+| **Auth**     | No                  |
 
 **Request Body:**
+
 ```json
 {
   "username": "jacob",
@@ -21,6 +23,7 @@ Creates a new user account.
 **Required Fields:** `email`, `username`, `password`
 
 **Response:**
+
 ```json
 {
   "statusCode": 201,
@@ -38,15 +41,17 @@ Creates a new user account.
 ---
 
 ## Login
+
 Authenticates an existing user.
 
-| | |
-|---|---|
-| **Method** | `POST` |
-| **Endpoint** | `/users/login` |
-| **Auth** | No |
+|              |                  |
+| ------------ | ---------------- |
+| **Method**   | `POST`           |
+| **Endpoint** | `/v1/auth/login` |
+| **Auth**     | No               |
 
 **Request Body:**
+
 ```json
 {
   "email": "jake@jake.jake",
@@ -57,6 +62,7 @@ Authenticates an existing user.
 **Required Fields:** `email`, `password`
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,

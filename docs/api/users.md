@@ -1,15 +1,17 @@
 # Users
 
 ## Get Current User
+
 Returns the currently logged-in user.
 
-| | |
-|---|---|
-| **Method** | `GET` |
+|              |         |
+| ------------ | ------- |
+| **Method**   | `GET`   |
 | **Endpoint** | `/user` |
-| **Auth** | Yes |
+| **Auth**     | Yes     |
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -26,15 +28,17 @@ Returns the currently logged-in user.
 ---
 
 ## Update User (Settings)
+
 Updates user profile settings.
 
-| | |
-|---|---|
-| **Method** | `PUT` |
+|              |         |
+| ------------ | ------- |
+| **Method**   | `PUT`   |
 | **Endpoint** | `/user` |
-| **Auth** | Yes |
+| **Auth**     | Yes     |
 
 **Request Body:** every field is optional; only the fields you send are updated.
+
 ```json
 {
   "email": "jake@jake.jake",
@@ -47,13 +51,13 @@ Updates user profile settings.
 
 **Accepted Fields:**
 
-| Field | Rules | Sending `null` |
-|---|---|---|
-| `email` | Valid email address, unique across users | `422` |
-| `username` | 3-30 characters, unique across users | `422` |
-| `password` | 6-30 characters. Hashed with bcrypt before storage; never returned | `422` |
-| `bio` | Any string | Clears the field |
-| `image` | Valid URL | Clears the field |
+| Field      | Rules                                                              | Sending `null`   |
+| ---------- | ------------------------------------------------------------------ | ---------------- |
+| `email`    | Valid email address, unique across users                           | `422`            |
+| `username` | 3-30 characters, unique across users                               | `422`            |
+| `password` | 6-30 characters. Hashed with bcrypt before storage; never returned | `422`            |
+| `bio`      | Any string                                                         | Clears the field |
+| `image`    | Valid URL                                                          | Clears the field |
 
 `email`, `username` and `password` map to non-nullable columns, so `null` is rejected
 at validation rather than silently ignored - omit the field instead to leave it
@@ -61,13 +65,14 @@ unchanged. `bio` and `image` are nullable, so `null` clears the stored value.
 
 **Errors:**
 
-| Status | Cause |
-|---|---|
-| `401` | Missing or invalid token |
-| `409` | `email` or `username` already in use by another user |
-| `422` | Validation error, including `null` for a non-nullable field |
+| Status | Cause                                                       |
+| ------ | ----------------------------------------------------------- |
+| `401`  | Missing or invalid token                                    |
+| `409`  | `email` or `username` already in use by another user        |
+| `422`  | Validation error, including `null` for a non-nullable field |
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,
