@@ -13,7 +13,7 @@ services:
     region: singapore
     branch: main
     rootDir: .
-    autoDeployTrigger: off
+    autoDeployTrigger: checksPass
     healthCheckPath: /health
     buildCommand: pnpm install --frozen-lockfile && pnpm exec prisma generate && pnpm build
     startCommand: pnpm exec prisma migrate deploy && node dist/main.js
