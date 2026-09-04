@@ -1,0 +1,35 @@
+databases:
+  - name: realworld-demo-db
+    plan: free
+    region: singapore
+    databaseName: realworld_demo
+    user: realworld_demo_user
+
+services:
+  - type: web
+    name: realworld-demo-api
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+    rootDir: .
+    autoDeployTrigger: checksPass
+    healthCheckPath: /health
+    buildCommand: pnpm install --frozen-lockfile && pnpm exec prisma generate && pnpm build
+    startCommand: pnpm exec prisma migrate deploy && node dist/main.js
+    initialDeployHook: pnpm exec prisma db seed
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: realworld-demo-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 22.22.3
+      - key: DEMO_USER_PASSWORD
+        sync: false
