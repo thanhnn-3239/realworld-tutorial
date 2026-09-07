@@ -1,94 +1,87 @@
-## Project Setup
+# RealWorld NestJS API
 
-### Prerequisites
+Backend RealWorld sử dụng NestJS, Prisma và PostgreSQL.
 
-- Node.js `22.x`
-- pnpm `11.5.1`
-- Docker & Docker Compose
+## Yêu cầu
 
-### Local Development
+- Docker Engine hoặc Docker Desktop có Docker Compose
+- GNU Make
+- Không cần cài Node.js hoặc pnpm trên host
 
-1. Start the PostgreSQL database:
-
-```bash
-docker compose up -d postgres
-```
-
-2. Install dependencies:
+## Chạy môi trường development
 
 ```bash
-pnpm install
+cp .env.example .env
+make dev
 ```
 
-3. Generate the Prisma Client and run migrations:
+`make dev` chờ PostgreSQL healthy, cài dependency, chạy migration rồi mới khởi động NestJS ở chế độ watch. Migration lỗi thì app không start.
+
+Các địa chỉ mặc định:
+
+- API: `http://localhost:3000/api`
+- Health check: `http://localhost:3000/health`
+- Swagger: `http://localhost:3000/docs`
+
+Các biến của app nằm trong `.env`. Compose chỉ ghi đè `DATABASE_URL` để đổi hostname từ `localhost` sang service `postgres`; nhờ vậy cùng một `.env` dùng được cho cả lệnh chạy trên host và app trong container.
+
+Toàn bộ workspace, bao gồm `node_modules` và pnpm store, được bind mount giữa host và container để IDE trên host đọc dependency. Sau khi dùng `make dev`, không chạy `pnpm` trực tiếp trên host vì metadata store mang đường dẫn `/app`; hãy chạy mọi lệnh pnpm qua các target `make` hoặc `make run-in-workspace`.
+
+## Lệnh thường dùng
+
+| Lệnh                                  | Mục đích                                            |
+| ------------------------------------- | --------------------------------------------------- |
+| `make dev`                            | Build và chạy development stack                     |
+| `make stop`                           | Dừng container nhưng giữ lại container và volume    |
+| `make down`                           | Xóa container/network, giữ volume database          |
+| `make restart`                        | Khởi động lại app; lifecycle migrate → app chạy lại |
+| `make logs`                           | Theo dõi log app                                    |
+| `make test`                           | Chạy unit test                                      |
+| `make test-e2e`                       | Chạy E2E test với PostgreSQL                        |
+| `make lint`                           | Chạy lint gate giống CI                             |
+| `make build`                          | Build application trong Docker stage độc lập        |
+| `make generate`                       | Generate Prisma Client                              |
+| `make migrate`                        | Chạy migration thủ công                             |
+| `make seed`                           | Seed database, cần `DEMO_USER_PASSWORD`             |
+| `make shell`                          | Mở shell trong app container                        |
+| `make run-in-workspace command='...'` | Chạy lệnh bất kỳ trong workspace container          |
+
+Ví dụ:
 
 ```bash
-pnpm exec prisma generate
-pnpm exec prisma migrate dev
+make run-in-workspace command='pnpm typecheck'
 ```
 
-## Compile and Run
+Adminer là tool tùy chọn:
 
 ```bash
-# development
-pnpm run start
-
-# watch mode
-pnpm run start:dev
-
-# production mode
-pnpm run start:prod
+docker compose --profile tools up -d adminer
 ```
 
-## Run Tests
+Mở `http://localhost:8080`, server database là `postgres`.
 
-```bash
-# unit tests
-pnpm test --runInBand
+## Render
 
-# e2e tests (requires running postgres)
-pnpm test:e2e --runInBand
+Repository có hai Blueprint thay thế cho cùng service/database:
 
-# test coverage
-pnpm run test:cov
-```
+- `render.yaml`: Native Node, là cấu hình mặc định. Build bằng pnpm, migrate trước khi start và seed một lần qua `initialDeployHook`.
+- `render-docker.yaml`: Docker production. Entrypoint chạy migration trước NestJS; seed production thực hiện thủ công.
 
-## Continuous Integration (CI)
+Không tạo hai Blueprint cùng lúc cho hai file này. Muốn chuyển runtime, đổi **Blueprint Path** của Blueprint hiện có, xem Preview rồi mới Manual Sync.
 
-The GitHub Actions workflow `ci` runs for pull requests and pushes to `main`, and can also be started manually. It splits into two parallel jobs along one boundary: whether the work needs a database.
+Cả hai cấu hình đều dùng `autoDeployTrigger: off`. Sau khi CI pass và merge vào `main`, deploy bằng **Manual Deploy** trên Render Dashboard. Blueprint Auto Sync cũng cần tắt trên Dashboard.
 
-**`quality`** - no database, fails fast on static problems:
+Các thao tác Manual Sync, Manual Deploy, cấu hình secret và seed production đều là thao tác remote; repository không tự thực hiện.
 
-1. `pnpm exec prisma generate` - Generate Prisma Client
-2. `git diff --exit-code -- src/generated/prisma` - Reject a stale committed Prisma Client
-3. `pnpm lint:ci` - Run the repository ESLint and Prettier rules read-only, rejecting any warning
-4. `pnpm typecheck` - TypeScript compiler checks
-5. `pnpm test --runInBand` - Jest unit tests
-6. `pnpm build` - Production bundle build
+## CI
 
-**`e2e`** - runs against a PostgreSQL service container:
+GitHub Actions kiểm tra:
 
-1. `pnpm exec prisma generate` - Generate Prisma Client
-2. `pnpm test:e2e --maxWorkers=2` - PostgreSQL-backed E2E tests
+- Prisma Client không bị stale
+- lint và typecheck
+- unit test
+- E2E test với PostgreSQL
+- application build
+- Docker production image và non-root runtime
 
-A third job, **`ci`**, waits on both and succeeds only when both succeed. Branch protection should require that single `ci` check, so splitting or adding jobs later never breaks the protection rule.
-
-Because the jobs run in parallel, a lint failure no longer hides an E2E failure: one run reports both.
-
-Until GitHub branch protection is configured separately to require `ci`, this workflow reports status but does not by itself gate merges.
-
-## Deployment to Render
-
-The application deploys to the Render Free tier in the Singapore region as a Native Node web service paired with a managed PostgreSQL database.
-
-### Deployment Operations
-
-- **Manual Deploy**: Auto-deploy triggers are disabled (`autoDeployTrigger: off`). Deployments must be triggered via Manual Deploy in the Render Dashboard.
-- **Manual Sync**: Changes to `render.yaml` require Blueprint **Manual Sync** in the Render Dashboard.
-- **Blueprint Auto Sync**: Render Dashboard Blueprint **Auto Sync** must be disabled separately after creation (a post-sync remote step, not a local guarantee).
-- **First Deploy**: Confirms production build, database migration (`pnpm exec prisma migrate deploy`), unversioned `/health` check readiness, and one-time demo seed execution via `initialDeployHook`.
-- **Environment Secrets**: Render manages `DEMO_USER_PASSWORD` as a secret (`sync: false`) alongside generated `JWT_SECRET` and database connection strings.
-- **Recovery Reseed**: Normal deploys run migrations without reseeding. To reseed manually, run `pnpm exec prisma db seed` with `DEMO_USER_PASSWORD` configured.
-- **Environment Lifecycle**: The demo environment is disposable and should not live past 30 days due to Render Free database retention limits.
-- **Rollback**: A rollback means reverting to a recent Render app deploy, or full disposable resource recreation for unrecoverable schema/data issues.
-- **Approval Boundaries**: Commit, push, and deploy actions remain approval-gated. GitHub branch protection and Render Dashboard Auto Sync configuration require remote operator actions.
+Không commit `.env`, mật khẩu hoặc connection string thật.

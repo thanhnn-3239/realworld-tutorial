@@ -1,0 +1,68 @@
+name: realworld-tutorial
+
+services:
+  postgres:
+    image: postgres:17.6-alpine
+    environment:
+      POSTGRES_USER: ${DATABASE_USERNAME:-root}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-secret}
+      POSTGRES_DB: ${DATABASE_NAME:-realworld}
+    ports:
+      - 127.0.0.1:${DATABASE_PORT:-5432}:5432
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  app:
+    build:
+      context: .
+      target: development
+      args:
+        HOST_USER_ID: ${HOST_USER_ID:-1000}
+        HOST_GROUP_ID: ${HOST_GROUP_ID:-1000}
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${DATABASE_USERNAME:-root}:${DATABASE_PASSWORD:-secret}@postgres:5432/${DATABASE_NAME:-realworld}?schema=public
+    init: true
+    command:
+      [
+        'sh',
+        '-c',
+        'CI=true pnpm install --frozen-lockfile --prefer-offline && pnpm db:migrate:deploy && exec pnpm start:dev',
+      ]
+    ports:
+      - 127.0.0.1:${APP_PORT:-3000}:3000
+    volumes:
+      - .:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  adminer:
+    image: adminer:5.4.2
+    profiles: [tools]
+    ports:
+      - 127.0.0.1:8080:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres:

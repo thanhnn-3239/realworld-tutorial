@@ -1,6 +1,7 @@
 # compiled output
 /dist
 /node_modules
+/.pnpm-store
 /build
 
 # Logs
@@ -41,6 +42,7 @@ lerna-debug.log*
 .env.test.local
 .env.production.local
 .env.local
+.env.render-seed
 
 # temp directory
 .temp

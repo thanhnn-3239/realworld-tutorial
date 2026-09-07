@@ -8,16 +8,15 @@ databases:
 services:
   - type: web
     name: realworld-demo-api
-    runtime: node
+    runtime: docker
     plan: free
     region: singapore
     branch: main
     rootDir: .
     autoDeployTrigger: off
     healthCheckPath: /health
-    buildCommand: pnpm install --frozen-lockfile && pnpm exec prisma generate && pnpm build
-    startCommand: pnpm exec prisma migrate deploy && node dist/main.js
-    initialDeployHook: pnpm exec prisma db seed
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -29,7 +28,3 @@ services:
         value: 7d
       - key: NODE_ENV
         value: production
-      - key: NODE_VERSION
-        value: 22.22.3
-      - key: DEMO_USER_PASSWORD
-        sync: false

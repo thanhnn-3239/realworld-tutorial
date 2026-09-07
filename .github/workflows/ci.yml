@@ -80,3 +80,17 @@ jobs:
         run: pnpm exec prisma generate
       - name: E2E tests
         run: pnpm test:e2e --maxWorkers=2
+  docker-image:
+    name: docker-image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build production image
+        run: docker build --target production --tag realworld-api:ci .
+      - name: Check production user and runtime files
+        run: |
+          test "$(docker run --rm --entrypoint node realworld-api:ci -p 'process.getuid()')" != "0"
+          docker run --rm --entrypoint pnpm realworld-api:ci exec prisma --version
+          docker run --rm --entrypoint sh realworld-api:ci -c \
+            'test -d /app/dist && test -d /app/prisma/migrations && test ! -d /app/src && test ! -d /app/test && test ! -e /app/.env'
