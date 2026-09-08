@@ -9,7 +9,6 @@
     "badRequest": "Yêu cầu không hợp lệ",
     "internalError": "Lỗi máy chủ nội bộ",
     "userNotFound": "Không tìm thấy người dùng",
-    "emailInUse": "Email đã được sử dụng",
     "usernameInUse": "Tên người dùng đã tồn tại",
     "articleNotFound": "Không tìm thấy bài viết",
     "articleForbidden": "Chỉ tác giả mới được sửa hoặc xóa bài viết này",

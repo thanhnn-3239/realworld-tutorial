@@ -9,7 +9,6 @@
     "badRequest": "Bad request",
     "internalError": "Internal server error",
     "userNotFound": "User not found",
-    "emailInUse": "Email already in use",
     "usernameInUse": "Username already in use",
     "articleNotFound": "Article not found",
     "articleForbidden": "Only the author can modify this article",

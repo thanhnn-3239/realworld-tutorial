@@ -28,11 +28,21 @@ describe('UpdateUserDto', () => {
   it('accepts a full valid payload', async () => {
     await expect(
       propertiesInError({
-        email: 'new@example.com',
         username: 'newusername',
-        password: 'new-password',
         bio: 'I like to code',
         image: 'https://example.com/avatar.jpg',
+      }),
+    ).resolves.toEqual([]);
+  });
+
+  it('ignores credential fields, which are no longer part of the contract', async () => {
+    // `whitelist` strips undeclared properties before validation, so these raise no error
+    // and reach no column either.
+    await expect(
+      propertiesInError({
+        username: 'newusername',
+        email: 'someone@example.com',
+        password: 'password123',
       }),
     ).resolves.toEqual([]);
   });
@@ -40,18 +50,15 @@ describe('UpdateUserDto', () => {
   describe('null on columns that are required in the database', () => {
     // `@ValidateIf(value !== undefined)` treats only an absent field as
     // "omitted", so `null` still runs the validators below it and is rejected.
-    it.each(['email', 'username', 'password'])(
-      'rejects %s: null',
-      async (field) => {
-        await expect(propertiesInError({ [field]: null })).resolves.toContain(
-          field,
-        );
-      },
-    );
+    it.each(['username'])('rejects %s: null', async (field) => {
+      await expect(propertiesInError({ [field]: null })).resolves.toContain(
+        field,
+      );
+    });
   });
 
   describe('error messages', () => {
-    it.each(['username', 'password'])(
+    it.each(['username'])(
       'reports one message for %s: null, naming the real cause',
       async (field) => {
         const messages = await messagesFor({ [field]: null });
@@ -71,10 +78,13 @@ describe('UpdateUserDto', () => {
     });
 
     it('reports every invalid field, one message each', async () => {
-      const errors = await validatePayload({ email: 'bad', username: null });
+      const errors = await validatePayload({
+        image: 'not-a-url',
+        username: null,
+      });
 
       expect(errors.map((error) => error.property).sort()).toEqual([
-        'email',
+        'image',
         'username',
       ]);
       errors.forEach((error) => {
@@ -90,14 +100,6 @@ describe('UpdateUserDto', () => {
 
     it('allows image: null to clear the field', async () => {
       await expect(propertiesInError({ image: null })).resolves.toEqual([]);
-    });
-  });
-
-  describe('email', () => {
-    it('rejects a malformed address', async () => {
-      await expect(
-        propertiesInError({ email: 'not-an-email' }),
-      ).resolves.toContain('email');
     });
   });
 
@@ -122,30 +124,6 @@ describe('UpdateUserDto', () => {
       await expect(propertiesInError({ username: 12345 })).resolves.toContain(
         'username',
       );
-    });
-  });
-
-  describe('password', () => {
-    it('rejects a value shorter than the minimum', async () => {
-      const tooShort = 'a'.repeat(AUTH_VALIDATION.password.minLength - 1);
-
-      await expect(
-        propertiesInError({ password: tooShort }),
-      ).resolves.toContain('password');
-    });
-
-    it('rejects a value longer than the maximum', async () => {
-      const tooLong = 'a'.repeat(AUTH_VALIDATION.password.maxLength + 1);
-
-      await expect(propertiesInError({ password: tooLong })).resolves.toContain(
-        'password',
-      );
-    });
-
-    it('accepts a value at the minimum length', async () => {
-      const exact = 'a'.repeat(AUTH_VALIDATION.password.minLength);
-
-      await expect(propertiesInError({ password: exact })).resolves.toEqual([]);
     });
   });
 
