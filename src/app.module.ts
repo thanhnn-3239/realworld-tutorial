@@ -15,6 +15,7 @@ import { APP_FILTER } from '@nestjs/core';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { LoggerModule } from './logger/logger.module';
 import { AuthModule } from './auth/auth.module';
+import { GoogleAuthModule } from './auth/providers/google/google-auth.module';
 import { UsersModule } from './users/users.module';
 import { ArticlesModule } from './articles/articles.module';
 import { CommentsModule } from './comments/comments.module';
@@ -41,6 +42,7 @@ import { HealthModule } from './health/health.module';
     PrismaModule,
     LoggerModule.register(),
     AuthModule,
+    GoogleAuthModule.register(),
     UsersModule,
     ArticlesModule,
     CommentsModule,
