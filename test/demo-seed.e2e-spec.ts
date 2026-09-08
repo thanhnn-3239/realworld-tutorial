@@ -73,11 +73,14 @@ describe('Demo seed (e2e)', () => {
         },
       }),
     ).toBe(2);
-    expect(seededUser.password).not.toBe(password);
-    expect(seededUser.password).toMatch(/^\$2[aby]\$/);
-    await expect(comparePassword(password, seededUser.password)).resolves.toBe(
-      true,
-    );
+    // The column is nullable now that provider-only accounts exist, but the seed always
+    // writes a password — asserting that first is what lets the checks below stay strict.
+    expect(seededUser.password).not.toBeNull();
+    const seededHash = seededUser.password as string;
+
+    expect(seededHash).not.toBe(password);
+    expect(seededHash).toMatch(/^\$2[aby]\$/);
+    await expect(comparePassword(password, seededHash)).resolves.toBe(true);
 
     await request(httpServer())
       .post('/v1/auth/login')

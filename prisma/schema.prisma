@@ -54,15 +54,47 @@ model Tag {
 }
 
 model User {
-  id         Int       @id @default(autoincrement())
-  email      String    @unique
-  username   String    @unique
-  password   String
-  image      String?   @default("https://api.realworld.io/images/smiley-cyrus.jpeg")
-  bio        String?
-  articles   Article[] @relation("UserArticles")
-  favorites  Article[] @relation("UserFavorites")
-  followedBy User[]    @relation("UserFollows")
-  following  User[]    @relation("UserFollows")
-  comments   Comment[]
+  id            Int            @id @default(autoincrement())
+  email         String         @unique
+  username      String         @unique
+  // Null for accounts that authenticate only through a provider, and the state the
+  // account-linking path leaves behind when it evicts a speculative password.
+  password      String?
+  image         String?        @default("https://api.realworld.io/images/smiley-cyrus.jpeg")
+  bio           String?
+  articles      Article[]      @relation("UserArticles")
+  favorites     Article[]      @relation("UserFavorites")
+  followedBy    User[]         @relation("UserFollows")
+  following     User[]         @relation("UserFollows")
+  comments      Comment[]
+  authProviders AuthProvider[]
+  refreshTokens RefreshToken[]
 }
+
+model AuthProvider {
+  id                Int      @id @default(autoincrement())
+  provider          String
+  providerAccountId String
+  userId            Int
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model RefreshToken {
+  id           Int       @id @default(autoincrement())
+  tokenHash    String    @unique
+  userId       Int
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  // Points at the row that superseded this one. Deliberately a bare column rather than a
+  // self-relation: nothing navigates the chain, it is only read as a replay flag.
+  replacedById Int?      @unique
+  createdAt    DateTime  @default(now())
+
+  @@index([userId])
+}
+
