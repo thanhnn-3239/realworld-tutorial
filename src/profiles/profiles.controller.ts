@@ -18,7 +18,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { OptionalCurrentUser } from '../auth/decorators/optional-current-user.decorator';
-import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { ResponseMessage } from '../common/decorators/response-message.decorator';
 import { ProfilesService } from './profiles.service';
 import { ProfileResponseDto } from './dto/profile-response.dto';
@@ -43,7 +43,7 @@ export class ProfilesController {
     description: 'Profile not found',
   })
   getProfile(
-    @OptionalCurrentUser() user: JwtPayload | undefined,
+    @OptionalCurrentUser() user: AuthenticatedUser | undefined,
     @Param('username') username: string,
   ) {
     return this.profilesService.getProfile(username, user?.id);
@@ -70,7 +70,7 @@ export class ProfilesController {
     description: 'Cannot follow yourself',
   })
   followUser(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('username') username: string,
   ) {
     return this.profilesService.followUser(user.id, username);
@@ -93,7 +93,7 @@ export class ProfilesController {
     description: 'Profile not found',
   })
   unfollowUser(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('username') username: string,
   ) {
     return this.profilesService.unfollowUser(user.id, username);

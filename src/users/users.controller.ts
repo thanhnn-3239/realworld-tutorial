@@ -19,7 +19,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ResponseMessage } from '../common/decorators/response-message.decorator';
-import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 
 @ApiTags('User')
 @ApiBearerAuth()
@@ -40,7 +40,7 @@ export class UsersController {
     status: HttpStatus.UNAUTHORIZED,
     description: 'Unauthorized - Invalid or missing token',
   })
-  getCurrentUser(@CurrentUser() user: JwtPayload) {
+  getCurrentUser(@CurrentUser() user: AuthenticatedUser) {
     return this.usersService.getCurrentUser(user.id);
   }
 
@@ -59,13 +59,13 @@ export class UsersController {
   })
   @ApiResponse({
     status: HttpStatus.CONFLICT,
-    description: 'Email or username already in use',
+    description: 'Username already in use',
   })
   @ApiResponse({
     status: HttpStatus.UNPROCESSABLE_ENTITY,
     description: 'Validation error',
   })
-  updateUser(@CurrentUser() user: JwtPayload, @Body() dto: UpdateUserDto) {
+  updateUser(@CurrentUser() user: AuthenticatedUser, @Body() dto: UpdateUserDto) {
     return this.usersService.updateUser(user.id, dto);
   }
 }
