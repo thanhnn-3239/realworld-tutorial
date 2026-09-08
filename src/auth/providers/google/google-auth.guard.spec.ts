@@ -34,8 +34,8 @@ describe('GoogleAuthGuard', () => {
   });
 
   it('says nothing about why, so a probe learns nothing from the message', () => {
-    expect(() => guard.handleRequest(new Error('invalid_grant'), undefined)).toThrow(
-      'Google sign-in could not be completed',
-    );
+    expect(() =>
+      guard.handleRequest(new Error('invalid_grant'), undefined),
+    ).toThrow('Google sign-in could not be completed');
   });
 });

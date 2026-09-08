@@ -40,9 +40,9 @@ describe('TokenService', () => {
 
   beforeEach(() => {
     repository = {
-      create: jest.fn().mockImplementation(() =>
-        Promise.resolve(liveRow({ id: 99 })),
-      ),
+      create: jest
+        .fn()
+        .mockImplementation(() => Promise.resolve(liveRow({ id: 99 }))),
       findByHash: jest.fn().mockResolvedValue(null),
       markReplaced: jest.fn().mockResolvedValue(undefined),
       revokeById: jest.fn().mockResolvedValue(undefined),
@@ -118,7 +118,9 @@ describe('TokenService', () => {
     });
 
     it('revokes every session when a replaced token is presented again', async () => {
-      repository.findByHash.mockResolvedValue(liveRow({ id: 41, replacedById: 99 }));
+      repository.findByHash.mockResolvedValue(
+        liveRow({ id: 41, replacedById: 99 }),
+      );
 
       await expect(service.rotate('replayed')).rejects.toBeInstanceOf(
         UnauthorizedException,
@@ -127,7 +129,9 @@ describe('TokenService', () => {
     });
 
     it('rejects a revoked token without revoking the rest', async () => {
-      repository.findByHash.mockResolvedValue(liveRow({ revokedAt: new Date() }));
+      repository.findByHash.mockResolvedValue(
+        liveRow({ revokedAt: new Date() }),
+      );
 
       await expect(service.rotate('revoked')).rejects.toBeInstanceOf(
         UnauthorizedException,

@@ -126,7 +126,9 @@ export class TokenService {
       { expiresIn: this.accessTokenTtl },
     );
     const refreshToken = randomBytes(REFRESH_TOKEN_BYTES).toString('base64url');
-    const expiresAt = new Date(new Date().getTime() + this.ttlDays * MS_PER_DAY);
+    const expiresAt = new Date(
+      new Date().getTime() + this.ttlDays * MS_PER_DAY,
+    );
 
     const row = await this.refreshTokens.create(
       userId,

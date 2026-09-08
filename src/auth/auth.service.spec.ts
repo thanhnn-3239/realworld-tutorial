@@ -23,7 +23,11 @@ describe('AuthService', () => {
     findByUsername: jest.Mock;
     findByEmailWithPassword: jest.Mock;
   };
-  let tokenService: { issuePair: jest.Mock; rotate: jest.Mock; revoke: jest.Mock };
+  let tokenService: {
+    issuePair: jest.Mock;
+    rotate: jest.Mock;
+    revoke: jest.Mock;
+  };
   let passwordService: { hash: jest.Mock; compare: jest.Mock };
 
   beforeEach(() => {
@@ -190,8 +194,12 @@ describe('AuthService', () => {
     it('reuses the same dummy hash instead of paying for it again', async () => {
       repository.findByEmailWithPassword.mockResolvedValue(null);
 
-      await expect(service.login({ email: 'a@b.io', password: 'x' })).rejects.toThrow();
-      await expect(service.login({ email: 'c@d.io', password: 'x' })).rejects.toThrow();
+      await expect(
+        service.login({ email: 'a@b.io', password: 'x' }),
+      ).rejects.toThrow();
+      await expect(
+        service.login({ email: 'c@d.io', password: 'x' }),
+      ).rejects.toThrow();
 
       expect(passwordService.hash).toHaveBeenCalledTimes(1);
     });

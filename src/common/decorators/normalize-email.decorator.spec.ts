@@ -21,7 +21,10 @@ describe('NormalizeEmail', () => {
   });
 
   // Non-strings are left alone so the validator, not the transformer, produces the error.
-  it.each([undefined, null, 42, {}, []])('passes %p through untouched', (input) => {
-    expect(normalize(input)).toEqual(input);
-  });
+  it.each([undefined, null, 42, {}, []])(
+    'passes %p through untouched',
+    (input) => {
+      expect(normalize(input)).toEqual(input);
+    },
+  );
 });

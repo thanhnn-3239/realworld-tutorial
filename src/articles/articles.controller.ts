@@ -53,7 +53,10 @@ export class ArticlesController {
     status: HttpStatus.UNPROCESSABLE_ENTITY,
     description: 'Validation error',
   })
-  create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateArticleDto) {
+  create(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateArticleDto,
+  ) {
     return this.articlesService.create(user.id, dto);
   }
 

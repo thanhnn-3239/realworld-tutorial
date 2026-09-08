@@ -65,7 +65,10 @@ export class UsersController {
     status: HttpStatus.UNPROCESSABLE_ENTITY,
     description: 'Validation error',
   })
-  updateUser(@CurrentUser() user: AuthenticatedUser, @Body() dto: UpdateUserDto) {
+  updateUser(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpdateUserDto,
+  ) {
     return this.usersService.updateUser(user.id, dto);
   }
 }

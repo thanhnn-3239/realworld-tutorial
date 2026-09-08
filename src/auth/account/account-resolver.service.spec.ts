@@ -138,7 +138,8 @@ describe('AccountResolverService', () => {
     it('skips usernames that are already taken', async () => {
       const taken = new Set(['jane', 'jane2']);
       accountUsers.isUsernameTaken.mockImplementation(
-        (_tx: unknown, username: string) => Promise.resolve(taken.has(username)),
+        (_tx: unknown, username: string) =>
+          Promise.resolve(taken.has(username)),
       );
 
       await service.resolve(IDENTITY);

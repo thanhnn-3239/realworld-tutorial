@@ -52,7 +52,7 @@ describe('Google routes (e2e)', () => {
         .get('/v1/auth/google')
         .expect(HttpStatus.FOUND);
 
-      const params = new URL(response.headers.location as string).searchParams;
+      const params = new URL(response.headers.location).searchParams;
 
       expect(params.get('response_type')).toBe('code');
       expect(params.get('scope')).toBe('email profile');
