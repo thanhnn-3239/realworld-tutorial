@@ -66,7 +66,7 @@ describe('Article CRUD (e2e)', () => {
     });
 
     return {
-      token: response.body.data.token as string,
+      token: response.body.data.accessToken as string,
       username,
     };
   }

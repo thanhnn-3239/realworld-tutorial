@@ -3,6 +3,8 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { TokenPairDto } from './dto/token-pair.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { ResponseMessage } from '../common/decorators/response-message.decorator';
 
@@ -93,5 +95,49 @@ export class AuthController {
   })
   login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage('Token refreshed successfully')
+  @ApiOperation({
+    summary: 'Exchange a refresh token for a new pair',
+    description:
+      'Rotates the presented refresh token. The presented token is spent: replaying it revokes every session for that user, so a failed refresh must never be retried with the old value.',
+  })
+  @ApiBody({ type: RefreshTokenDto })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'A new token pair',
+    type: TokenPairDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Refresh token is unknown, expired, revoked or already spent',
+    schema: {
+      example: {
+        statusCode: HttpStatus.UNAUTHORIZED,
+        message: 'Invalid refresh token',
+      },
+    },
+  })
+  refresh(@Body() dto: RefreshTokenDto) {
+    return this.authService.refresh(dto);
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Revoke one refresh token',
+    description:
+      'Idempotent: an unknown or already-revoked token still reports success, because the caller is logged out either way.',
+  })
+  @ApiBody({ type: RefreshTokenDto })
+  @ApiResponse({
+    status: HttpStatus.NO_CONTENT,
+    description: 'The token is no longer usable',
+  })
+  async logout(@Body() dto: RefreshTokenDto) {
+    await this.authService.logout(dto);
   }
 }
