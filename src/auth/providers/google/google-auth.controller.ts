@@ -9,9 +9,8 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { AccountResolverService } from '../../account/account-resolver.service';
+import { AuthService } from '../../auth.service';
 import { AuthResponseDto } from '../../dto/auth-response.dto';
-import { TokenService } from '../../token/token.service';
 import { VerifiedIdentity } from '../verified-identity.interface';
 import { GoogleAuthGuard } from './google-auth.guard';
 import { GOOGLE_PROVIDER } from './google.strategy';
@@ -20,10 +19,7 @@ import { ResponseMessage } from '../../../common/decorators/response-message.dec
 @ApiTags('Authentication')
 @Controller('auth/google')
 export class GoogleAuthController {
-  constructor(
-    private readonly accountResolver: AccountResolverService,
-    private readonly tokenService: TokenService,
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
   /**
    * Intentionally empty: `AuthGuard` issues the redirect before the handler body would run.
@@ -64,20 +60,8 @@ export class GoogleAuthController {
       'The email already has an account and Google did not verify the address',
   })
   async callback(@Req() request: Request): Promise<AuthResponseDto> {
-    // Passport places whatever the strategy returned onto the request. Nobody is
-    // authenticated on this route yet, so what arrives is a provider identity rather than
-    // the application user that the request object declares — hence the double cast.
     const identity = request.user as unknown as VerifiedIdentity;
 
-    const account = await this.accountResolver.resolve(identity);
-    const tokens = await this.tokenService.issuePair(account.id);
-
-    return new AuthResponseDto({
-      email: account.email,
-      username: account.username,
-      bio: account.bio,
-      image: account.image,
-      ...tokens,
-    });
+    return this.authService.handleOAuthCallback(identity);
   }
 }

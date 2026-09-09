@@ -3,6 +3,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { Prisma } from '../../generated/prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
 import { RefreshTokenRepository } from './refresh-token.repository';
 
 export interface TokenPair {
@@ -46,21 +47,18 @@ export class TokenService {
   constructor(
     private readonly jwtService: JwtService,
     private readonly refreshTokens: RefreshTokenRepository,
+    private readonly prisma: PrismaService,
     configService: ConfigService,
   ) {
     this.ttlDays = resolveRefreshTtlDays(
       configService.get<string>('REFRESH_TOKEN_TTL_DAYS'),
     );
-    // `expiresIn` is a template literal type ("15m", "7d", …) that an arbitrary env string
-    // cannot be proven to match, so the cast is where that unverified input is admitted.
-    // A malformed value makes `sign()` throw at the first login rather than issue an
-    // eternal token.
     this.accessTokenTtl = (configService.get<string>('JWT_EXPIRES_IN') ??
       DEFAULT_ACCESS_TOKEN_TTL) as JwtSignOptions['expiresIn'];
   }
 
-  async issuePair(userId: number): Promise<TokenPair> {
-    const { pair } = await this.mint(userId);
+  async issueTokens(userId: number): Promise<TokenPair> {
+    const { pair } = await this.createTokenPair(userId);
 
     return pair;
   }
@@ -74,9 +72,6 @@ export class TokenService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    // A row that already has a successor was rotated away by its legitimate holder, so a
-    // second presentation means a copy is loose. Escalate to every session, not just this
-    // one — whoever holds the copy may have rotated others already.
     if (stored.replacedById !== null) {
       await this.refreshTokens.revokeAllForUser(stored.userId);
       throw new UnauthorizedException('Invalid refresh token');
@@ -86,17 +81,32 @@ export class TokenService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    const { pair, rowId } = await this.mint(stored.userId);
-    await this.refreshTokens.markReplaced(stored.id, rowId);
+    let userIdToRevoke: number | null = null;
 
-    // Keeps the table bounded without a scheduled job. Safe because `replacedById` carries
-    // no foreign key, so deleting a predecessor cannot violate a constraint.
-    await this.refreshTokens.deleteExpired(new Date());
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const { pair, rowId } = await this.createTokenPair(stored.userId, tx);
 
-    return pair;
+        const marked = await this.refreshTokens.markAsUsed(
+          stored.id,
+          rowId,
+          tx,
+        );
+        if (!marked) {
+          userIdToRevoke = stored.userId;
+          throw new UnauthorizedException('Invalid refresh token');
+        }
+
+        return pair;
+      });
+    } catch (error) {
+      if (userIdToRevoke !== null) {
+        await this.refreshTokens.revokeAllForUser(userIdToRevoke);
+      }
+      throw error;
+    }
   }
 
-  /** Idempotent: an unknown or already-revoked token still means "logged out". */
   async revoke(rawRefreshToken: string): Promise<void> {
     const stored = await this.refreshTokens.findByHash(
       hashRefreshToken(rawRefreshToken),
@@ -107,20 +117,10 @@ export class TokenService {
     }
   }
 
-  async revokeAllForUser(
+  private async createTokenPair(
     userId: number,
-    client?: Prisma.TransactionClient,
-  ): Promise<void> {
-    await this.refreshTokens.revokeAllForUser(userId, client);
-  }
-
-  /** Returns the row id too, because rotation has to point the old row at the new one. */
-  private async mint(
-    userId: number,
+    tx?: Prisma.TransactionClient,
   ): Promise<{ pair: TokenPair; rowId: number }> {
-    // Expiry is passed explicitly rather than inherited from JwtModule's signOptions, so the
-    // lifetime of the token is visible where the token is made and cannot be changed by an
-    // unrelated edit to module configuration.
     const accessToken = this.jwtService.sign(
       { sub: userId },
       { expiresIn: this.accessTokenTtl },
@@ -134,6 +134,7 @@ export class TokenService {
       userId,
       hashRefreshToken(refreshToken),
       expiresAt,
+      tx,
     );
 
     return { pair: { accessToken, refreshToken }, rowId: row.id };

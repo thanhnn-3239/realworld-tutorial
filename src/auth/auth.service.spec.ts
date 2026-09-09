@@ -3,6 +3,7 @@ import { AuthService } from './auth.service';
 import { AuthRepository } from './auth.repository';
 import { TokenService } from './token/token.service';
 import { PasswordService } from '../common/password/password.service';
+import { AccountResolverService } from './account/account-resolver.service';
 
 const PAIR = { accessToken: 'access.jwt', refreshToken: 'refresh-opaque' };
 
@@ -24,11 +25,12 @@ describe('AuthService', () => {
     findByEmailWithPassword: jest.Mock;
   };
   let tokenService: {
-    issuePair: jest.Mock;
+    issueTokens: jest.Mock;
     rotate: jest.Mock;
     revoke: jest.Mock;
   };
   let passwordService: { hash: jest.Mock; compare: jest.Mock };
+  let accountResolver: { resolve: jest.Mock };
 
   beforeEach(() => {
     repository = {
@@ -38,7 +40,7 @@ describe('AuthService', () => {
       findByEmailWithPassword: jest.fn().mockResolvedValue(storedUser),
     };
     tokenService = {
-      issuePair: jest.fn().mockResolvedValue(PAIR),
+      issueTokens: jest.fn().mockResolvedValue(PAIR),
       rotate: jest.fn().mockResolvedValue(PAIR),
       revoke: jest.fn().mockResolvedValue(undefined),
     };
@@ -48,11 +50,21 @@ describe('AuthService', () => {
       hash: jest.fn((plain: string) => Promise.resolve(`hashed:${plain}`)),
       compare: jest.fn().mockResolvedValue(true),
     };
+    accountResolver = {
+      resolve: jest.fn().mockResolvedValue({
+        id: 7,
+        email: 'jake@jake.jake',
+        username: 'jake',
+        bio: 'I work at statefarm',
+        image: null,
+      }),
+    };
 
     service = new AuthService(
       repository as unknown as AuthRepository,
       tokenService as unknown as TokenService,
       passwordService as unknown as PasswordService,
+      accountResolver as unknown as AccountResolverService,
     );
   });
 
@@ -67,7 +79,7 @@ describe('AuthService', () => {
     it('returns the pair issued for the new user id', async () => {
       const result = await service.register(registerDto);
 
-      expect(tokenService.issuePair).toHaveBeenCalledWith(7);
+      expect(tokenService.issueTokens).toHaveBeenCalledWith(7);
       expect(result.accessToken).toBe(PAIR.accessToken);
       expect(result.refreshToken).toBe(PAIR.refreshToken);
       expect(result).not.toHaveProperty('token');
@@ -80,7 +92,7 @@ describe('AuthService', () => {
       await expect(service.register(registerDto)).rejects.toBeInstanceOf(
         ConflictException,
       );
-      expect(tokenService.issuePair).not.toHaveBeenCalled();
+      expect(tokenService.issueTokens).not.toHaveBeenCalled();
     });
 
     it('rejects a taken username before touching the token service', async () => {
@@ -89,7 +101,7 @@ describe('AuthService', () => {
       await expect(service.register(registerDto)).rejects.toBeInstanceOf(
         ConflictException,
       );
-      expect(tokenService.issuePair).not.toHaveBeenCalled();
+      expect(tokenService.issueTokens).not.toHaveBeenCalled();
     });
   });
 
@@ -100,7 +112,7 @@ describe('AuthService', () => {
         password: 'password123',
       });
 
-      expect(tokenService.issuePair).toHaveBeenCalledWith(7);
+      expect(tokenService.issueTokens).toHaveBeenCalledWith(7);
       expect(result.bio).toBe('I work at statefarm');
       expect(result.accessToken).toBe(PAIR.accessToken);
     });
@@ -111,7 +123,7 @@ describe('AuthService', () => {
       await expect(
         service.login({ email: 'jake@jake.jake', password: 'wrong' }),
       ).rejects.toBeInstanceOf(UnauthorizedException);
-      expect(tokenService.issuePair).not.toHaveBeenCalled();
+      expect(tokenService.issueTokens).not.toHaveBeenCalled();
     });
 
     it('rejects an unknown email', async () => {
@@ -131,7 +143,7 @@ describe('AuthService', () => {
       await expect(
         service.login({ email: storedUser.email, password: 'password123' }),
       ).rejects.toBeInstanceOf(UnauthorizedException);
-      expect(tokenService.issuePair).not.toHaveBeenCalled();
+      expect(tokenService.issueTokens).not.toHaveBeenCalled();
     });
 
     it('still compares once when no user matches, so timing does not disclose the address', async () => {
@@ -217,6 +229,26 @@ describe('AuthService', () => {
       await service.logout({ refreshToken: 'raw' });
 
       expect(tokenService.revoke).toHaveBeenCalledWith('raw');
+    });
+  });
+
+  describe('handleOAuthCallback', () => {
+    it('resolves identity, issues tokens and returns auth response', async () => {
+      const identity = {
+        provider: 'google',
+        providerAccountId: '12345',
+        email: 'jake@jake.jake',
+        emailVerified: true,
+      };
+
+      const result = await service.handleOAuthCallback(identity);
+
+      expect(accountResolver.resolve).toHaveBeenCalledWith(identity);
+      expect(tokenService.issueTokens).toHaveBeenCalledWith(7);
+      expect(result.email).toBe('jake@jake.jake');
+      expect(result.username).toBe('jake');
+      expect(result.accessToken).toBe(PAIR.accessToken);
+      expect(result.refreshToken).toBe(PAIR.refreshToken);
     });
   });
 });

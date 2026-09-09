@@ -12,6 +12,7 @@ import {
   RefreshTokenRepository,
   RefreshTokenRow,
 } from './refresh-token.repository';
+import { PrismaService } from '../../prisma/prisma.service';
 
 const USER_ID = 7;
 
@@ -29,10 +30,11 @@ function liveRow(overrides: Partial<RefreshTokenRow> = {}): RefreshTokenRow {
 describe('TokenService', () => {
   let service: TokenService;
   let jwtService: { sign: jest.Mock };
+  let prisma: { $transaction: jest.Mock };
   let repository: {
     create: jest.Mock;
     findByHash: jest.Mock;
-    markReplaced: jest.Mock;
+    markAsUsed: jest.Mock;
     revokeById: jest.Mock;
     revokeAllForUser: jest.Mock;
     deleteExpired: jest.Mock;
@@ -44,14 +46,17 @@ describe('TokenService', () => {
         .fn()
         .mockImplementation(() => Promise.resolve(liveRow({ id: 99 }))),
       findByHash: jest.fn().mockResolvedValue(null),
-      markReplaced: jest.fn().mockResolvedValue(undefined),
+      markAsUsed: jest.fn().mockResolvedValue(true),
       revokeById: jest.fn().mockResolvedValue(undefined),
       revokeAllForUser: jest.fn().mockResolvedValue(undefined),
       deleteExpired: jest.fn().mockResolvedValue(undefined),
     };
 
+    prisma = {
+      $transaction: jest.fn((callback) => callback({})),
+    };
+
     jwtService = { sign: jest.fn(() => 'signed.access.token') };
-    // One stub answers both keys; only REFRESH_TOKEN_TTL_DAYS is numeric.
     const configService = {
       get: jest.fn((key: string) =>
         key === 'REFRESH_TOKEN_TTL_DAYS' ? '30' : '15m',
@@ -61,13 +66,14 @@ describe('TokenService', () => {
     service = new TokenService(
       jwtService as unknown as JwtService,
       repository as unknown as RefreshTokenRepository,
+      prisma as unknown as PrismaService,
       configService,
     );
   });
 
-  describe('issuePair', () => {
+  describe('issueTokens', () => {
     it('stores only the hash of the refresh token it returns', async () => {
-      const pair = await service.issuePair(USER_ID);
+      const pair = await service.issueTokens(USER_ID);
 
       expect(pair.accessToken).toBe('signed.access.token');
       expect(pair.refreshToken).toMatch(/^[A-Za-z0-9_-]{43}$/);
@@ -79,7 +85,7 @@ describe('TokenService', () => {
     });
 
     it('signs the access token with a sub-only payload and an explicit expiry', async () => {
-      await service.issuePair(USER_ID);
+      await service.issueTokens(USER_ID);
 
       expect(jwtService.sign).toHaveBeenCalledWith(
         { sub: USER_ID },
@@ -94,10 +100,11 @@ describe('TokenService', () => {
       const bare = new TokenService(
         jwtService as unknown as JwtService,
         repository as unknown as RefreshTokenRepository,
+        prisma as unknown as PrismaService,
         bareConfig,
       );
 
-      await bare.issuePair(USER_ID);
+      await bare.issueTokens(USER_ID);
 
       expect(jwtService.sign).toHaveBeenCalledWith(
         { sub: USER_ID },
@@ -113,7 +120,11 @@ describe('TokenService', () => {
       const pair = await service.rotate('whatever');
 
       expect(pair.refreshToken).toMatch(/^[A-Za-z0-9_-]{43}$/);
-      expect(repository.markReplaced).toHaveBeenCalledWith(41, 99);
+      expect(repository.markAsUsed).toHaveBeenCalledWith(
+        41,
+        99,
+        expect.anything(),
+      );
       expect(repository.revokeAllForUser).not.toHaveBeenCalled();
     });
 
@@ -123,6 +134,16 @@ describe('TokenService', () => {
       );
 
       await expect(service.rotate('replayed')).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
+      expect(repository.revokeAllForUser).toHaveBeenCalledWith(USER_ID);
+    });
+
+    it('revokes every session when concurrent rotation fails optimistic lock', async () => {
+      repository.findByHash.mockResolvedValue(liveRow({ id: 41 }));
+      repository.markAsUsed.mockResolvedValue(false);
+
+      await expect(service.rotate('racing')).rejects.toBeInstanceOf(
         UnauthorizedException,
       );
       expect(repository.revokeAllForUser).toHaveBeenCalledWith(USER_ID);
@@ -153,14 +174,6 @@ describe('TokenService', () => {
       await expect(service.rotate('unknown')).rejects.toBeInstanceOf(
         UnauthorizedException,
       );
-    });
-
-    it('deletes expired rows opportunistically on a successful rotation', async () => {
-      repository.findByHash.mockResolvedValue(liveRow());
-
-      await service.rotate('valid');
-
-      expect(repository.deleteExpired).toHaveBeenCalled();
     });
   });
 

@@ -1,35 +1,46 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
+import { ACCOUNT_SELECT, AccountRow } from './account-user.repository';
 
-/**
- * Every method takes the transaction client rather than holding its own: resolution is only
- * correct as one atomic unit, so this layer must never open a connection of its own.
- */
+export interface ProviderIdentifier {
+  provider: string;
+  providerAccountId: string;
+}
+
 @Injectable()
 export class AuthProviderRepository {
-  async findUserIdByAccount(
-    tx: Prisma.TransactionClient,
-    provider: string,
-    providerAccountId: string,
-  ): Promise<number | null> {
-    const link = await tx.authProvider.findUnique({
+  constructor(private readonly prisma: PrismaService) {}
+
+  async findAccountByProvider(
+    identifier: ProviderIdentifier,
+  ): Promise<AccountRow | null> {
+    const link = await this.prisma.authProvider.findUnique({
       where: {
-        provider_providerAccountId: { provider, providerAccountId },
+        provider_providerAccountId: {
+          provider: identifier.provider,
+          providerAccountId: identifier.providerAccountId,
+        },
       },
-      select: { userId: true },
+      select: {
+        user: { select: ACCOUNT_SELECT },
+      },
     });
 
-    return link?.userId ?? null;
+    return link?.user ?? null;
   }
 
-  async link(
-    tx: Prisma.TransactionClient,
+  async create(
     userId: number,
-    provider: string,
-    providerAccountId: string,
+    identity: ProviderIdentifier,
+    client: Prisma.TransactionClient = this.prisma,
   ): Promise<void> {
-    await tx.authProvider.create({
-      data: { userId, provider, providerAccountId },
+    await client.authProvider.create({
+      data: {
+        userId,
+        provider: identity.provider,
+        providerAccountId: identity.providerAccountId,
+      },
     });
   }
 }

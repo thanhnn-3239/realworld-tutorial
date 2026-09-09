@@ -1,9 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { AUTH_VALIDATION } from '../auth.config';
 
-/** Numbered suffixes are tried before falling back to randomness. */
-export const MAX_NUMBERED_ATTEMPTS = 5;
-
 const DISALLOWED_CHARACTERS = /[^a-z0-9._-]+/g;
 const RANDOM_SUFFIX_BYTES = 2;
 const SHORT_NAME_PREFIX = 'user';
@@ -31,23 +28,27 @@ export function baseUsernameFromEmail(email: string): string {
 }
 
 /**
- * `randomSuffix` is injectable so a test can assert the shape of the fallback without
- * depending on chance.
+ * Generates a unique username by combining base name from email with timestamp and random suffix.
  */
-export function usernameCandidate(
-  base: string,
-  attempt: number,
+export function generateUsername(
+  email: string,
+  timeProvider: () => number = Date.now,
   randomSuffix: () => string = defaultRandomSuffix,
 ): string {
-  if (attempt <= 1) {
-    return base;
-  }
+  const base = baseUsernameFromEmail(email);
+  const timeStr = String(timeProvider());
+  const randStr = randomSuffix();
+  const suffix = `_${timeStr}_${randStr}`;
+  const maxBaseLength = Math.max(
+    0,
+    AUTH_VALIDATION.username.maxLength - suffix.length,
+  );
 
-  const suffix =
-    attempt <= MAX_NUMBERED_ATTEMPTS ? String(attempt) : randomSuffix();
-  const room = AUTH_VALIDATION.username.maxLength - suffix.length;
-
-  return `${base.slice(0, room)}${suffix}`;
+  const truncatedBase = base.slice(0, maxBaseLength);
+  return `${truncatedBase}${suffix}`.slice(
+    0,
+    AUTH_VALIDATION.username.maxLength,
+  );
 }
 
 function defaultRandomSuffix(): string {

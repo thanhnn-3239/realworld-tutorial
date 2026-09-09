@@ -22,8 +22,9 @@ export class RefreshTokenRepository {
     userId: number,
     tokenHash: string,
     expiresAt: Date,
+    client: Prisma.TransactionClient = this.prisma,
   ): Promise<RefreshTokenRow> {
-    return this.prisma.refreshToken.create({
+    return client.refreshToken.create({
       data: { userId, tokenHash, expiresAt },
       select: this.rowSelect,
     });
@@ -36,11 +37,17 @@ export class RefreshTokenRepository {
     });
   }
 
-  async markReplaced(id: number, replacedById: number): Promise<void> {
-    await this.prisma.refreshToken.update({
-      where: { id },
+  async markAsUsed(
+    id: number,
+    replacedById: number,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<boolean> {
+    const result = await client.refreshToken.updateMany({
+      where: { id, replacedById: null },
       data: { replacedById },
     });
+
+    return result.count > 0;
   }
 
   async revokeById(id: number): Promise<void> {
@@ -50,13 +57,6 @@ export class RefreshTokenRepository {
     });
   }
 
-  /**
-   * Scoped to still-live rows so an already-revoked row keeps its original timestamp.
-   *
-   * Takes an optional client so a caller already inside `$transaction` can make the
-   * revocation part of that transaction — account linking needs the password clearing and
-   * this revocation to commit together or not at all.
-   */
   async revokeAllForUser(
     userId: number,
     client: Prisma.TransactionClient = this.prisma,

@@ -1,34 +1,28 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
 
-export interface AccountRow {
-  id: number;
-  email: string;
-  username: string;
-  bio: string | null;
-  image: string | null;
-}
-
-const ACCOUNT_SELECT = {
+export const ACCOUNT_SELECT = {
   id: true,
   email: true,
   username: true,
   bio: true,
   image: true,
-} as const;
+} as const satisfies Prisma.UserSelect;
+
+export type AccountRow = Prisma.UserGetPayload<{
+  select: typeof ACCOUNT_SELECT;
+}>;
 
 /**
- * User-row access for account resolution. Separate from `UsersRepository`, which belongs to
- * `UsersModule` and opens its own connection: every method here takes the transaction client,
- * because resolution is only correct as one atomic unit.
+ * User-row access for account resolution.
  */
 @Injectable()
 export class AccountUserRepository {
-  async findIdByEmail(
-    tx: Prisma.TransactionClient,
-    email: string,
-  ): Promise<number | null> {
-    const user = await tx.user.findUnique({
+  constructor(private readonly prisma: PrismaService) {}
+
+  async findIdByEmail(email: string): Promise<number | null> {
+    const user = await this.prisma.user.findUnique({
       where: { email },
       select: { id: true },
     });
@@ -36,31 +30,12 @@ export class AccountUserRepository {
     return user?.id ?? null;
   }
 
-  async findAccountById(
-    tx: Prisma.TransactionClient,
-    id: number,
-  ): Promise<AccountRow | null> {
-    return tx.user.findUnique({ where: { id }, select: ACCOUNT_SELECT });
-  }
-
-  async isUsernameTaken(
-    tx: Prisma.TransactionClient,
-    username: string,
-  ): Promise<boolean> {
-    const existing = await tx.user.findUnique({
-      where: { username },
-      select: { id: true },
-    });
-
-    return existing !== null;
-  }
-
   async createPasswordless(
-    tx: Prisma.TransactionClient,
     email: string,
     username: string,
+    client: Prisma.TransactionClient = this.prisma,
   ): Promise<AccountRow> {
-    return tx.user.create({
+    return client.user.create({
       data: { email, username, password: null },
       select: ACCOUNT_SELECT,
     });
@@ -68,10 +43,10 @@ export class AccountUserRepository {
 
   /** Used by the provider-link path to evict a password nobody proved they owned. */
   async clearPassword(
-    tx: Prisma.TransactionClient,
     id: number,
+    client: Prisma.TransactionClient = this.prisma,
   ): Promise<AccountRow> {
-    return tx.user.update({
+    return client.user.update({
       where: { id },
       data: { password: null },
       select: ACCOUNT_SELECT,

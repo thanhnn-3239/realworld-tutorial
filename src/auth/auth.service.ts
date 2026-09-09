@@ -12,6 +12,8 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { PasswordService } from '../common/password/password.service';
 import { TokenPair, TokenService } from './token/token.service';
+import { AccountResolverService } from './account/account-resolver.service';
+import { VerifiedIdentity } from './providers/verified-identity.interface';
 
 const DUMMY_SECRET_BYTES = 32;
 
@@ -23,6 +25,7 @@ export class AuthService implements OnModuleInit {
     private readonly authRepository: AuthRepository,
     private readonly tokenService: TokenService,
     private readonly passwordService: PasswordService,
+    private readonly accountResolver: AccountResolverService,
   ) {}
 
   /**
@@ -68,7 +71,7 @@ export class AuthService implements OnModuleInit {
       password: hashedPassword,
     });
 
-    const tokens = await this.tokenService.issuePair(user.id);
+    const tokens = await this.tokenService.issueTokens(user.id);
 
     return new AuthResponseDto({
       email: user.email,
@@ -97,7 +100,7 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const tokens = await this.tokenService.issuePair(user.id);
+    const tokens = await this.tokenService.issueTokens(user.id);
 
     return new AuthResponseDto({
       email: user.email,
@@ -114,5 +117,20 @@ export class AuthService implements OnModuleInit {
 
   logout(dto: RefreshTokenDto): Promise<void> {
     return this.tokenService.revoke(dto.refreshToken);
+  }
+
+  async handleOAuthCallback(
+    identity: VerifiedIdentity,
+  ): Promise<AuthResponseDto> {
+    const account = await this.accountResolver.resolve(identity);
+    const tokens = await this.tokenService.issueTokens(account.id);
+
+    return new AuthResponseDto({
+      email: account.email,
+      username: account.username,
+      bio: account.bio,
+      image: account.image,
+      ...tokens,
+    });
   }
 }
