@@ -60,7 +60,11 @@ describe('Article listing and feed (e2e)', () => {
       select: { id: true },
     });
 
-    return { token: response.body.data.token as string, username, id: user.id };
+    return {
+      token: response.body.data.accessToken as string,
+      username,
+      id: user.id,
+    };
   }
 
   /**

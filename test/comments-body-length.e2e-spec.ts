@@ -30,7 +30,7 @@ describe('Comment body length (e2e)', () => {
         password_confirmation: 'password123',
       })
       .expect(HttpStatus.CREATED);
-    token = registration.body.data.token as string;
+    token = registration.body.data.accessToken as string;
 
     const article = await request(app.getHttpServer())
       .post('/v1/articles')

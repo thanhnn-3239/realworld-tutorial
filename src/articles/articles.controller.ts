@@ -21,7 +21,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { OptionalCurrentUser } from '../auth/decorators/optional-current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
-import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { PaginationDto } from '../common/dto/api-response.dto';
 import { ResponseMessage } from '../common/decorators/response-message.decorator';
 import { ArticlesService } from './articles.service';
@@ -53,7 +53,10 @@ export class ArticlesController {
     status: HttpStatus.UNPROCESSABLE_ENTITY,
     description: 'Validation error',
   })
-  create(@CurrentUser() user: JwtPayload, @Body() dto: CreateArticleDto) {
+  create(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateArticleDto,
+  ) {
     return this.articlesService.create(user.id, dto);
   }
 
@@ -72,7 +75,7 @@ export class ArticlesController {
     description: 'Invalid query parameter',
   })
   list(
-    @OptionalCurrentUser() user: JwtPayload | undefined,
+    @OptionalCurrentUser() user: AuthenticatedUser | undefined,
     @Query() query: ListArticlesQueryDto,
   ) {
     return this.articlesService.list(query, user?.id);
@@ -94,7 +97,7 @@ export class ArticlesController {
     status: HttpStatus.UNPROCESSABLE_ENTITY,
     description: 'Invalid query parameter',
   })
-  feed(@CurrentUser() user: JwtPayload, @Query() query: PaginationDto) {
+  feed(@CurrentUser() user: AuthenticatedUser, @Query() query: PaginationDto) {
     return this.articlesService.feed(user.id, query);
   }
 
@@ -113,7 +116,7 @@ export class ArticlesController {
     description: 'Article not found',
   })
   getBySlug(
-    @OptionalCurrentUser() user: JwtPayload | undefined,
+    @OptionalCurrentUser() user: AuthenticatedUser | undefined,
     @Param('slug') slug: string,
   ) {
     return this.articlesService.getBySlug(slug, user?.id);
@@ -142,7 +145,7 @@ export class ArticlesController {
     description: 'Validation error or empty update',
   })
   update(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('slug') slug: string,
     @Body() dto: UpdateArticleDto,
   ) {
@@ -162,7 +165,7 @@ export class ArticlesController {
     status: HttpStatus.NOT_FOUND,
     description: 'Article not found',
   })
-  remove(@CurrentUser() user: JwtPayload, @Param('slug') slug: string) {
+  remove(@CurrentUser() user: AuthenticatedUser, @Param('slug') slug: string) {
     return this.articlesService.remove(user.id, slug);
   }
 }

@@ -44,7 +44,7 @@ describe('Profiles (e2e)', () => {
       })
       .expect(HttpStatus.CREATED);
 
-    return { token: response.body.data.token as string, username };
+    return { token: response.body.data.accessToken as string, username };
   }
 
   function expectProfile(

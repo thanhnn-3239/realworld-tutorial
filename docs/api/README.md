@@ -10,8 +10,12 @@ This folder contains the API documentation for the RealWorld application.
 All authenticated endpoints require:
 
 ```
-Authorization: Token jwt.token.here
+Authorization: Bearer <accessToken>
 ```
+
+The access token is valid for **15 minutes**. When it expires, call
+`POST /v1/auth/refresh` with the refresh token to obtain a new pair — see
+[authentication.md](./authentication.md#tokens).
 
 ## Common Response Format
 
@@ -62,7 +66,7 @@ All API responses follow a standardized format:
 
 | File                                     | Description                                      |
 | ---------------------------------------- | ------------------------------------------------ |
-| [authentication.md](./authentication.md) | Login & Registration                             |
+| [authentication.md](./authentication.md) | Registration, login, refresh, logout, Google sign-in |
 | [users.md](./users.md)                   | Current User & Settings                          |
 | [profiles.md](./profiles.md)             | User Profiles & Following                        |
 | [articles.md](./articles.md)             | CRUD Articles & Pagination                       |

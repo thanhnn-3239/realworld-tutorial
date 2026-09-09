@@ -6,7 +6,6 @@ import {
 import { UsersRepository } from './users.repository';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { I18nService } from 'nestjs-i18n';
-import { PasswordService } from '../common/password/password.service';
 
 export interface UserResponse {
   email: string;
@@ -16,18 +15,15 @@ export interface UserResponse {
 }
 
 interface UserUpdateData {
-  email?: string;
   username?: string;
   bio?: string | null;
   image?: string | null;
-  password?: string;
 }
 
 @Injectable()
 export class UsersService {
   constructor(
     private readonly usersRepository: UsersRepository,
-    private readonly passwordService: PasswordService,
     private readonly i18n: I18nService,
   ) {}
 
@@ -45,22 +41,10 @@ export class UsersService {
   }
 
   async updateUser(userId: number, dto: UpdateUserDto): Promise<UserResponse> {
-    const { password, ...profileFields } = dto;
-
-    if (profileFields.email) {
-      const existingEmail = await this.usersRepository.findByEmailExcluding(
-        profileFields.email,
-        userId,
-      );
-      if (existingEmail) {
-        throw new ConflictException(this.i18n.t('common.error.emailInUse'));
-      }
-    }
-
-    if (profileFields.username) {
+    if (dto.username) {
       const existingUsername =
         await this.usersRepository.findByUsernameExcluding(
-          profileFields.username,
+          dto.username,
           userId,
         );
       if (existingUsername) {
@@ -68,12 +52,7 @@ export class UsersService {
       }
     }
 
-    const updateData: UserUpdateData = { ...profileFields };
-
-    if (password !== undefined) {
-      updateData.password = await this.passwordService.hash(password);
-    }
-
+    const updateData: UserUpdateData = { ...dto };
     const updatedUser = await this.usersRepository.update(userId, updateData);
 
     return {

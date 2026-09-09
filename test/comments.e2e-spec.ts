@@ -54,7 +54,7 @@ describe('Article comments (e2e)', () => {
       })
       .expect(HttpStatus.CREATED);
 
-    return { token: response.body.data.token as string, username };
+    return { token: response.body.data.accessToken as string, username };
   }
 
   async function createArticle(token: string, title: string) {

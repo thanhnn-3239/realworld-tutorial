@@ -21,16 +21,6 @@ export class UsersRepository {
     });
   }
 
-  async findByEmailExcluding(email: string, excludeId: number) {
-    return this.prisma.user.findFirst({
-      where: {
-        email,
-        NOT: { id: excludeId },
-      },
-      select: { id: true },
-    });
-  }
-
   async findByUsernameExcluding(username: string, excludeId: number) {
     return this.prisma.user.findFirst({
       where: {

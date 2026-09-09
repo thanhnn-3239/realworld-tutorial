@@ -189,7 +189,7 @@ export type UserGroupByOutputType = {
   id: number
   email: string
   username: string
-  password: string
+  password: string | null
   image: string | null
   bio: string | null
   _count: UserCountAggregateOutputType | null
@@ -221,7 +221,7 @@ export type UserWhereInput = {
   id?: Prisma.IntFilter<"User"> | number
   email?: Prisma.StringFilter<"User"> | string
   username?: Prisma.StringFilter<"User"> | string
-  password?: Prisma.StringFilter<"User"> | string
+  password?: Prisma.StringNullableFilter<"User"> | string | null
   image?: Prisma.StringNullableFilter<"User"> | string | null
   bio?: Prisma.StringNullableFilter<"User"> | string | null
   articles?: Prisma.ArticleListRelationFilter
@@ -229,13 +229,15 @@ export type UserWhereInput = {
   followedBy?: Prisma.UserListRelationFilter
   following?: Prisma.UserListRelationFilter
   comments?: Prisma.CommentListRelationFilter
+  authProviders?: Prisma.AuthProviderListRelationFilter
+  refreshTokens?: Prisma.RefreshTokenListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   email?: Prisma.SortOrder
   username?: Prisma.SortOrder
-  password?: Prisma.SortOrder
+  password?: Prisma.SortOrderInput | Prisma.SortOrder
   image?: Prisma.SortOrderInput | Prisma.SortOrder
   bio?: Prisma.SortOrderInput | Prisma.SortOrder
   articles?: Prisma.ArticleOrderByRelationAggregateInput
@@ -243,6 +245,8 @@ export type UserOrderByWithRelationInput = {
   followedBy?: Prisma.UserOrderByRelationAggregateInput
   following?: Prisma.UserOrderByRelationAggregateInput
   comments?: Prisma.CommentOrderByRelationAggregateInput
+  authProviders?: Prisma.AuthProviderOrderByRelationAggregateInput
+  refreshTokens?: Prisma.RefreshTokenOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -252,7 +256,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.UserWhereInput | Prisma.UserWhereInput[]
   OR?: Prisma.UserWhereInput[]
   NOT?: Prisma.UserWhereInput | Prisma.UserWhereInput[]
-  password?: Prisma.StringFilter<"User"> | string
+  password?: Prisma.StringNullableFilter<"User"> | string | null
   image?: Prisma.StringNullableFilter<"User"> | string | null
   bio?: Prisma.StringNullableFilter<"User"> | string | null
   articles?: Prisma.ArticleListRelationFilter
@@ -260,13 +264,15 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   followedBy?: Prisma.UserListRelationFilter
   following?: Prisma.UserListRelationFilter
   comments?: Prisma.CommentListRelationFilter
+  authProviders?: Prisma.AuthProviderListRelationFilter
+  refreshTokens?: Prisma.RefreshTokenListRelationFilter
 }, "id" | "email" | "username">
 
 export type UserOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   email?: Prisma.SortOrder
   username?: Prisma.SortOrder
-  password?: Prisma.SortOrder
+  password?: Prisma.SortOrderInput | Prisma.SortOrder
   image?: Prisma.SortOrderInput | Prisma.SortOrder
   bio?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
@@ -283,7 +289,7 @@ export type UserScalarWhereWithAggregatesInput = {
   id?: Prisma.IntWithAggregatesFilter<"User"> | number
   email?: Prisma.StringWithAggregatesFilter<"User"> | string
   username?: Prisma.StringWithAggregatesFilter<"User"> | string
-  password?: Prisma.StringWithAggregatesFilter<"User"> | string
+  password?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   image?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   bio?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
 }
@@ -291,7 +297,7 @@ export type UserScalarWhereWithAggregatesInput = {
 export type UserCreateInput = {
   email: string
   username: string
-  password: string
+  password?: string | null
   image?: string | null
   bio?: string | null
   articles?: Prisma.ArticleCreateNestedManyWithoutAuthorInput
@@ -299,13 +305,15 @@ export type UserCreateInput = {
   followedBy?: Prisma.UserCreateNestedManyWithoutFollowingInput
   following?: Prisma.UserCreateNestedManyWithoutFollowedByInput
   comments?: Prisma.CommentCreateNestedManyWithoutAuthorInput
+  authProviders?: Prisma.AuthProviderCreateNestedManyWithoutUserInput
+  refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
   id?: number
   email: string
   username: string
-  password: string
+  password?: string | null
   image?: string | null
   bio?: string | null
   articles?: Prisma.ArticleUncheckedCreateNestedManyWithoutAuthorInput
@@ -313,12 +321,14 @@ export type UserUncheckedCreateInput = {
   followedBy?: Prisma.UserUncheckedCreateNestedManyWithoutFollowingInput
   following?: Prisma.UserUncheckedCreateNestedManyWithoutFollowedByInput
   comments?: Prisma.CommentUncheckedCreateNestedManyWithoutAuthorInput
+  authProviders?: Prisma.AuthProviderUncheckedCreateNestedManyWithoutUserInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   username?: Prisma.StringFieldUpdateOperationsInput | string
-  password?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   articles?: Prisma.ArticleUpdateManyWithoutAuthorNestedInput
@@ -326,13 +336,15 @@ export type UserUpdateInput = {
   followedBy?: Prisma.UserUpdateManyWithoutFollowingNestedInput
   following?: Prisma.UserUpdateManyWithoutFollowedByNestedInput
   comments?: Prisma.CommentUpdateManyWithoutAuthorNestedInput
+  authProviders?: Prisma.AuthProviderUpdateManyWithoutUserNestedInput
+  refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   email?: Prisma.StringFieldUpdateOperationsInput | string
   username?: Prisma.StringFieldUpdateOperationsInput | string
-  password?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   articles?: Prisma.ArticleUncheckedUpdateManyWithoutAuthorNestedInput
@@ -340,13 +352,15 @@ export type UserUncheckedUpdateInput = {
   followedBy?: Prisma.UserUncheckedUpdateManyWithoutFollowingNestedInput
   following?: Prisma.UserUncheckedUpdateManyWithoutFollowedByNestedInput
   comments?: Prisma.CommentUncheckedUpdateManyWithoutAuthorNestedInput
+  authProviders?: Prisma.AuthProviderUncheckedUpdateManyWithoutUserNestedInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
   id?: number
   email: string
   username: string
-  password: string
+  password?: string | null
   image?: string | null
   bio?: string | null
 }
@@ -354,7 +368,7 @@ export type UserCreateManyInput = {
 export type UserUpdateManyMutationInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   username?: Prisma.StringFieldUpdateOperationsInput | string
-  password?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
@@ -363,7 +377,7 @@ export type UserUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   email?: Prisma.StringFieldUpdateOperationsInput | string
   username?: Prisma.StringFieldUpdateOperationsInput | string
-  password?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
@@ -564,29 +578,61 @@ export type UserUncheckedUpdateManyWithoutFollowedByNestedInput = {
   deleteMany?: Prisma.UserScalarWhereInput | Prisma.UserScalarWhereInput[]
 }
 
+export type UserCreateNestedOneWithoutAuthProvidersInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutAuthProvidersInput, Prisma.UserUncheckedCreateWithoutAuthProvidersInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAuthProvidersInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutAuthProvidersNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutAuthProvidersInput, Prisma.UserUncheckedCreateWithoutAuthProvidersInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAuthProvidersInput
+  upsert?: Prisma.UserUpsertWithoutAuthProvidersInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAuthProvidersInput, Prisma.UserUpdateWithoutAuthProvidersInput>, Prisma.UserUncheckedUpdateWithoutAuthProvidersInput>
+}
+
+export type UserCreateNestedOneWithoutRefreshTokensInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutRefreshTokensInput, Prisma.UserUncheckedCreateWithoutRefreshTokensInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutRefreshTokensInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutRefreshTokensNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutRefreshTokensInput, Prisma.UserUncheckedCreateWithoutRefreshTokensInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutRefreshTokensInput
+  upsert?: Prisma.UserUpsertWithoutRefreshTokensInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutRefreshTokensInput, Prisma.UserUpdateWithoutRefreshTokensInput>, Prisma.UserUncheckedUpdateWithoutRefreshTokensInput>
+}
+
 export type UserCreateWithoutArticlesInput = {
   email: string
   username: string
-  password: string
+  password?: string | null
   image?: string | null
   bio?: string | null
   favorites?: Prisma.ArticleCreateNestedManyWithoutFavoritedByInput
   followedBy?: Prisma.UserCreateNestedManyWithoutFollowingInput
   following?: Prisma.UserCreateNestedManyWithoutFollowedByInput
   comments?: Prisma.CommentCreateNestedManyWithoutAuthorInput
+  authProviders?: Prisma.AuthProviderCreateNestedManyWithoutUserInput
+  refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutArticlesInput = {
   id?: number
   email: string
   username: string
-  password: string
+  password?: string | null
   image?: string | null
   bio?: string | null
   favorites?: Prisma.ArticleUncheckedCreateNestedManyWithoutFavoritedByInput
   followedBy?: Prisma.UserUncheckedCreateNestedManyWithoutFollowingInput
   following?: Prisma.UserUncheckedCreateNestedManyWithoutFollowedByInput
   comments?: Prisma.CommentUncheckedCreateNestedManyWithoutAuthorInput
+  authProviders?: Prisma.AuthProviderUncheckedCreateNestedManyWithoutUserInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutArticlesInput = {
@@ -597,26 +643,30 @@ export type UserCreateOrConnectWithoutArticlesInput = {
 export type UserCreateWithoutFavoritesInput = {
   email: string
   username: string
-  password: string
+  password?: string | null
   image?: string | null
   bio?: string | null
   articles?: Prisma.ArticleCreateNestedManyWithoutAuthorInput
   followedBy?: Prisma.UserCreateNestedManyWithoutFollowingInput
   following?: Prisma.UserCreateNestedManyWithoutFollowedByInput
   comments?: Prisma.CommentCreateNestedManyWithoutAuthorInput
+  authProviders?: Prisma.AuthProviderCreateNestedManyWithoutUserInput
+  refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutFavoritesInput = {
   id?: number
   email: string
   username: string
-  password: string
+  password?: string | null
   image?: string | null
   bio?: string | null
   articles?: Prisma.ArticleUncheckedCreateNestedManyWithoutAuthorInput
   followedBy?: Prisma.UserUncheckedCreateNestedManyWithoutFollowingInput
   following?: Prisma.UserUncheckedCreateNestedManyWithoutFollowedByInput
   comments?: Prisma.CommentUncheckedCreateNestedManyWithoutAuthorInput
+  authProviders?: Prisma.AuthProviderUncheckedCreateNestedManyWithoutUserInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutFavoritesInput = {
@@ -638,26 +688,30 @@ export type UserUpdateToOneWithWhereWithoutArticlesInput = {
 export type UserUpdateWithoutArticlesInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   username?: Prisma.StringFieldUpdateOperationsInput | string
-  password?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   favorites?: Prisma.ArticleUpdateManyWithoutFavoritedByNestedInput
   followedBy?: Prisma.UserUpdateManyWithoutFollowingNestedInput
   following?: Prisma.UserUpdateManyWithoutFollowedByNestedInput
   comments?: Prisma.CommentUpdateManyWithoutAuthorNestedInput
+  authProviders?: Prisma.AuthProviderUpdateManyWithoutUserNestedInput
+  refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutArticlesInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   email?: Prisma.StringFieldUpdateOperationsInput | string
   username?: Prisma.StringFieldUpdateOperationsInput | string
-  password?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   favorites?: Prisma.ArticleUncheckedUpdateManyWithoutFavoritedByNestedInput
   followedBy?: Prisma.UserUncheckedUpdateManyWithoutFollowingNestedInput
   following?: Prisma.UserUncheckedUpdateManyWithoutFollowedByNestedInput
   comments?: Prisma.CommentUncheckedUpdateManyWithoutAuthorNestedInput
+  authProviders?: Prisma.AuthProviderUncheckedUpdateManyWithoutUserNestedInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserUpsertWithWhereUniqueWithoutFavoritesInput = {
@@ -683,7 +737,7 @@ export type UserScalarWhereInput = {
   id?: Prisma.IntFilter<"User"> | number
   email?: Prisma.StringFilter<"User"> | string
   username?: Prisma.StringFilter<"User"> | string
-  password?: Prisma.StringFilter<"User"> | string
+  password?: Prisma.StringNullableFilter<"User"> | string | null
   image?: Prisma.StringNullableFilter<"User"> | string | null
   bio?: Prisma.StringNullableFilter<"User"> | string | null
 }
@@ -691,26 +745,30 @@ export type UserScalarWhereInput = {
 export type UserCreateWithoutCommentsInput = {
   email: string
   username: string
-  password: string
+  password?: string | null
   image?: string | null
   bio?: string | null
   articles?: Prisma.ArticleCreateNestedManyWithoutAuthorInput
   favorites?: Prisma.ArticleCreateNestedManyWithoutFavoritedByInput
   followedBy?: Prisma.UserCreateNestedManyWithoutFollowingInput
   following?: Prisma.UserCreateNestedManyWithoutFollowedByInput
+  authProviders?: Prisma.AuthProviderCreateNestedManyWithoutUserInput
+  refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCommentsInput = {
   id?: number
   email: string
   username: string
-  password: string
+  password?: string | null
   image?: string | null
   bio?: string | null
   articles?: Prisma.ArticleUncheckedCreateNestedManyWithoutAuthorInput
   favorites?: Prisma.ArticleUncheckedCreateNestedManyWithoutFavoritedByInput
   followedBy?: Prisma.UserUncheckedCreateNestedManyWithoutFollowingInput
   following?: Prisma.UserUncheckedCreateNestedManyWithoutFollowedByInput
+  authProviders?: Prisma.AuthProviderUncheckedCreateNestedManyWithoutUserInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCommentsInput = {
@@ -732,51 +790,59 @@ export type UserUpdateToOneWithWhereWithoutCommentsInput = {
 export type UserUpdateWithoutCommentsInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   username?: Prisma.StringFieldUpdateOperationsInput | string
-  password?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   articles?: Prisma.ArticleUpdateManyWithoutAuthorNestedInput
   favorites?: Prisma.ArticleUpdateManyWithoutFavoritedByNestedInput
   followedBy?: Prisma.UserUpdateManyWithoutFollowingNestedInput
   following?: Prisma.UserUpdateManyWithoutFollowedByNestedInput
+  authProviders?: Prisma.AuthProviderUpdateManyWithoutUserNestedInput
+  refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCommentsInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   email?: Prisma.StringFieldUpdateOperationsInput | string
   username?: Prisma.StringFieldUpdateOperationsInput | string
-  password?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   articles?: Prisma.ArticleUncheckedUpdateManyWithoutAuthorNestedInput
   favorites?: Prisma.ArticleUncheckedUpdateManyWithoutFavoritedByNestedInput
   followedBy?: Prisma.UserUncheckedUpdateManyWithoutFollowingNestedInput
   following?: Prisma.UserUncheckedUpdateManyWithoutFollowedByNestedInput
+  authProviders?: Prisma.AuthProviderUncheckedUpdateManyWithoutUserNestedInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutFollowingInput = {
   email: string
   username: string
-  password: string
+  password?: string | null
   image?: string | null
   bio?: string | null
   articles?: Prisma.ArticleCreateNestedManyWithoutAuthorInput
   favorites?: Prisma.ArticleCreateNestedManyWithoutFavoritedByInput
   followedBy?: Prisma.UserCreateNestedManyWithoutFollowingInput
   comments?: Prisma.CommentCreateNestedManyWithoutAuthorInput
+  authProviders?: Prisma.AuthProviderCreateNestedManyWithoutUserInput
+  refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutFollowingInput = {
   id?: number
   email: string
   username: string
-  password: string
+  password?: string | null
   image?: string | null
   bio?: string | null
   articles?: Prisma.ArticleUncheckedCreateNestedManyWithoutAuthorInput
   favorites?: Prisma.ArticleUncheckedCreateNestedManyWithoutFavoritedByInput
   followedBy?: Prisma.UserUncheckedCreateNestedManyWithoutFollowingInput
   comments?: Prisma.CommentUncheckedCreateNestedManyWithoutAuthorInput
+  authProviders?: Prisma.AuthProviderUncheckedCreateNestedManyWithoutUserInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutFollowingInput = {
@@ -787,26 +853,30 @@ export type UserCreateOrConnectWithoutFollowingInput = {
 export type UserCreateWithoutFollowedByInput = {
   email: string
   username: string
-  password: string
+  password?: string | null
   image?: string | null
   bio?: string | null
   articles?: Prisma.ArticleCreateNestedManyWithoutAuthorInput
   favorites?: Prisma.ArticleCreateNestedManyWithoutFavoritedByInput
   following?: Prisma.UserCreateNestedManyWithoutFollowedByInput
   comments?: Prisma.CommentCreateNestedManyWithoutAuthorInput
+  authProviders?: Prisma.AuthProviderCreateNestedManyWithoutUserInput
+  refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutFollowedByInput = {
   id?: number
   email: string
   username: string
-  password: string
+  password?: string | null
   image?: string | null
   bio?: string | null
   articles?: Prisma.ArticleUncheckedCreateNestedManyWithoutAuthorInput
   favorites?: Prisma.ArticleUncheckedCreateNestedManyWithoutFavoritedByInput
   following?: Prisma.UserUncheckedCreateNestedManyWithoutFollowedByInput
   comments?: Prisma.CommentUncheckedCreateNestedManyWithoutAuthorInput
+  authProviders?: Prisma.AuthProviderUncheckedCreateNestedManyWithoutUserInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutFollowedByInput = {
@@ -846,36 +916,188 @@ export type UserUpdateManyWithWhereWithoutFollowedByInput = {
   data: Prisma.XOR<Prisma.UserUpdateManyMutationInput, Prisma.UserUncheckedUpdateManyWithoutFollowedByInput>
 }
 
+export type UserCreateWithoutAuthProvidersInput = {
+  email: string
+  username: string
+  password?: string | null
+  image?: string | null
+  bio?: string | null
+  articles?: Prisma.ArticleCreateNestedManyWithoutAuthorInput
+  favorites?: Prisma.ArticleCreateNestedManyWithoutFavoritedByInput
+  followedBy?: Prisma.UserCreateNestedManyWithoutFollowingInput
+  following?: Prisma.UserCreateNestedManyWithoutFollowedByInput
+  comments?: Prisma.CommentCreateNestedManyWithoutAuthorInput
+  refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutAuthProvidersInput = {
+  id?: number
+  email: string
+  username: string
+  password?: string | null
+  image?: string | null
+  bio?: string | null
+  articles?: Prisma.ArticleUncheckedCreateNestedManyWithoutAuthorInput
+  favorites?: Prisma.ArticleUncheckedCreateNestedManyWithoutFavoritedByInput
+  followedBy?: Prisma.UserUncheckedCreateNestedManyWithoutFollowingInput
+  following?: Prisma.UserUncheckedCreateNestedManyWithoutFollowedByInput
+  comments?: Prisma.CommentUncheckedCreateNestedManyWithoutAuthorInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutAuthProvidersInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutAuthProvidersInput, Prisma.UserUncheckedCreateWithoutAuthProvidersInput>
+}
+
+export type UserUpsertWithoutAuthProvidersInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutAuthProvidersInput, Prisma.UserUncheckedUpdateWithoutAuthProvidersInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutAuthProvidersInput, Prisma.UserUncheckedCreateWithoutAuthProvidersInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutAuthProvidersInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutAuthProvidersInput, Prisma.UserUncheckedUpdateWithoutAuthProvidersInput>
+}
+
+export type UserUpdateWithoutAuthProvidersInput = {
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  articles?: Prisma.ArticleUpdateManyWithoutAuthorNestedInput
+  favorites?: Prisma.ArticleUpdateManyWithoutFavoritedByNestedInput
+  followedBy?: Prisma.UserUpdateManyWithoutFollowingNestedInput
+  following?: Prisma.UserUpdateManyWithoutFollowedByNestedInput
+  comments?: Prisma.CommentUpdateManyWithoutAuthorNestedInput
+  refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutAuthProvidersInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  articles?: Prisma.ArticleUncheckedUpdateManyWithoutAuthorNestedInput
+  favorites?: Prisma.ArticleUncheckedUpdateManyWithoutFavoritedByNestedInput
+  followedBy?: Prisma.UserUncheckedUpdateManyWithoutFollowingNestedInput
+  following?: Prisma.UserUncheckedUpdateManyWithoutFollowedByNestedInput
+  comments?: Prisma.CommentUncheckedUpdateManyWithoutAuthorNestedInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutRefreshTokensInput = {
+  email: string
+  username: string
+  password?: string | null
+  image?: string | null
+  bio?: string | null
+  articles?: Prisma.ArticleCreateNestedManyWithoutAuthorInput
+  favorites?: Prisma.ArticleCreateNestedManyWithoutFavoritedByInput
+  followedBy?: Prisma.UserCreateNestedManyWithoutFollowingInput
+  following?: Prisma.UserCreateNestedManyWithoutFollowedByInput
+  comments?: Prisma.CommentCreateNestedManyWithoutAuthorInput
+  authProviders?: Prisma.AuthProviderCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutRefreshTokensInput = {
+  id?: number
+  email: string
+  username: string
+  password?: string | null
+  image?: string | null
+  bio?: string | null
+  articles?: Prisma.ArticleUncheckedCreateNestedManyWithoutAuthorInput
+  favorites?: Prisma.ArticleUncheckedCreateNestedManyWithoutFavoritedByInput
+  followedBy?: Prisma.UserUncheckedCreateNestedManyWithoutFollowingInput
+  following?: Prisma.UserUncheckedCreateNestedManyWithoutFollowedByInput
+  comments?: Prisma.CommentUncheckedCreateNestedManyWithoutAuthorInput
+  authProviders?: Prisma.AuthProviderUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutRefreshTokensInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutRefreshTokensInput, Prisma.UserUncheckedCreateWithoutRefreshTokensInput>
+}
+
+export type UserUpsertWithoutRefreshTokensInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutRefreshTokensInput, Prisma.UserUncheckedUpdateWithoutRefreshTokensInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutRefreshTokensInput, Prisma.UserUncheckedCreateWithoutRefreshTokensInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutRefreshTokensInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutRefreshTokensInput, Prisma.UserUncheckedUpdateWithoutRefreshTokensInput>
+}
+
+export type UserUpdateWithoutRefreshTokensInput = {
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  articles?: Prisma.ArticleUpdateManyWithoutAuthorNestedInput
+  favorites?: Prisma.ArticleUpdateManyWithoutFavoritedByNestedInput
+  followedBy?: Prisma.UserUpdateManyWithoutFollowingNestedInput
+  following?: Prisma.UserUpdateManyWithoutFollowedByNestedInput
+  comments?: Prisma.CommentUpdateManyWithoutAuthorNestedInput
+  authProviders?: Prisma.AuthProviderUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutRefreshTokensInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  articles?: Prisma.ArticleUncheckedUpdateManyWithoutAuthorNestedInput
+  favorites?: Prisma.ArticleUncheckedUpdateManyWithoutFavoritedByNestedInput
+  followedBy?: Prisma.UserUncheckedUpdateManyWithoutFollowingNestedInput
+  following?: Prisma.UserUncheckedUpdateManyWithoutFollowedByNestedInput
+  comments?: Prisma.CommentUncheckedUpdateManyWithoutAuthorNestedInput
+  authProviders?: Prisma.AuthProviderUncheckedUpdateManyWithoutUserNestedInput
+}
+
 export type UserUpdateWithoutFavoritesInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   username?: Prisma.StringFieldUpdateOperationsInput | string
-  password?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   articles?: Prisma.ArticleUpdateManyWithoutAuthorNestedInput
   followedBy?: Prisma.UserUpdateManyWithoutFollowingNestedInput
   following?: Prisma.UserUpdateManyWithoutFollowedByNestedInput
   comments?: Prisma.CommentUpdateManyWithoutAuthorNestedInput
+  authProviders?: Prisma.AuthProviderUpdateManyWithoutUserNestedInput
+  refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutFavoritesInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   email?: Prisma.StringFieldUpdateOperationsInput | string
   username?: Prisma.StringFieldUpdateOperationsInput | string
-  password?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   articles?: Prisma.ArticleUncheckedUpdateManyWithoutAuthorNestedInput
   followedBy?: Prisma.UserUncheckedUpdateManyWithoutFollowingNestedInput
   following?: Prisma.UserUncheckedUpdateManyWithoutFollowedByNestedInput
   comments?: Prisma.CommentUncheckedUpdateManyWithoutAuthorNestedInput
+  authProviders?: Prisma.AuthProviderUncheckedUpdateManyWithoutUserNestedInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateManyWithoutFavoritesInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   email?: Prisma.StringFieldUpdateOperationsInput | string
   username?: Prisma.StringFieldUpdateOperationsInput | string
-  password?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
@@ -883,33 +1105,37 @@ export type UserUncheckedUpdateManyWithoutFavoritesInput = {
 export type UserUpdateWithoutFollowingInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   username?: Prisma.StringFieldUpdateOperationsInput | string
-  password?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   articles?: Prisma.ArticleUpdateManyWithoutAuthorNestedInput
   favorites?: Prisma.ArticleUpdateManyWithoutFavoritedByNestedInput
   followedBy?: Prisma.UserUpdateManyWithoutFollowingNestedInput
   comments?: Prisma.CommentUpdateManyWithoutAuthorNestedInput
+  authProviders?: Prisma.AuthProviderUpdateManyWithoutUserNestedInput
+  refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutFollowingInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   email?: Prisma.StringFieldUpdateOperationsInput | string
   username?: Prisma.StringFieldUpdateOperationsInput | string
-  password?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   articles?: Prisma.ArticleUncheckedUpdateManyWithoutAuthorNestedInput
   favorites?: Prisma.ArticleUncheckedUpdateManyWithoutFavoritedByNestedInput
   followedBy?: Prisma.UserUncheckedUpdateManyWithoutFollowingNestedInput
   comments?: Prisma.CommentUncheckedUpdateManyWithoutAuthorNestedInput
+  authProviders?: Prisma.AuthProviderUncheckedUpdateManyWithoutUserNestedInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateManyWithoutFollowingInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   email?: Prisma.StringFieldUpdateOperationsInput | string
   username?: Prisma.StringFieldUpdateOperationsInput | string
-  password?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
@@ -917,33 +1143,37 @@ export type UserUncheckedUpdateManyWithoutFollowingInput = {
 export type UserUpdateWithoutFollowedByInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   username?: Prisma.StringFieldUpdateOperationsInput | string
-  password?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   articles?: Prisma.ArticleUpdateManyWithoutAuthorNestedInput
   favorites?: Prisma.ArticleUpdateManyWithoutFavoritedByNestedInput
   following?: Prisma.UserUpdateManyWithoutFollowedByNestedInput
   comments?: Prisma.CommentUpdateManyWithoutAuthorNestedInput
+  authProviders?: Prisma.AuthProviderUpdateManyWithoutUserNestedInput
+  refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutFollowedByInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   email?: Prisma.StringFieldUpdateOperationsInput | string
   username?: Prisma.StringFieldUpdateOperationsInput | string
-  password?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   articles?: Prisma.ArticleUncheckedUpdateManyWithoutAuthorNestedInput
   favorites?: Prisma.ArticleUncheckedUpdateManyWithoutFavoritedByNestedInput
   following?: Prisma.UserUncheckedUpdateManyWithoutFollowedByNestedInput
   comments?: Prisma.CommentUncheckedUpdateManyWithoutAuthorNestedInput
+  authProviders?: Prisma.AuthProviderUncheckedUpdateManyWithoutUserNestedInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateManyWithoutFollowedByInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   email?: Prisma.StringFieldUpdateOperationsInput | string
   username?: Prisma.StringFieldUpdateOperationsInput | string
-  password?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
@@ -959,6 +1189,8 @@ export type UserCountOutputType = {
   followedBy: number
   following: number
   comments: number
+  authProviders: number
+  refreshTokens: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -967,6 +1199,8 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   followedBy?: boolean | UserCountOutputTypeCountFollowedByArgs
   following?: boolean | UserCountOutputTypeCountFollowingArgs
   comments?: boolean | UserCountOutputTypeCountCommentsArgs
+  authProviders?: boolean | UserCountOutputTypeCountAuthProvidersArgs
+  refreshTokens?: boolean | UserCountOutputTypeCountRefreshTokensArgs
 }
 
 /**
@@ -1014,6 +1248,20 @@ export type UserCountOutputTypeCountCommentsArgs<ExtArgs extends runtime.Types.E
   where?: Prisma.CommentWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountAuthProvidersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AuthProviderWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountRefreshTokensArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.RefreshTokenWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1027,6 +1275,8 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   followedBy?: boolean | Prisma.User$followedByArgs<ExtArgs>
   following?: boolean | Prisma.User$followingArgs<ExtArgs>
   comments?: boolean | Prisma.User$commentsArgs<ExtArgs>
+  authProviders?: boolean | Prisma.User$authProvidersArgs<ExtArgs>
+  refreshTokens?: boolean | Prisma.User$refreshTokensArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -1064,6 +1314,8 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   followedBy?: boolean | Prisma.User$followedByArgs<ExtArgs>
   following?: boolean | Prisma.User$followingArgs<ExtArgs>
   comments?: boolean | Prisma.User$commentsArgs<ExtArgs>
+  authProviders?: boolean | Prisma.User$authProvidersArgs<ExtArgs>
+  refreshTokens?: boolean | Prisma.User$refreshTokensArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1077,12 +1329,14 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     followedBy: Prisma.$UserPayload<ExtArgs>[]
     following: Prisma.$UserPayload<ExtArgs>[]
     comments: Prisma.$CommentPayload<ExtArgs>[]
+    authProviders: Prisma.$AuthProviderPayload<ExtArgs>[]
+    refreshTokens: Prisma.$RefreshTokenPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
     email: string
     username: string
-    password: string
+    password: string | null
     image: string | null
     bio: string | null
   }, ExtArgs["result"]["user"]>
@@ -1484,6 +1738,8 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   followedBy<T extends Prisma.User$followedByArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$followedByArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   following<T extends Prisma.User$followingArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$followingArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   comments<T extends Prisma.User$commentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$commentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  authProviders<T extends Prisma.User$authProvidersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$authProvidersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AuthProviderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  refreshTokens<T extends Prisma.User$refreshTokensArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$refreshTokensArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RefreshTokenPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2024,6 +2280,54 @@ export type User$commentsArgs<ExtArgs extends runtime.Types.Extensions.InternalA
   take?: number
   skip?: number
   distinct?: Prisma.CommentScalarFieldEnum | Prisma.CommentScalarFieldEnum[]
+}
+
+/**
+ * User.authProviders
+ */
+export type User$authProvidersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AuthProvider
+   */
+  select?: Prisma.AuthProviderSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AuthProvider
+   */
+  omit?: Prisma.AuthProviderOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AuthProviderInclude<ExtArgs> | null
+  where?: Prisma.AuthProviderWhereInput
+  orderBy?: Prisma.AuthProviderOrderByWithRelationInput | Prisma.AuthProviderOrderByWithRelationInput[]
+  cursor?: Prisma.AuthProviderWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AuthProviderScalarFieldEnum | Prisma.AuthProviderScalarFieldEnum[]
+}
+
+/**
+ * User.refreshTokens
+ */
+export type User$refreshTokensArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the RefreshToken
+   */
+  select?: Prisma.RefreshTokenSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the RefreshToken
+   */
+  omit?: Prisma.RefreshTokenOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RefreshTokenInclude<ExtArgs> | null
+  where?: Prisma.RefreshTokenWhereInput
+  orderBy?: Prisma.RefreshTokenOrderByWithRelationInput | Prisma.RefreshTokenOrderByWithRelationInput[]
+  cursor?: Prisma.RefreshTokenWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.RefreshTokenScalarFieldEnum | Prisma.RefreshTokenScalarFieldEnum[]
 }
 
 /**
