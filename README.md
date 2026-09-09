@@ -27,6 +27,12 @@ Các biến của app nằm trong `.env`. Compose chỉ ghi đè `DATABASE_URL` 
 
 Toàn bộ workspace, bao gồm `node_modules` và pnpm store, được bind mount giữa host và container để IDE trên host đọc dependency. Sau khi dùng `make dev`, không chạy `pnpm` trực tiếp trên host vì metadata store mang đường dẫn `/app`; hãy chạy mọi lệnh pnpm qua các target `make` hoặc `make run-in-workspace`.
 
+## Storage driver
+
+File được lưu trên object storage tương thích S3 (MinIO ở local, AWS S3 ở production), cấu hình qua `STORAGE_BUCKET`, `STORAGE_PUBLIC_URL`, `STORAGE_ENDPOINT`, `STORAGE_ACCESS_KEY`, `STORAGE_SECRET_KEY` trong `.env`. `FileStorageService` gọi vào storage qua interface `StorageDriver`, hiện chỉ có một implementation (`S3StorageDriver`) — interface vẫn giữ lại làm chỗ nối để thêm backend khác sau này mà không phải sửa code gọi nó.
+
+Key sinh ra luôn có tiền tố `public/uploads/...` — chuẩn bị chỗ cho một tiền tố `private/` sau này mà không phải di chuyển object đã có. `docker/minio-init.sh` chỉ mở public-read cho tiền tố `public` trong bucket, không mở cho cả bucket, để tiền tố `private/` sau này mặc định không đọc được.
+
 ## Lệnh thường dùng
 
 | Lệnh                                  | Mục đích                                            |
