@@ -6,12 +6,14 @@ import {
 import { I18nService } from 'nestjs-i18n';
 import { ProfilesRepository } from './profiles.repository';
 import { ProfileResponse } from './interfaces/profile-response.interface';
+import { FileStorageService } from '../file-storage/file-storage.service';
 
 @Injectable()
 export class ProfilesService {
   constructor(
     private readonly profilesRepository: ProfilesRepository,
     private readonly i18n: I18nService,
+    private readonly fileStorage: FileStorageService,
   ) {}
 
   async getProfile(
@@ -87,7 +89,7 @@ export class ProfilesService {
     return {
       username: profile.username,
       bio: profile.bio,
-      image: profile.image,
+      image: this.fileStorage.publicUrl(profile.image),
       following,
     };
   }

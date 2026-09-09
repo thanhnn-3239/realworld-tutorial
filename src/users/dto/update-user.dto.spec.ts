@@ -26,11 +26,13 @@ describe('UpdateUserDto', () => {
   });
 
   it('accepts a full valid payload', async () => {
+    // An avatar is only ever set by uploading a file, so the JSON payload's
+    // `image` can only legally be null here, not a string.
     await expect(
       propertiesInError({
         username: 'newusername',
         bio: 'I like to code',
-        image: 'https://example.com/avatar.jpg',
+        image: null,
       }),
     ).resolves.toEqual([]);
   });
@@ -128,10 +130,17 @@ describe('UpdateUserDto', () => {
   });
 
   describe('image', () => {
-    it('rejects a value that is not a URL', async () => {
-      await expect(
-        propertiesInError({ image: 'not-a-url' }),
-      ).resolves.toContain('image');
+    it('accepts null, which clears the avatar', async () => {
+      await expect(propertiesInError({ image: null })).resolves.toEqual([]);
     });
+
+    it.each(['https://example.com/a.jpg', 'public/uploads/User/9/a.png', ''])(
+      'rejects %p: an avatar is set by uploading a file, never by naming one',
+      async (value) => {
+        await expect(propertiesInError({ image: value })).resolves.toContain(
+          'image',
+        );
+      },
+    );
   });
 });

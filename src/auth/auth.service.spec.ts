@@ -4,6 +4,7 @@ import { AuthRepository } from './auth.repository';
 import { TokenService } from './token/token.service';
 import { PasswordService } from '../common/password/password.service';
 import { AccountResolverService } from './account/account-resolver.service';
+import { FileStorageService } from '../file-storage/file-storage.service';
 
 const PAIR = { accessToken: 'access.jwt', refreshToken: 'refresh-opaque' };
 
@@ -31,6 +32,7 @@ describe('AuthService', () => {
   };
   let passwordService: { hash: jest.Mock; compare: jest.Mock };
   let accountResolver: { resolve: jest.Mock };
+  let fileStorage: { publicUrl: jest.Mock };
 
   beforeEach(() => {
     repository = {
@@ -60,11 +62,18 @@ describe('AuthService', () => {
       }),
     };
 
+    fileStorage = {
+      publicUrl: jest.fn((key: string | null) =>
+        key === null ? null : `https://cdn.test/${key}`,
+      ),
+    };
+
     service = new AuthService(
       repository as unknown as AuthRepository,
       tokenService as unknown as TokenService,
       passwordService as unknown as PasswordService,
       accountResolver as unknown as AccountResolverService,
+      fileStorage as unknown as FileStorageService,
     );
   });
 
@@ -124,6 +133,20 @@ describe('AuthService', () => {
         service.login({ email: 'jake@jake.jake', password: 'wrong' }),
       ).rejects.toBeInstanceOf(UnauthorizedException);
       expect(tokenService.issueTokens).not.toHaveBeenCalled();
+    });
+
+    it('returns the stored avatar as a URL, not the stored key', async () => {
+      repository.findByEmailWithPassword.mockResolvedValue({
+        ...storedUser,
+        image: 'public/uploads/User/7/a.png',
+      });
+
+      const result = await service.login({
+        email: 'jake@jake.jake',
+        password: 'password123',
+      });
+
+      expect(result.image).toBe('https://cdn.test/public/uploads/User/7/a.png');
     });
 
     it('rejects an unknown email', async () => {
@@ -249,6 +272,25 @@ describe('AuthService', () => {
       expect(result.username).toBe('jake');
       expect(result.accessToken).toBe(PAIR.accessToken);
       expect(result.refreshToken).toBe(PAIR.refreshToken);
+    });
+
+    it('returns the resolved account avatar as a URL, not the stored key', async () => {
+      accountResolver.resolve.mockResolvedValue({
+        id: 7,
+        email: 'jake@jake.jake',
+        username: 'jake',
+        bio: 'I work at statefarm',
+        image: 'public/uploads/User/7/a.png',
+      });
+
+      const result = await service.handleOAuthCallback({
+        provider: 'google',
+        providerAccountId: '12345',
+        email: 'jake@jake.jake',
+        emailVerified: true,
+      });
+
+      expect(result.image).toBe('https://cdn.test/public/uploads/User/7/a.png');
     });
   });
 });

@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { CommentRecord } from './comments.repository';
 import { CommentResponse } from './interfaces/comment-response.interface';
+import { FileStorageService } from '../file-storage/file-storage.service';
 
 @Injectable()
 export class CommentResponseMapper {
+  constructor(private readonly fileStorage: FileStorageService) {}
+
   toResponse(comment: CommentRecord): CommentResponse {
     return {
       id: comment.id,
@@ -13,7 +16,7 @@ export class CommentResponseMapper {
       author: {
         username: comment.author.username,
         bio: comment.author.bio,
-        image: comment.author.image,
+        image: this.fileStorage.publicUrl(comment.author.image),
         following: comment.author.followedBy.length > 0,
       },
     };

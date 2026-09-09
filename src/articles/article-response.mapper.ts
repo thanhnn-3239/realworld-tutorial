@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { ArticleRecord } from './articles.repository';
 import { ArticleResponse } from './interfaces/article-response.interface';
+import { FileStorageService } from '../file-storage/file-storage.service';
 
 @Injectable()
 export class ArticleResponseMapper {
+  constructor(private readonly fileStorage: FileStorageService) {}
+
   toResponse(article: ArticleRecord): ArticleResponse {
     return {
       slug: article.slug,
@@ -18,7 +21,7 @@ export class ArticleResponseMapper {
       author: {
         username: article.author.username,
         bio: article.author.bio,
-        image: article.author.image,
+        image: this.fileStorage.publicUrl(article.author.image),
         following: article.author.followedBy.length > 0,
       },
     };
