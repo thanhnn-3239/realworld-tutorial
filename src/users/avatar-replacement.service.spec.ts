@@ -87,7 +87,7 @@ describe('AvatarReplacementService', () => {
     expect(storage.delete).toHaveBeenCalledWith(newAvatarKey);
   });
 
-  it('keeps the update successful when reclaiming the old object fails', async () => {
+  it('keeps the update successful when cleaning up the previous object fails', async () => {
     repository.lockImage.mockResolvedValue(oldAvatarKey);
     storage.delete.mockRejectedValue(
       new BadGatewayException('File deletion failed'),
@@ -115,7 +115,7 @@ describe('AvatarReplacementService', () => {
     );
   });
 
-  it('reclaims the superseded object only after the transaction resolves', async () => {
+  it('cleans up the previous object only after the transaction resolves', async () => {
     repository.lockImage.mockResolvedValue(oldAvatarKey);
     let transactionSettled = false;
     prisma.$transaction.mockImplementation(
@@ -145,7 +145,7 @@ describe('AvatarReplacementService', () => {
     expect(storage.delete).not.toHaveBeenCalled();
   });
 
-  it('keeps the database error when compensating for it also fails', async () => {
+  it('keeps the database error when cleaning up the failed upload also fails', async () => {
     prisma.$transaction.mockRejectedValue(new Error('deadlock detected'));
     storage.delete.mockRejectedValue(
       new BadGatewayException('File deletion failed'),

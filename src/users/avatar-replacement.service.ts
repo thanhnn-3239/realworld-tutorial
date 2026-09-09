@@ -3,9 +3,8 @@ import { Prisma } from '../generated/prisma/client';
 import { UsersRepository } from './users.repository';
 import { PrismaService } from '../prisma/prisma.service';
 import { FileStorageService } from '../file-storage/file-storage.service';
+import { buildStorageKey } from '../file-storage/file-storage.util';
 import { CustomLoggerService } from '../logger/logger.service';
-
-const USER_AVATAR_OWNER_TYPE = 'User';
 
 /**
  * Structurally identical to `UsersService.UserResponse`, and declared here
@@ -34,23 +33,20 @@ export class AvatarReplacementService {
     updateData: Prisma.UserUpdateInput,
     file: Express.Multer.File,
   ): Promise<AvatarReplacementRow> {
-    // Outside the transaction: storage latency must not hold a User row lock.
-    const key = await this.fileStorageService.upload(
-      file,
-      USER_AVATAR_OWNER_TYPE,
-      String(userId),
-    );
+    const key = buildStorageKey(`avatars/${userId}`, file);
+
+    await this.fileStorageService.upload(key, file);
 
     let result: { user: AvatarReplacementRow; previous: string | null };
 
     try {
-      result = await this.swap(userId, updateData, key);
+      result = await this.atomicUpdateAvatar(userId, updateData, key);
     } catch (databaseError) {
-      await this.compensate(key, databaseError);
+      await this.cleanupFailedUpload(key, databaseError);
       throw databaseError;
     }
 
-    await this.reclaim(result.previous);
+    await this.cleanupPreviousAvatar(result.previous);
 
     return result.user;
   }
@@ -59,8 +55,12 @@ export class AvatarReplacementService {
     userId: number,
     updateData: Prisma.UserUpdateInput,
   ): Promise<AvatarReplacementRow> {
-    const { user, previous } = await this.swap(userId, updateData, null);
-    await this.reclaim(previous);
+    const { user, previous } = await this.atomicUpdateAvatar(
+      userId,
+      updateData,
+      null,
+    );
+    await this.cleanupPreviousAvatar(previous);
 
     return user;
   }
@@ -70,7 +70,7 @@ export class AvatarReplacementService {
    * the first committed, so exactly one object is left unreferenced and it is
    * the right one.
    */
-  private async swap(
+  private async atomicUpdateAvatar(
     userId: number,
     updateData: Prisma.UserUpdateInput,
     image: string | null,
@@ -92,13 +92,13 @@ export class AvatarReplacementService {
    * unreferenced. A failure here cannot replace the database error the caller
    * needs, so it is only recorded.
    */
-  private async compensate(key: string, databaseError: unknown): Promise<void> {
+  private async cleanupFailedUpload(
+    key: string,
+    databaseError: unknown,
+  ): Promise<void> {
     try {
       await this.fileStorageService.delete(key);
     } catch {
-      // `FileStorageService.delete` already logged the storage error and its
-      // stack, so only the key and the surrounding context are new here;
-      // repeating its generic wrapper message would bury the real cause.
       this.logger.error(
         `Orphaned object ${key} after a failed avatar transaction (${describe(databaseError)}); its removal also failed`,
       );
@@ -110,7 +110,7 @@ export class AvatarReplacementService {
    * into an HTTP error. The object is left behind and recorded instead; it is
    * unreferenced, so nothing serves it.
    */
-  private async reclaim(previous: string | null): Promise<void> {
+  private async cleanupPreviousAvatar(previous: string | null): Promise<void> {
     if (previous === null) {
       return;
     }
