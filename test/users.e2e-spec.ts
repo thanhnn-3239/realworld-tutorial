@@ -86,7 +86,7 @@ describe('Users avatar upload (e2e)', () => {
   }
 
   async function listStoredKeys(userId: number) {
-    return driver!.list(`public/uploads/User/${userId}/`);
+    return driver!.list(`avatars/${userId}/`);
   }
 
   async function purgeStoredObjects(userId: number) {
@@ -119,7 +119,7 @@ describe('Users avatar upload (e2e)', () => {
       const image = response.body.data.image as string;
       expect(image).not.toContain('avatar.png');
       expect(image).toMatch(
-        new RegExp(`/uploads/User/${userId}/[0-9a-f-]{36}\\.png$`),
+        new RegExp(`/avatars/${userId}/[0-9a-f-]{36}\\.png$`),
       );
       expect(response.body.data.bio).toBe('ảnh đại diện mới');
 
@@ -130,9 +130,7 @@ describe('Users avatar upload (e2e)', () => {
         where: { id: userId },
         select: { image: true },
       });
-      expect(stored.image).toMatch(
-        new RegExp(`^public/uploads/User/${userId}/`),
-      );
+      expect(stored.image).toMatch(new RegExp(`^avatars/${userId}/`));
       expect(image).toContain(stored.image);
 
       await expect(countStoredObjects(userId)).resolves.toBe(1);
@@ -185,7 +183,7 @@ describe('Users avatar upload (e2e)', () => {
   }
 
   // Reads the raw column, which stores a key such as
-  // `public/uploads/User/7/<uuid>.png` rather than the URL the API returns.
+  // `avatars/7/<uuid>.png` rather than the URL the API returns.
   async function readStoredImageKey(userId: number) {
     const user = await app!.get(PrismaService).user.findUniqueOrThrow({
       where: { id: userId },

@@ -3,10 +3,6 @@ import { FileStorageService } from './file-storage.service';
 import { StorageDriver } from './storage-driver.interface';
 import { CustomLoggerService } from '../logger/logger.service';
 
-jest.mock('node:crypto', () => ({
-  randomUUID: jest.fn().mockReturnValue('fixed-uuid'),
-}));
-
 const makeMockFile = (
   overrides: Partial<Express.Multer.File> = {},
 ): Express.Multer.File =>
@@ -41,16 +37,18 @@ describe('FileStorageService', () => {
   });
 
   describe('upload', () => {
-    it('returns a key with the correct format', async () => {
-      const file = makeMockFile();
-      const result = await service.upload(file, 'User', '42');
+    const key = 'avatars/42/photo.jpg';
 
-      expect(result).toBe('public/uploads/User/42/fixed-uuid.jpg');
+    it('returns the provided key', async () => {
+      const file = makeMockFile();
+      const result = await service.upload(key, file);
+
+      expect(result).toBe(key);
     });
 
     it('returns the key alone, leaving URL building to publicUrl', async () => {
       const file = makeMockFile();
-      await service.upload(file, 'User', '42');
+      await service.upload(key, file);
 
       expect(driver.url).not.toHaveBeenCalled();
     });
@@ -60,10 +58,10 @@ describe('FileStorageService', () => {
         mimetype: 'image/png',
         originalname: 'pic.png',
       });
-      await service.upload(file, 'User', '42');
+      await service.upload('avatars/42/pic.png', file);
 
       expect(driver.put).toHaveBeenCalledWith(
-        'public/uploads/User/42/fixed-uuid.png',
+        'avatars/42/pic.png',
         file.buffer,
         { contentType: 'image/png', contentLength: file.size },
       );
@@ -72,20 +70,16 @@ describe('FileStorageService', () => {
     it('calls driver.put with the file buffer as the body', async () => {
       const buffer = Buffer.from('image-bytes');
       const file = makeMockFile({ buffer });
-      await service.upload(file, 'User', '42');
+      await service.upload(key, file);
 
-      expect(driver.put).toHaveBeenCalledWith(
-        expect.any(String),
-        buffer,
-        expect.anything(),
-      );
+      expect(driver.put).toHaveBeenCalledWith(key, buffer, expect.anything());
     });
 
     it('throws BadGatewayException when the driver fails', async () => {
       driver.put.mockRejectedValueOnce(new Error('S3 network error'));
       const file = makeMockFile();
 
-      await expect(service.upload(file, 'User', '42')).rejects.toThrow(
+      await expect(service.upload(key, file)).rejects.toThrow(
         new BadGatewayException('File upload failed'),
       );
     });
@@ -94,7 +88,7 @@ describe('FileStorageService', () => {
       driver.put.mockRejectedValueOnce(new Error('S3 network error'));
       const file = makeMockFile();
 
-      await expect(service.upload(file, 'User', '42')).rejects.toThrow(
+      await expect(service.upload(key, file)).rejects.toThrow(
         BadGatewayException,
       );
       expect(logger.error).toHaveBeenCalledWith(
@@ -102,20 +96,10 @@ describe('FileStorageService', () => {
         expect.anything(),
       );
     });
-
-    it('derives extension from MIME type, not from original filename', async () => {
-      const file = makeMockFile({
-        originalname: 'photo.unknown',
-        mimetype: 'image/webp',
-      });
-      const result = await service.upload(file, 'User', '42');
-
-      expect(result).toMatch(/\.webp$/);
-    });
   });
 
   describe('delete', () => {
-    const key = 'public/uploads/User/42/old.png';
+    const key = 'avatars/42/old.png';
 
     it('calls driver.delete with the key', async () => {
       await service.delete(key);
@@ -149,8 +133,8 @@ describe('FileStorageService', () => {
 
   describe('publicUrl', () => {
     it('turns a stored key into the public URL', () => {
-      expect(service.publicUrl('public/uploads/User/42/a.png')).toBe(
-        'https://cdn.test/public/uploads/User/42/a.png',
+      expect(service.publicUrl('avatars/42/a.png')).toBe(
+        'https://cdn.test/avatars/42/a.png',
       );
     });
 

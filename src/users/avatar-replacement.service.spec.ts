@@ -5,11 +5,18 @@ import { PrismaService } from '../prisma/prisma.service';
 import { FileStorageService } from '../file-storage/file-storage.service';
 import { CustomLoggerService } from '../logger/logger.service';
 
+jest.mock('node:crypto', () => ({
+  randomUUID: jest.fn().mockReturnValue('new-uuid'),
+}));
+
+const newAvatarKey = 'avatars/1/new-uuid.png';
+const oldAvatarKey = 'avatars/1/old.png';
+
 const updatedUser = {
   email: 'jake@jake.jake',
   username: 'jake',
   bio: 'bio',
-  image: 'public/uploads/User/1/new.png',
+  image: newAvatarKey,
 };
 
 const avatarFile = {
@@ -32,7 +39,7 @@ describe('AvatarReplacementService', () => {
       update: jest.fn().mockResolvedValue(updatedUser),
     };
     storage = {
-      upload: jest.fn().mockResolvedValue('public/uploads/User/1/new.png'),
+      upload: jest.fn().mockResolvedValue(newAvatarKey),
       delete: jest.fn().mockResolvedValue(undefined),
     };
     prisma = {
@@ -49,29 +56,24 @@ describe('AvatarReplacementService', () => {
   });
 
   it('stores the key and deletes the object it replaced', async () => {
-    repository.lockImage.mockResolvedValue('public/uploads/User/1/old.png');
-    storage.upload.mockResolvedValue('public/uploads/User/1/new.png');
+    repository.lockImage.mockResolvedValue(oldAvatarKey);
 
     await service.replace(1, { bio: 'x' }, avatarFile);
 
+    expect(storage.upload).toHaveBeenCalledWith(newAvatarKey, avatarFile);
     expect(repository.update).toHaveBeenCalledWith(
       1,
-      { bio: 'x', image: 'public/uploads/User/1/new.png' },
+      { bio: 'x', image: newAvatarKey },
       expect.anything(),
     );
-    expect(storage.delete).toHaveBeenCalledWith(
-      'public/uploads/User/1/old.png',
-    );
+    expect(storage.delete).toHaveBeenCalledWith(oldAvatarKey);
     // Asserting only the old key would still pass if the replacement were
     // deleted alongside it, which is exactly what this case exists to catch.
-    expect(storage.delete).not.toHaveBeenCalledWith(
-      'public/uploads/User/1/new.png',
-    );
+    expect(storage.delete).not.toHaveBeenCalledWith(newAvatarKey);
   });
 
   it('deletes nothing when the user had no avatar', async () => {
     repository.lockImage.mockResolvedValue(null);
-    storage.upload.mockResolvedValue('public/uploads/User/1/new.png');
 
     await service.replace(1, {}, avatarFile);
 
@@ -79,18 +81,14 @@ describe('AvatarReplacementService', () => {
   });
 
   it('deletes the new object when the transaction fails', async () => {
-    storage.upload.mockResolvedValue('public/uploads/User/1/new.png');
     prisma.$transaction.mockRejectedValue(new Error('db down'));
 
     await expect(service.replace(1, {}, avatarFile)).rejects.toThrow('db down');
-    expect(storage.delete).toHaveBeenCalledWith(
-      'public/uploads/User/1/new.png',
-    );
+    expect(storage.delete).toHaveBeenCalledWith(newAvatarKey);
   });
 
   it('keeps the update successful when reclaiming the old object fails', async () => {
-    repository.lockImage.mockResolvedValue('public/uploads/User/1/old.png');
-    storage.upload.mockResolvedValue('public/uploads/User/1/new.png');
+    repository.lockImage.mockResolvedValue(oldAvatarKey);
     storage.delete.mockRejectedValue(
       new BadGatewayException('File deletion failed'),
     );
@@ -99,7 +97,7 @@ describe('AvatarReplacementService', () => {
     // FileStorageService.delete already logged the underlying cause, so this
     // entry carries only the key and its context — no wrapper message, no stack.
     expect(logger.error).toHaveBeenCalledWith(
-      expect.stringContaining('public/uploads/User/1/old.png'),
+      expect.stringContaining(oldAvatarKey),
     );
     expect(logger.error).toHaveBeenCalledWith(
       expect.not.stringContaining('File deletion failed'),
@@ -118,7 +116,7 @@ describe('AvatarReplacementService', () => {
   });
 
   it('reclaims the superseded object only after the transaction resolves', async () => {
-    repository.lockImage.mockResolvedValue('public/uploads/User/1/old.png');
+    repository.lockImage.mockResolvedValue(oldAvatarKey);
     let transactionSettled = false;
     prisma.$transaction.mockImplementation(
       async (fn: (tx: unknown) => unknown) => {
@@ -134,9 +132,7 @@ describe('AvatarReplacementService', () => {
 
     await service.replace(1, {}, avatarFile);
 
-    expect(storage.delete).toHaveBeenCalledWith(
-      'public/uploads/User/1/old.png',
-    );
+    expect(storage.delete).toHaveBeenCalledWith(oldAvatarKey);
   });
 
   it('never opens the transaction when the upload fails', async () => {
@@ -159,7 +155,7 @@ describe('AvatarReplacementService', () => {
       'deadlock detected',
     );
     expect(logger.error).toHaveBeenCalledWith(
-      expect.stringContaining('public/uploads/User/1/new.png'),
+      expect.stringContaining(newAvatarKey),
     );
     expect(logger.error).toHaveBeenCalledWith(
       expect.stringContaining('deadlock detected'),
@@ -170,7 +166,7 @@ describe('AvatarReplacementService', () => {
   });
 
   it('deletes the stored object when the avatar is cleared', async () => {
-    repository.lockImage.mockResolvedValue('public/uploads/User/1/old.png');
+    repository.lockImage.mockResolvedValue(oldAvatarKey);
 
     await service.clear(1, { bio: 'no avatar' });
 
@@ -179,9 +175,7 @@ describe('AvatarReplacementService', () => {
       { bio: 'no avatar', image: null },
       expect.anything(),
     );
-    expect(storage.delete).toHaveBeenCalledWith(
-      'public/uploads/User/1/old.png',
-    );
+    expect(storage.delete).toHaveBeenCalledWith(oldAvatarKey);
     expect(storage.upload).not.toHaveBeenCalled();
   });
 });
