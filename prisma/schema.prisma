@@ -60,7 +60,7 @@ model User {
   // Null for accounts that authenticate only through a provider, and the state the
   // account-linking path leaves behind when it evicts a speculative password.
   password      String?
-  image         String?        @default("https://api.realworld.io/images/smiley-cyrus.jpeg")
+  image         String?
   bio           String?
   articles      Article[]      @relation("UserArticles")
   favorites     Article[]      @relation("UserFavorites")
