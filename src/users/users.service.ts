@@ -62,25 +62,13 @@ export class UsersService {
 
     const updateData: UserUpdateData = { ...dto };
 
-    // Replacement owns the storage lifecycle — upload, atomic commit,
-    // compensation and reclaiming the object it superseded — so this method
-    // keeps only the conflict concern. Clearing the avatar goes through it too:
-    // the previous object would otherwise stay in storage unreferenced.
-    if (!file) {
-      if (dto.image === null) {
-        return this.toResponse(
-          await this.avatarReplacementService.clear(userId, updateData),
-        );
-      }
+    const updatedUser = file
+      ? await this.avatarReplacementService.replace(userId, updateData, file)
+      : dto.image === null
+        ? await this.avatarReplacementService.clear(userId, updateData)
+        : await this.usersRepository.update(userId, updateData);
 
-      return this.toResponse(
-        await this.usersRepository.update(userId, updateData),
-      );
-    }
-
-    return this.toResponse(
-      await this.avatarReplacementService.replace(userId, updateData, file),
-    );
+    return this.toResponse(updatedUser);
   }
 
   private toResponse(user: UserResponse): UserResponse {

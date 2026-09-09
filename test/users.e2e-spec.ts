@@ -102,14 +102,14 @@ describe('Users avatar upload (e2e)', () => {
   }
 
   it(
-    'lưu file thật và trả về URL công khai thay vì tên file đã upload',
+    'stores real file and returns public URL instead of upload filename',
     async () => {
       const { token, userId } = await register();
 
       const response = await request(httpServer())
         .put('/v1/user')
         .set('Authorization', `Bearer ${token}`)
-        .field('bio', 'ảnh đại diện mới')
+        .field('bio', 'new avatar')
         .attach('image', PNG_1X1, {
           filename: 'avatar.png',
           contentType: 'image/png',
@@ -121,7 +121,7 @@ describe('Users avatar upload (e2e)', () => {
       expect(image).toMatch(
         new RegExp(`/avatars/${userId}/[0-9a-f-]{36}\\.png$`),
       );
-      expect(response.body.data.bio).toBe('ảnh đại diện mới');
+      expect(response.body.data.bio).toBe('new avatar');
 
       // The column holds the storage key; only the response mapper turns it
       // into the absolute URL asserted above.
@@ -139,7 +139,7 @@ describe('Users avatar upload (e2e)', () => {
   );
 
   it(
-    'không ghi object nào khi update bị từ chối vì trùng username',
+    'writes no object when update is rejected due to username conflict',
     async () => {
       const occupant = await register();
       const { token, userId } = await register();
@@ -203,15 +203,15 @@ describe('Users avatar upload (e2e)', () => {
   }
 
   it(
-    'thu hồi ảnh cũ khỏi cả database lẫn object store khi thay ảnh đại diện',
+    'reclaims old image from both database and object store when replacing avatar',
     async () => {
       const { token, userId } = await register();
 
-      const first = await uploadAvatar(token, 'lần một').expect(HttpStatus.OK);
+      const first = await uploadAvatar(token, 'first').expect(HttpStatus.OK);
       const firstUrl = first.body.data.image as string;
       await expect(countStoredObjects(userId)).resolves.toBe(1);
 
-      const second = await uploadAvatar(token, 'lần hai').expect(HttpStatus.OK);
+      const second = await uploadAvatar(token, 'second').expect(HttpStatus.OK);
       const secondUrl = second.body.data.image as string;
       expect(secondUrl).not.toBe(firstUrl);
 
@@ -226,14 +226,14 @@ describe('Users avatar upload (e2e)', () => {
   );
 
   it(
-    'chỉ giữ lại một ảnh khi hai request thay ảnh chạy đồng thời',
+    'retains exactly one image when two replacement requests run concurrently',
     async () => {
       const { token, userId } = await register();
-      await uploadAvatar(token, 'ảnh gốc').expect(HttpStatus.OK);
+      await uploadAvatar(token, 'original').expect(HttpStatus.OK);
 
       const [left, right] = await Promise.all([
-        uploadAvatar(token, 'đồng thời một'),
-        uploadAvatar(token, 'đồng thời hai'),
+        uploadAvatar(token, 'concurrent-1'),
+        uploadAvatar(token, 'concurrent-2'),
       ]);
 
       expect(left.status).toBe(HttpStatus.OK);
@@ -260,7 +260,7 @@ describe('Users avatar upload (e2e)', () => {
   );
 
   it(
-    'từ chối MIME type không được phép',
+    'rejects unsupported MIME types',
     async () => {
       const { token, userId } = await register();
 
@@ -279,7 +279,7 @@ describe('Users avatar upload (e2e)', () => {
   );
 
   it(
-    'từ chối file vượt quá giới hạn kích thước',
+    'rejects files exceeding size limit',
     async () => {
       const { token, userId } = await register();
       const oversized = Buffer.alloc(USER_AVATAR_MAX_SIZE_BYTES + 1, 0);
@@ -299,7 +299,7 @@ describe('Users avatar upload (e2e)', () => {
   );
 
   it(
-    'từ chối image dạng chuỗi, vì avatar chỉ đặt được bằng upload',
+    'rejects string image because avatar can only be set via upload',
     async () => {
       const { token } = await register();
 
@@ -313,11 +313,11 @@ describe('Users avatar upload (e2e)', () => {
   );
 
   it(
-    'nhận image null để gỡ avatar và xoá object đã lưu',
+    'accepts null image to remove avatar and deletes stored object',
     async () => {
       const { token, userId } = await register();
 
-      await uploadAvatar(token, 'có ảnh').expect(HttpStatus.OK);
+      await uploadAvatar(token, 'with-avatar').expect(HttpStatus.OK);
       await expect(countStoredObjects(userId)).resolves.toBe(1);
 
       const response = await request(httpServer())
@@ -337,14 +337,14 @@ describe('Users avatar upload (e2e)', () => {
   // into a URL, so every endpoint that serves an avatar is held to this.
   function expectPublicUrl(image: unknown) {
     expect(typeof image).toBe('string');
-    expect(image).not.toMatch(/^public\//);
+    expect(image).not.toMatch(/^(public|avatars)\//);
   }
 
   it(
-    'không bao giờ trả key thô ra response ở mọi endpoint phục vụ avatar',
+    'never returns raw storage key in response across all endpoints serving avatar',
     async () => {
       const { token, username, email } = await register();
-      await uploadAvatar(token, 'ảnh').expect(HttpStatus.OK);
+      await uploadAvatar(token, 'has-avatar').expect(HttpStatus.OK);
 
       const currentUser = await request(httpServer())
         .get('/v1/user')

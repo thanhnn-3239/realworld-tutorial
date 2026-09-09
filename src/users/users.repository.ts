@@ -13,12 +13,6 @@ export class UsersRepository {
     });
   }
 
-  /**
-   * `client` lets the caller commit this update together with the rows it
-   * writes next. The conflict lookups below deliberately take none: they run
-   * before a transaction opens, so a rejected request never reaches storage,
-   * and giving them one would only lengthen the lock window.
-   */
   async update(
     id: number,
     data: Prisma.UserUpdateInput,
@@ -31,12 +25,6 @@ export class UsersRepository {
     });
   }
 
-  /**
-   * Raw SQL because Prisma exposes no `FOR UPDATE`, and the row lock is the
-   * whole mechanism: it serialises concurrent avatar replacements so the
-   * second one observes the key the first committed, rather than the key both
-   * started from. Without the lock the loser's object is never reclaimed.
-   */
   async lockImage(
     id: number,
     client: Prisma.TransactionClient,
