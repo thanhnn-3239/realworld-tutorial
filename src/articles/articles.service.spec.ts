@@ -8,6 +8,13 @@ import { ArticleResponseMapper } from './article-response.mapper';
 import { ArticleSlugService } from './article-slug.service';
 import { ArticlesRepository } from './articles.repository';
 import { ArticlesService } from './articles.service';
+import { FileStorageService } from '../file-storage/file-storage.service';
+
+// Fixtures below never carry an image, so a passthrough is enough here; the
+// mapper's own conversion behavior is covered in article-response.mapper.spec.ts.
+const fileStorage = {
+  publicUrl: jest.fn((key: string | null) => key),
+} as unknown as FileStorageService;
 
 const USER_ID = 7;
 const PAGE_META = {
@@ -85,7 +92,7 @@ describe('ArticlesService', () => {
     service = new ArticlesService(
       repository as unknown as ArticlesRepository,
       slugService as unknown as ArticleSlugService,
-      new ArticleResponseMapper(),
+      new ArticleResponseMapper(fileStorage),
       i18n as unknown as I18nService,
     );
   });

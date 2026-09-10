@@ -4,6 +4,7 @@ import { randomBytes } from 'node:crypto';
 import { promisify } from 'node:util';
 
 import { databaseUrlFor, withAdminConnection } from './database-admin';
+import { prepareStorageBackend } from './storage-harness';
 
 const MIGRATION_TIMEOUT_MS = 45_000;
 
@@ -48,6 +49,8 @@ export default async function globalSetup(): Promise<void> {
       timeout: MIGRATION_TIMEOUT_MS,
     },
   );
+
+  await prepareStorageBackend();
 
   process.env.E2E_RUN_ID = runId;
   process.env.E2E_TEMPLATE_DB = templateName;

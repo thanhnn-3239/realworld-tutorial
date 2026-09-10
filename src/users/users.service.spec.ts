@@ -2,8 +2,19 @@ import { ConflictException, NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { UsersService } from './users.service';
 import { UsersRepository } from './users.repository';
+import { AvatarReplacementService } from './avatar-replacement.service';
+import { FileStorageService } from '../file-storage/file-storage.service';
 
 const USER_ID = 1;
+
+const STORED_KEY = 'public/uploads/User/1/uuid.png';
+
+const avatarFile = {
+  originalname: 'avatar.png',
+  mimetype: 'image/png',
+  size: 1024,
+  buffer: Buffer.from('png-bytes'),
+} as Express.Multer.File;
 
 const storedUser = {
   id: USER_ID,
@@ -23,6 +34,8 @@ describe('UsersService', () => {
     update: jest.Mock;
     findByUsernameExcluding: jest.Mock;
   };
+  let avatarReplacement: { replace: jest.Mock; clear: jest.Mock };
+  let fileStorage: { publicUrl: jest.Mock };
 
   beforeEach(() => {
     repository = {
@@ -35,9 +48,25 @@ describe('UsersService', () => {
     // `fallbackLanguage`, so the service only has to pass the right key.
     i18n = { t: jest.fn((key: string) => `translated:${key}`) };
 
+    avatarReplacement = {
+      replace: jest.fn().mockResolvedValue({
+        ...storedUser,
+        image: STORED_KEY,
+      }),
+      clear: jest.fn().mockResolvedValue({ ...storedUser, image: null }),
+    };
+
+    fileStorage = {
+      publicUrl: jest.fn((key: string | null) =>
+        key === null ? null : `https://cdn.test/${key}`,
+      ),
+    };
+
     service = new UsersService(
       repository as unknown as UsersRepository,
       i18n as unknown as I18nService,
+      avatarReplacement as unknown as AvatarReplacementService,
+      fileStorage as unknown as FileStorageService,
     );
   });
 
@@ -57,6 +86,17 @@ describe('UsersService', () => {
       await expect(service.getCurrentUser(USER_ID)).rejects.toThrow(
         NotFoundException,
       );
+    });
+
+    it('returns the avatar as a URL, not the stored key', async () => {
+      repository.findById.mockResolvedValue({
+        ...storedUser,
+        image: 'public/uploads/User/1/a.png',
+      });
+
+      await expect(service.getCurrentUser(USER_ID)).resolves.toMatchObject({
+        image: 'https://cdn.test/public/uploads/User/1/a.png',
+      });
     });
   });
 
@@ -120,6 +160,56 @@ describe('UsersService', () => {
         bio: 'I like to skateboard',
         image: null,
       });
+    });
+  });
+
+  describe('updateUser with an avatar file', () => {
+    it('delegates to the replacement service with the prepared update data', async () => {
+      const result = await service.updateUser(
+        USER_ID,
+        { bio: 'fresh' },
+        avatarFile,
+      );
+
+      expect(avatarReplacement.replace).toHaveBeenCalledWith(
+        USER_ID,
+        { bio: 'fresh' },
+        avatarFile,
+      );
+      expect(repository.update).not.toHaveBeenCalled();
+      // The replacement service returns the stored key; the response must
+      // carry the public URL built from it.
+      expect(result.image).toBe(`https://cdn.test/${STORED_KEY}`);
+    });
+
+    it('does not replace anything when a conflict is detected first', async () => {
+      repository.findByUsernameExcluding.mockResolvedValue({ id: 99 });
+
+      await expect(
+        service.updateUser(USER_ID, { username: 'taken' }, avatarFile),
+      ).rejects.toThrow(ConflictException);
+
+      expect(avatarReplacement.replace).not.toHaveBeenCalled();
+    });
+
+    it('keeps the plain repository path when no file is supplied', async () => {
+      await service.updateUser(USER_ID, { bio: 'no avatar' });
+
+      expect(avatarReplacement.replace).not.toHaveBeenCalled();
+      expect(avatarReplacement.clear).not.toHaveBeenCalled();
+      expect(repository.update).toHaveBeenCalled();
+    });
+  });
+
+  describe('updateUser clearing the avatar', () => {
+    it('routes an explicit null image through the replacement service', async () => {
+      const result = await service.updateUser(USER_ID, { image: null });
+
+      expect(avatarReplacement.clear).toHaveBeenCalledWith(USER_ID, {
+        image: null,
+      });
+      expect(repository.update).not.toHaveBeenCalled();
+      expect(result.image).toBeNull();
     });
   });
 });

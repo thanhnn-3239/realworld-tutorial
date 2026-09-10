@@ -47,11 +47,13 @@ describe('User update scope (e2e)', () => {
     const response = await request(httpServer())
       .put('/v1/user')
       .set('Authorization', `Bearer ${token}`)
-      .send({ bio: 'I write plans', image: 'https://example.com/a.png' })
+      .send({ bio: 'I write plans' })
       .expect(HttpStatus.OK);
 
     expect(response.body.data.bio).toBe('I write plans');
-    expect(response.body.data.image).toBe('https://example.com/a.png');
+    // Avatars are set by upload only, so an update carrying no `image` key
+    // must leave the avatar exactly as it was.
+    expect(response.body.data.image).toBeNull();
   });
 
   it('silently ignores an email change and leaves the address intact', async () => {

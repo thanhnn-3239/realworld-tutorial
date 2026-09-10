@@ -66,6 +66,12 @@ jobs:
       JWT_SECRET: ci-only-secret
       BCRYPT_SALT_ROUNDS: '4'
       NODE_ENV: test
+      STORAGE_ENDPOINT: http://127.0.0.1:9000
+      STORAGE_BUCKET: realworld-ci
+      STORAGE_ACCESS_KEY: minioadmin
+      STORAGE_SECRET_KEY: minioadmin
+      STORAGE_PUBLIC_URL: http://127.0.0.1:9000/realworld-ci
+      STORAGE_REGION: us-east-1
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/setup@v2
@@ -78,8 +84,30 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Generate Prisma client
         run: pnpm exec prisma generate
+      # Started as a step rather than a service container: the minio image needs
+      # the `server /data` argument, and `services:` cannot override a command.
+      # globalSetup creates the bucket, so no mc client is needed here.
+      - name: Start MinIO
+        run: |
+          docker run -d --name minio -p 9000:9000 \
+            -e MINIO_ROOT_USER=$STORAGE_ACCESS_KEY \
+            -e MINIO_ROOT_PASSWORD=$STORAGE_SECRET_KEY \
+            minio/minio:RELEASE.2024-11-07T00-52-20Z server /data
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null; then
+              echo "MinIO is live"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "MinIO did not become live within 60s" >&2
+          docker logs minio >&2
+          exit 1
       - name: E2E tests
         run: pnpm test:e2e --maxWorkers=2
+      - name: Stop MinIO
+        if: always()
+        run: docker rm -f minio || true
   docker-image:
     name: docker-image
     runs-on: ubuntu-latest

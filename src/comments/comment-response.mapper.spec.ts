@@ -1,7 +1,14 @@
 import { CommentResponseMapper } from './comment-response.mapper';
 import { CommentRecord } from './comments.repository';
+import { FileStorageService } from '../file-storage/file-storage.service';
 
 const timestamp = new Date('2026-08-23T00:00:00.000Z');
+
+const fileStorage = {
+  publicUrl: jest.fn((key: string | null) =>
+    key === null ? null : `https://cdn.test/${key}`,
+  ),
+} as unknown as FileStorageService;
 
 // Base fixture: the viewer does not follow the author. The repository always
 // selects followedBy, so anonymous reads arrive as an empty array, not as absent.
@@ -14,7 +21,7 @@ const baseComment = {
 } satisfies CommentRecord;
 
 describe('CommentResponseMapper', () => {
-  const mapper = new CommentResponseMapper();
+  const mapper = new CommentResponseMapper(fileStorage);
 
   it('returns following: false when author.followedBy is empty', () => {
     expect(mapper.toResponse(baseComment).author.following).toBe(false);
@@ -49,5 +56,19 @@ describe('CommentResponseMapper', () => {
 
   it('maps an empty list to an empty list', () => {
     expect(mapper.toResponseList([])).toEqual([]);
+  });
+
+  it('returns the author avatar as a URL, not the stored key', () => {
+    const comment = {
+      ...baseComment,
+      author: {
+        ...baseComment.author,
+        image: 'public/uploads/User/7/a.png',
+      },
+    } satisfies CommentRecord;
+
+    expect(mapper.toResponse(comment).author.image).toBe(
+      'https://cdn.test/public/uploads/User/7/a.png',
+    );
   });
 });

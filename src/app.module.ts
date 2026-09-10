@@ -21,6 +21,7 @@ import { ArticlesModule } from './articles/articles.module';
 import { CommentsModule } from './comments/comments.module';
 import { ProfilesModule } from './profiles/profiles.module';
 import { HealthModule } from './health/health.module';
+import { FileStorageModule } from './file-storage/file-storage.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { HealthModule } from './health/health.module';
     }),
     PrismaModule,
     LoggerModule.register(),
+    FileStorageModule,
     AuthModule,
     GoogleAuthModule.register(),
     UsersModule,

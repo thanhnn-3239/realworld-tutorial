@@ -13,12 +13,27 @@ export class UsersRepository {
     });
   }
 
-  async update(id: number, data: Prisma.UserUpdateInput) {
-    return this.prisma.user.update({
+  async update(
+    id: number,
+    data: Prisma.UserUpdateInput,
+    client: Prisma.TransactionClient = this.prisma,
+  ) {
+    return client.user.update({
       where: { id },
       data,
       select: this.publicUserSelect(),
     });
+  }
+
+  async lockImage(
+    id: number,
+    client: Prisma.TransactionClient,
+  ): Promise<string | null> {
+    const rows = await client.$queryRaw<
+      { image: string | null }[]
+    >`SELECT "image" FROM "User" WHERE "id" = ${id} FOR UPDATE`;
+
+    return rows[0]?.image ?? null;
   }
 
   async findByUsernameExcluding(username: string, excludeId: number) {

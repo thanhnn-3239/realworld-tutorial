@@ -1,9 +1,9 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { i18nValidationMessage } from 'nestjs-i18n';
 import {
+  IsIn,
   IsOptional,
   IsString,
-  IsUrl,
   MaxLength,
   MinLength,
   ValidateIf,
@@ -55,18 +55,16 @@ export class UpdateUserDto {
   bio?: string | null;
 
   @ApiPropertyOptional({
-    example: 'https://example.com/avatar.jpg',
-    description: 'User profile image URL. Send null to clear it.',
+    description:
+      'Send null to remove the avatar. To set one, upload a file in the multipart `image` field — a string is rejected.',
     nullable: true,
+    type: 'null',
   })
-  @IsOptional()
-  @IsUrl(
-    {},
-    {
-      message: i18nValidationMessage('common.validation.invalid', {
-        field: 'Image URL',
-      }),
-    },
-  )
-  image?: string | null;
+  @ValidateIf((_, value) => value !== undefined)
+  @IsIn([null], {
+    message: i18nValidationMessage('common.validation.invalid', {
+      field: 'Image',
+    }),
+  })
+  image?: null;
 }

@@ -14,6 +14,7 @@ import { PasswordService } from '../common/password/password.service';
 import { TokenPair, TokenService } from './token/token.service';
 import { AccountResolverService } from './account/account-resolver.service';
 import { VerifiedIdentity } from './providers/verified-identity.interface';
+import { FileStorageService } from '../file-storage/file-storage.service';
 
 const DUMMY_SECRET_BYTES = 32;
 
@@ -26,6 +27,7 @@ export class AuthService implements OnModuleInit {
     private readonly tokenService: TokenService,
     private readonly passwordService: PasswordService,
     private readonly accountResolver: AccountResolverService,
+    private readonly fileStorage: FileStorageService,
   ) {}
 
   /**
@@ -106,7 +108,7 @@ export class AuthService implements OnModuleInit {
       email: user.email,
       username: user.username,
       bio: user.bio,
-      image: user.image,
+      image: this.fileStorage.publicUrl(user.image),
       ...tokens,
     });
   }
@@ -129,7 +131,7 @@ export class AuthService implements OnModuleInit {
       email: account.email,
       username: account.username,
       bio: account.bio,
-      image: account.image,
+      image: this.fileStorage.publicUrl(account.image),
       ...tokens,
     });
   }
