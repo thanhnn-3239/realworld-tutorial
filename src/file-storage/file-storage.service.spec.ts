@@ -22,7 +22,7 @@ const makeDriver = (): jest.Mocked<StorageDriver> => ({
 });
 
 const makeLogger = () =>
-  ({ error: jest.fn() }) as unknown as CustomLoggerService;
+  ({ error: jest.fn(), log: jest.fn() }) as unknown as CustomLoggerService;
 
 describe('FileStorageService', () => {
   let service: FileStorageService;
@@ -105,6 +105,12 @@ describe('FileStorageService', () => {
       await service.delete(key);
 
       expect(driver.delete).toHaveBeenCalledWith(key);
+    });
+
+    it('records the deletion, so a missing avatar can be traced later', async () => {
+      await service.delete(key);
+
+      expect(logger.log).toHaveBeenCalledWith(`Deleted stored object ${key}`);
     });
 
     it('resolves when the same key is deleted more than once', async () => {

@@ -5,19 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { FileStorageService } from '../file-storage/file-storage.service';
 import { buildStorageKey } from '../file-storage/file-storage.util';
 import { CustomLoggerService } from '../logger/logger.service';
-
-/**
- * Structurally identical to `UsersService.UserResponse`, and declared here
- * rather than imported because `UsersService` depends on this service —
- * importing back would close an import cycle. `image` carries the stored key;
- * `UsersService.toResponse` is what turns it into a URL.
- */
-export interface AvatarReplacementRow {
-  email: string;
-  username: string;
-  bio: string | null;
-  image: string | null;
-}
+import type { UserRow } from './interfaces/user-row.interface';
 
 @Injectable()
 export class AvatarReplacementService {
@@ -32,17 +20,17 @@ export class AvatarReplacementService {
     userId: number,
     updateData: Prisma.UserUpdateInput,
     file: Express.Multer.File,
-  ): Promise<AvatarReplacementRow> {
-    const key = buildStorageKey(`avatars/${userId}`, file);
+  ): Promise<UserRow> {
+    const uploadedKey = buildStorageKey(`avatars/${userId}`, file);
 
-    await this.fileStorageService.upload(key, file);
+    await this.fileStorageService.upload(uploadedKey, file);
 
-    let result: { user: AvatarReplacementRow; previous: string | null };
+    let result: { user: UserRow; previous: string | null };
 
     try {
-      result = await this.atomicUpdateAvatar(userId, updateData, key);
+      result = await this.atomicUpdateAvatar(userId, updateData, uploadedKey);
     } catch (databaseError) {
-      await this.cleanupFailedUpload(key, databaseError);
+      await this.cleanupFailedUpload(uploadedKey, databaseError);
       throw databaseError;
     }
 
@@ -54,7 +42,7 @@ export class AvatarReplacementService {
   async clear(
     userId: number,
     updateData: Prisma.UserUpdateInput,
-  ): Promise<AvatarReplacementRow> {
+  ): Promise<UserRow> {
     const { user, previous } = await this.atomicUpdateAvatar(
       userId,
       updateData,
@@ -74,7 +62,7 @@ export class AvatarReplacementService {
     userId: number,
     updateData: Prisma.UserUpdateInput,
     image: string | null,
-  ): Promise<{ user: AvatarReplacementRow; previous: string | null }> {
+  ): Promise<{ user: UserRow; previous: string | null }> {
     return this.prisma.$transaction(async (tx) => {
       const previous = await this.usersRepository.lockImage(userId, tx);
       const user = await this.usersRepository.update(

@@ -68,15 +68,11 @@ export class UsersService {
         ? await this.avatarReplacementService.clear(userId, updateData)
         : await this.usersRepository.update(userId, updateData);
 
-    return this.toResponse(updatedUser);
-  }
-
-  private toResponse(user: UserResponse): UserResponse {
     return {
-      email: user.email,
-      username: user.username,
-      bio: user.bio,
-      image: this.fileStorage.publicUrl(user.image),
+      email: updatedUser.email,
+      username: updatedUser.username,
+      bio: updatedUser.bio,
+      image: this.fileStorage.publicUrl(updatedUser.image),
     };
   }
 }

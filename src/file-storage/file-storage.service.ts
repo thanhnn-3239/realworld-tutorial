@@ -34,6 +34,7 @@ export class FileStorageService {
   async delete(key: string): Promise<void> {
     try {
       await this.driver.delete(key);
+      this.logger.log(`Deleted stored object ${key}`);
     } catch (error) {
       this.logger.error(
         `Storage deletion failed for key ${key}: ${error instanceof Error ? error.message : String(error)}`,
