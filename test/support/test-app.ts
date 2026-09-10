@@ -5,8 +5,7 @@ import { App } from 'supertest/types';
 
 import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/common/bootstrap/configure-app';
-import { CustomLoggerService } from '../../src/logger/logger.service';
-import { PrismaService } from '../../src/prisma/prisma.service';
+import type { E2eSuiteConfig } from './e2e-config';
 import { TestDatabase } from './test-database';
 
 /**
@@ -14,12 +13,22 @@ import { TestDatabase } from './test-database';
  * and delegating the rest is enough to redirect it. Delegating matters:
  * `NODE_ENV` and `DEBUG_SQL` still decide whether query logging turns on.
  */
-function configPointingAt(config: ConfigService, url: string): ConfigService {
-  const stub = {
-    get: (key: string) => (key === 'DATABASE_URL' ? url : config.get(key)),
+function configForSuite(config: E2eSuiteConfig): ConfigService {
+  const values: Readonly<Record<string, string>> = {
+    DATABASE_URL: config.databaseUrl,
+    STORAGE_ENDPOINT: config.storageEndpoint,
+    STORAGE_BUCKET: config.bucketName,
+    STORAGE_ACCESS_KEY: config.storageAccessKey,
+    STORAGE_SECRET_KEY: config.storageSecretKey,
+    STORAGE_PUBLIC_URL: config.storagePublicUrl,
+    STORAGE_REGION: config.storageRegion,
+  };
+  const facade = {
+    get: <T>(key: string, defaultValue?: T) =>
+      (values[key] ?? process.env[key] ?? defaultValue) as T,
   };
 
-  return stub as unknown as ConfigService;
+  return facade as unknown as ConfigService;
 }
 
 /**
@@ -33,16 +42,13 @@ function configPointingAt(config: ConfigService, url: string): ConfigService {
  */
 export async function createTestApp(
   db: TestDatabase,
+  suiteConfig: E2eSuiteConfig,
 ): Promise<INestApplication<App>> {
   const moduleRef = await Test.createTestingModule({
     imports: [AppModule],
   })
-    .overrideProvider(PrismaService)
-    .useFactory({
-      inject: [ConfigService, CustomLoggerService],
-      factory: (config: ConfigService, logger: CustomLoggerService) =>
-        new PrismaService(configPointingAt(config, db.url), logger),
-    })
+    .overrideProvider(ConfigService)
+    .useValue(configForSuite({ ...suiteConfig, databaseUrl: db.url }))
     .compile();
 
   const app = moduleRef.createNestApplication<INestApplication<App>>();

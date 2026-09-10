@@ -1,40 +1,16 @@
-import { randomBytes } from 'node:crypto';
-import { HttpStatus, INestApplication } from '@nestjs/common';
+import { HttpStatus } from '@nestjs/common';
 import request from 'supertest';
-import { App } from 'supertest/types';
-import { createTestApp } from './support/test-app';
-import { createTestDatabase, TestDatabase } from './support/test-database';
-
-const HOOK_TIMEOUT_MS = 60_000;
+import { useE2eSuite } from './support/e2e-suite';
 
 describe('Profiles (e2e)', () => {
-  const suiteNonce = randomBytes(5).toString('hex');
-  let db: TestDatabase | undefined;
-  let app: INestApplication<App> | undefined;
+  const e2e = useE2eSuite('profiles');
   let fixtureNumber = 0;
-
-  beforeAll(async () => {
-    db = await createTestDatabase('profiles_http');
-    app = await createTestApp(db);
-  }, HOOK_TIMEOUT_MS);
-
-  afterAll(async () => {
-    await app?.close();
-    await db?.drop();
-  }, HOOK_TIMEOUT_MS);
-
-  function httpServer() {
-    if (!app) {
-      throw new Error('Profiles HTTP e2e application is not initialized');
-    }
-    return app.getHttpServer();
-  }
 
   async function register(role: string) {
     fixtureNumber += 1;
-    const fixtureId = `${suiteNonce}${fixtureNumber}`;
+    const fixtureId = String(fixtureNumber);
     const username = `profile_${role}_${fixtureId}`;
-    const response = await request(httpServer())
+    const response = await e2e.request
       .post('/v1/auth/register')
       .send({
         email: `profile-e2e-${role}-${fixtureId}@example.com`,
@@ -62,12 +38,12 @@ describe('Profiles (e2e)', () => {
   it('returns a public profile for anonymous and invalid optional JWT requests', async () => {
     const target = await register('public');
 
-    const anonymous = await request(httpServer())
+    const anonymous = await e2e.request
       .get(`/v1/profiles/${target.username}`)
       .expect(HttpStatus.OK);
     expectProfile(anonymous, target.username, false);
 
-    const invalidJwt = await request(httpServer())
+    const invalidJwt = await e2e.request
       .get(`/v1/profiles/${target.username}`)
       .set('Authorization', 'Bearer invalid-token')
       .expect(HttpStatus.OK);
@@ -79,28 +55,28 @@ describe('Profiles (e2e)', () => {
     const viewer = await register('viewer');
     const authorization = `Bearer ${viewer.token}`;
 
-    const beforeFollow = await request(httpServer())
+    const beforeFollow = await e2e.request
       .get(`/v1/profiles/${target.username}`)
       .set('Authorization', authorization)
       .expect(HttpStatus.OK);
     expectProfile(beforeFollow, target.username, false);
 
     for (let attempt = 0; attempt < 2; attempt += 1) {
-      const followed = await request(httpServer())
+      const followed = await e2e.request
         .post(`/v1/profiles/${target.username}/follow`)
         .set('Authorization', authorization)
         .expect(HttpStatus.OK);
       expectProfile(followed, target.username, true);
     }
 
-    const afterFollow = await request(httpServer())
+    const afterFollow = await e2e.request
       .get(`/v1/profiles/${target.username}`)
       .set('Authorization', authorization)
       .expect(HttpStatus.OK);
     expectProfile(afterFollow, target.username, true);
 
     for (let attempt = 0; attempt < 2; attempt += 1) {
-      const unfollowed = await request(httpServer())
+      const unfollowed = await e2e.request
         .delete(`/v1/profiles/${target.username}/follow`)
         .set('Authorization', authorization)
         .expect(HttpStatus.OK);
@@ -111,10 +87,10 @@ describe('Profiles (e2e)', () => {
   it('requires authentication for follow and unfollow', async () => {
     const target = await register('protected');
 
-    await request(httpServer())
+    await e2e.request
       .post(`/v1/profiles/${target.username}/follow`)
       .expect(HttpStatus.UNAUTHORIZED);
-    await request(httpServer())
+    await e2e.request
       .delete(`/v1/profiles/${target.username}/follow`)
       .expect(HttpStatus.UNAUTHORIZED);
   });
@@ -123,12 +99,12 @@ describe('Profiles (e2e)', () => {
     const viewer = await register('errors');
     const authorization = `Bearer ${viewer.token}`;
 
-    await request(httpServer())
+    await e2e.request
       .post(`/v1/profiles/${viewer.username}/follow`)
       .set('Authorization', authorization)
       .expect(HttpStatus.UNPROCESSABLE_ENTITY);
-    await request(httpServer())
-      .get(`/v1/profiles/missing-${suiteNonce}`)
+    await e2e.request
+      .get('/v1/profiles/missing-user')
       .expect(HttpStatus.NOT_FOUND);
   });
 });

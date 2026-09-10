@@ -25,12 +25,16 @@ services:
       MINIO_ROOT_USER: ${STORAGE_ACCESS_KEY:-minioadmin}
       MINIO_ROOT_PASSWORD: ${STORAGE_SECRET_KEY:-minioadmin}
     ports:
-      - 127.0.0.1:9000:9000
-      - 127.0.0.1:9001:9001
+      - 127.0.0.1:${STORAGE_API_PORT:-9000}:9000
+      - 127.0.0.1:${STORAGE_CONSOLE_PORT:-9001}:9001
     volumes:
       - minio:/data
     healthcheck:
-      test: ['CMD-SHELL', 'curl -f http://localhost:9000/minio/health/live || exit 1']
+      test:
+        [
+          'CMD-SHELL',
+          'curl -f http://localhost:9000/minio/health/live || exit 1',
+        ]
       interval: 5s
       timeout: 5s
       retries: 12
@@ -43,7 +47,7 @@ services:
       args:
         HOST_USER_ID: ${HOST_USER_ID:-1000}
         HOST_GROUP_ID: ${HOST_GROUP_ID:-1000}
-    env_file: .env
+    env_file: ${APP_ENV_FILE:-.env}
     environment:
       DATABASE_URL: postgresql://${DATABASE_USERNAME:-root}:${DATABASE_PASSWORD:-secret}@postgres:5432/${DATABASE_NAME:-realworld}?schema=public
       STORAGE_ENDPOINT: http://minio:9000
