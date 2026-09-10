@@ -8,24 +8,25 @@ Building a fully-featured RealWorld backend in NestJS with PostgreSQL, deployed 
 
 ## Current Status
 
-**Overall Progress:** Core API implemented; file upload infrastructure complete but unreleased.
+**Overall Progress:** Core API implemented; file upload and isolated E2E infrastructure complete but unreleased.
 
-**Last Updated:** 2026-09-09
+**Last Updated:** 2026-09-11
 
 ## Phases
 
-| Phase   | Name                                  | Status                      | Spec Date      | Notes                                                             |
-| ------- | ------------------------------------- | --------------------------- | -------------- | ----------------------------------------------------------------- |
-| P1      | Core API scaffolding & authentication | Complete                    | —              | NestJS, Prisma, PostgreSQL, JWT                                   |
-| P2      | Article management                    | Complete                    | —              | CRUD, pagination, timestamps                                      |
-| P3      | Comments & favorites                  | Complete                    | —              | Article-associated comments, favorite toggle                      |
-| P4      | Article listing & pagination          | Complete                    | 2026-08-24     | Query filters, cursor pagination                                  |
-| P5      | Profile & follow system               | Complete                    | 2026-08-26     | User profiles, follow/unfollow                                    |
-| P6      | Article favorites                     | Complete                    | 2026-08-28     | Favorite/unfavorite toggle                                        |
-| P7      | Docker development environment        | Complete                    | 2026-09-04     | Compose setup, workspace mounts, development workflow             |
-| P8      | CI/CD & Render deployment             | Complete                    | 2026-09-03     | GitHub Actions gates, manual Render deploy, health checks         |
-| P9      | Extensible authentication             | Complete                    | 2026-09-08     | Passport/JWT strategy, login/registration                         |
+| Phase   | Name                                  | Status                      | Spec Date      | Notes                                                                                                                                                                                                       |
+| ------- | ------------------------------------- | --------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P1      | Core API scaffolding & authentication | Complete                    | —              | NestJS, Prisma, PostgreSQL, JWT                                                                                                                                                                             |
+| P2      | Article management                    | Complete                    | —              | CRUD, pagination, timestamps                                                                                                                                                                                |
+| P3      | Comments & favorites                  | Complete                    | —              | Article-associated comments, favorite toggle                                                                                                                                                                |
+| P4      | Article listing & pagination          | Complete                    | 2026-08-24     | Query filters, cursor pagination                                                                                                                                                                            |
+| P5      | Profile & follow system               | Complete                    | 2026-08-26     | User profiles, follow/unfollow                                                                                                                                                                              |
+| P6      | Article favorites                     | Complete                    | 2026-08-28     | Favorite/unfavorite toggle                                                                                                                                                                                  |
+| P7      | Docker development environment        | Complete                    | 2026-09-04     | Compose setup, workspace mounts, development workflow                                                                                                                                                       |
+| P8      | CI/CD & Render deployment             | Complete                    | 2026-09-03     | GitHub Actions gates, manual Render deploy, health checks                                                                                                                                                   |
+| P9      | Extensible authentication             | Complete                    | 2026-09-08     | Passport/JWT strategy, login/registration                                                                                                                                                                   |
 | **P10** | **File upload & avatar management**   | **Implemented, unreleased** | **2026-09-08** | **Multipart upload sets/replaces the avatar; `User.image` holds the S3 key with a `FOR UPDATE` row lock ordering concurrent replacements; `StorageDriver` seam with a single S3-compatible implementation** |
+| **P11** | **Isolated E2E test foundation**      | **Complete**                | **2026-09-11** | **Shared local/CI Compose flow, per-suite PostgreSQL/MinIO isolation, before-each reset, thin contexts and hybrid fixtures; 15.47s median wall time, 20.6% over baseline**                                  |
 
 ## Milestones
 
@@ -52,10 +53,10 @@ Building a fully-featured RealWorld backend in NestJS with PostgreSQL, deployed 
 
 | Metric            | Target                                 | Current     |
 | ----------------- | -------------------------------------- | ----------- |
-| Unit test suites  | ≥ 20                                   | 33          |
-| Unit tests        | ≥ 200                                  | 331         |
-| E2E test suites   | ≥ 10                                   | 15          |
-| E2E tests         | ≥ 50                                   | 76          |
+| Unit test suites  | ≥ 20                                   | 34          |
+| Unit tests        | ≥ 200                                  | 336         |
+| E2E test suites   | ≥ 10                                   | 26          |
+| E2E tests         | ≥ 50                                   | 102         |
 | CI gates          | Lint, typecheck, test, build           | All passing |
 | Code review gates | Type safety, style, no security issues | All passing |
 

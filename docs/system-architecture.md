@@ -137,12 +137,12 @@ The architecture solves this with deliberate ordering, a row lock, and compensat
 
 ### Consistency Properties
 
-| Failure Point                            | Result                                                                        |
-| ----------------------------------------- | ------------------------------------------------------------------------------ |
-| Upload to storage fails                  | 502; DB unchanged; previous key retained                                       |
+| Failure Point                            | Result                                                                            |
+| ---------------------------------------- | --------------------------------------------------------------------------------- |
+| Upload to storage fails                  | 502; DB unchanged; previous key retained                                          |
 | Transaction fails (before commit)        | Compensation delete removes the newly uploaded object; original DB error returned |
-| Compensation delete also fails           | Both errors logged; new object orphaned; observable only in logs               |
-| Previous-key delete fails (after commit) | `200` returned; the orphaned object is only logged, never retried              |
+| Compensation delete also fails           | Both errors logged; new object orphaned; observable only in logs                  |
+| Previous-key delete fails (after commit) | `200` returned; the orphaned object is only logged, never retried                 |
 
 **Key insight:** The transaction cannot span the storage backend because it is not ACID-compliant. Instead:
 
@@ -247,17 +247,21 @@ CREATE TABLE "Article" (
 ### Unit Tests
 
 - **Runner:** Jest with ts-jest
-- **Suite size:** 331 tests across 33 suites (count, not line coverage — no coverage threshold is enforced)
+- **Suite size:** 336 tests across 34 suites (count, not line coverage — no coverage threshold is enforced)
 - **Mocks:** AWS SDK (S3 driver) and Prisma collaborators
 - **Command:** `pnpm test`
 
 ### E2E Tests
 
 - **Runner:** Jest with real PostgreSQL and MinIO
-- **Suite size:** 76 tests across 15 suites
+- **Suite size:** 102 tests across 26 focused suites
 - **Real I/O:** Actual database transactions, real object writes to MinIO via `S3StorageDriver`
-- **CI:** GitHub Actions and local compose run this suite against MinIO
-- **Command:** `pnpm test:e2e`
+- **Isolation:** One cloned database and one run-namespaced bucket per suite; application tables and bucket contents reset before each test
+- **Fixtures:** Thin `useE2eSuite`/`useDatabaseSuite` contexts; Prisma creates prerequisites while HTTP exercises the behavior under test
+- **Parallelism:** Four Jest workers run files concurrently; tests within a file remain sequential
+- **Configuration:** Local and CI create the ignored `.env.e2e` from committed `.env.e2e.example`; suite database/storage values are injected through `ConfigService`, never written to shared process env
+- **Lifecycle:** Compose project `realworld-e2e` runs PostgreSQL, MinIO, and a one-off app container. Local may retain services; CI always removes containers and volumes
+- **Command:** `make test-e2e`
 
 ### CI Gates
 
