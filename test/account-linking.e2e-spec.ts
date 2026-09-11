@@ -1,10 +1,7 @@
-import { HttpStatus, INestApplication } from '@nestjs/common';
-import request from 'supertest';
-import { App } from 'supertest/types';
-import { createTestApp } from './support/test-app';
-import { createTestDatabase, TestDatabase } from './support/test-database';
+import { HttpStatus } from '@nestjs/common';
 import { AccountResolverService } from '../src/auth/account/account-resolver.service';
 import { VerifiedIdentity } from '../src/auth/providers/verified-identity.interface';
+import { useE2eSuite } from './support/e2e-suite';
 
 const HOOK_TIMEOUT_MS = 60_000;
 
@@ -14,29 +11,14 @@ const HOOK_TIMEOUT_MS = 60_000;
  * one a provider produced.
  */
 describe('Account linking (e2e)', () => {
-  let db: TestDatabase | undefined;
-  let app: INestApplication<App> | undefined;
+  const e2e = useE2eSuite('account-linking');
   let resolver: AccountResolverService;
   let fixtureNumber = 0;
   const suiteNonce = Date.now().toString(36).slice(-4);
 
-  beforeAll(async () => {
-    db = await createTestDatabase('linking');
-    app = await createTestApp(db);
-    resolver = app.get(AccountResolverService);
+  beforeAll(() => {
+    resolver = e2e.resolve(AccountResolverService);
   }, HOOK_TIMEOUT_MS);
-
-  afterAll(async () => {
-    await app?.close();
-    await db?.drop();
-  }, HOOK_TIMEOUT_MS);
-
-  function httpServer() {
-    if (!app) {
-      throw new Error('Account linking e2e application is not initialized');
-    }
-    return app.getHttpServer();
-  }
 
   function identityFor(
     email: string,
@@ -57,7 +39,7 @@ describe('Account linking (e2e)', () => {
     const fixtureId = `${suiteNonce}${fixtureNumber}`;
     const email = `lnk-${role}-${fixtureId}@example.com`;
     const password = 'password123';
-    const response = await request(httpServer())
+    const response = await e2e.request
       .post('/v1/auth/register')
       .send({
         email,
@@ -83,7 +65,7 @@ describe('Account linking (e2e)', () => {
     expect(account.username).toMatch(/^[a-z0-9._-]{3,30}$/);
 
     // Passwordless means local login is impossible, whatever password is guessed.
-    await request(httpServer())
+    await e2e.request
       .post('/v1/auth/login')
       .send({ email: identity.email, password: 'password123' })
       .expect(HttpStatus.UNAUTHORIZED);
@@ -118,13 +100,13 @@ describe('Account linking (e2e)', () => {
     expect(account.email).toBe(local.email);
 
     // The password that worked a moment ago no longer does.
-    await request(httpServer())
+    await e2e.request
       .post('/v1/auth/login')
       .send({ email: local.email, password: local.password })
       .expect(HttpStatus.UNAUTHORIZED);
 
     // And the session it had is gone.
-    await request(httpServer())
+    await e2e.request
       .post('/v1/auth/refresh')
       .send({ refreshToken: local.refreshToken })
       .expect(HttpStatus.UNAUTHORIZED);
@@ -138,12 +120,12 @@ describe('Account linking (e2e)', () => {
     ).rejects.toMatchObject({ status: HttpStatus.CONFLICT });
 
     // Nothing was cleared: the original password still works, and so does its session.
-    await request(httpServer())
+    await e2e.request
       .post('/v1/auth/login')
       .send({ email: local.email, password: local.password })
       .expect(HttpStatus.OK);
 
-    await request(httpServer())
+    await e2e.request
       .post('/v1/auth/refresh')
       .send({ refreshToken: local.refreshToken })
       .expect(HttpStatus.OK);

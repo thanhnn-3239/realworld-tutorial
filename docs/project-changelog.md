@@ -15,6 +15,23 @@ Each entry includes:
 
 ---
 
+## 2026-09-11
+
+### Infra: Isolated E2E Test Foundation
+
+- **Severity:** Medium
+- **Status:** Complete
+- **Impact:** New E2E tests need only a thin suite context and fixtures; local and CI exercise the same containerized PostgreSQL + MinIO topology
+- **Details:**
+  - Added committed test-only `.env.e2e.example`; `make test-e2e` creates the ignored `.env.e2e` runtime file when missing, while Compose project `realworld-e2e` isolates its containers, network, ports and volumes from development
+  - Each suite receives a run-scoped cloned PostgreSQL database and MinIO bucket; application tables and objects reset before every test
+  - Central name guards refuse database or bucket cleanup outside the current run namespace and protect the base E2E database
+  - `useE2eSuite` exposes request, Prisma, dependency resolution and user/article fixtures; `useDatabaseSuite` serves repository integration tests
+  - Suite-specific database and storage values are injected through `ConfigService`; Jest workers do not mutate shared generic environment variables
+  - Migrated all 15 prior suites and split oversized files into 26 focused suites, all below 200 lines
+  - Local and CI now generate the same `.env.e2e` from the committed template and use one Make/Compose entrypoint; CI prints service logs on failure and always removes the E2E project
+  - Four-worker median: 102 tests in 26 suites, Jest 10.59s and full command wall time 15.47s across three green runs (20.6% above the 12.83s baseline)
+
 ## 2026-09-09
 
 ### Feat: File Upload & Avatar Management
@@ -199,14 +216,14 @@ Each entry includes:
 
 ## Test Coverage
 
-| Gate            | Status  | Details                                       |
-| --------------- | ------- | --------------------------------------------- |
-| Prisma Validate | Passing | Schema consistency checked                    |
-| Typecheck       | Passing | Full TypeScript strict mode                   |
-| Lint (ESLint)   | Passing | Code style & security rules                   |
-| Build           | Passing | NestJS compilation successful                 |
-| Unit Tests      | Passing | 331 tests across 33 suites                    |
-| E2E Tests       | Passing | 76 tests across 15 suites (PostgreSQL, MinIO) |
+| Gate            | Status  | Details                                        |
+| --------------- | ------- | ---------------------------------------------- |
+| Prisma Validate | Passing | Schema consistency checked                     |
+| Typecheck       | Passing | Full TypeScript strict mode                    |
+| Lint (ESLint)   | Passing | Code style & security rules                    |
+| Build           | Passing | NestJS compilation successful                  |
+| Unit Tests      | Passing | 336 tests across 34 suites                     |
+| E2E Tests       | Passing | 102 tests across 26 suites (PostgreSQL, MinIO) |
 
 ---
 

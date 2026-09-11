@@ -3,8 +3,14 @@ import { execFile } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { promisify } from 'node:util';
 
-import { databaseUrlFor, withAdminConnection } from './database-admin';
-import { prepareStorageBackend } from './storage-harness';
+import {
+  assertSafeDatabaseName,
+  databaseUrlFor,
+  withAdminConnection,
+} from './database-admin';
+import { readE2eBaseConfig } from './e2e-config';
+import { templateDatabaseName } from './e2e-resource-names';
+import { assertStorageReady } from './storage-admin';
 
 const MIGRATION_TIMEOUT_MS = 45_000;
 
@@ -24,33 +30,38 @@ const execFileAsync = promisify(execFile);
  * inherits `process.env` from globalSetup into the test environment.
  */
 export default async function globalSetup(): Promise<void> {
-  const applicationDatabaseUrl = process.env.DATABASE_URL;
-
-  if (!applicationDatabaseUrl) {
-    throw new Error(
-      'DATABASE_URL is not set; cannot provision e2e databases. Check your .env file.',
-    );
-  }
-
+  const config = readE2eBaseConfig();
+  const applicationDatabaseUrl = config.databaseUrl;
   const runId = randomBytes(6).toString('hex');
-  const templateName = `e2e_${runId}_tpl`;
+  const templateName = templateDatabaseName(runId);
   const adminUrl = databaseUrlFor(applicationDatabaseUrl, 'postgres');
   const templateUrl = databaseUrlFor(applicationDatabaseUrl, templateName);
 
+  await withAdminConnection(adminUrl, () => Promise.resolve());
+  await assertStorageReady(config);
+  assertSafeDatabaseName(templateName, runId);
   await withAdminConnection(adminUrl, (admin) =>
     admin.execute(`CREATE DATABASE "${templateName}"`),
   );
 
-  await execFileAsync(
-    process.execPath,
-    [require.resolve('prisma/build/index.js'), 'migrate', 'deploy'],
-    {
-      env: { ...process.env, DATABASE_URL: templateUrl },
-      timeout: MIGRATION_TIMEOUT_MS,
-    },
-  );
-
-  await prepareStorageBackend();
+  try {
+    await execFileAsync(
+      process.execPath,
+      [require.resolve('prisma/build/index.js'), 'migrate', 'deploy'],
+      {
+        env: { ...process.env, DATABASE_URL: templateUrl },
+        timeout: MIGRATION_TIMEOUT_MS,
+      },
+    );
+  } catch (error) {
+    await withAdminConnection(adminUrl, async (admin) => {
+      assertSafeDatabaseName(templateName, runId);
+      await admin.execute(
+        `DROP DATABASE IF EXISTS "${templateName}" WITH (FORCE)`,
+      );
+    });
+    throw error;
+  }
 
   process.env.E2E_RUN_ID = runId;
   process.env.E2E_TEMPLATE_DB = templateName;

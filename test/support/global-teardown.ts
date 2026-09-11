@@ -1,4 +1,7 @@
+import { runCleanupSteps } from './cleanup';
 import { assertSafeDatabaseName, withAdminConnection } from './database-admin';
+import { readE2eBaseConfig } from './e2e-config';
+import { sweepRunBuckets } from './storage-admin';
 
 /**
  * Sweeps by `e2e_<runId>_` prefix rather than tracking what was created, so a
@@ -17,12 +20,19 @@ export default async function globalTeardown(): Promise<void> {
     return;
   }
 
-  await withAdminConnection(adminUrl, async (admin) => {
-    const names = await admin.listDatabases(`e2e_${runId}_%`);
+  const config = readE2eBaseConfig();
 
-    for (const name of names) {
-      assertSafeDatabaseName(name);
-      await admin.execute(`DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`);
-    }
-  });
+  await runCleanupSteps(`Cleanup failed for E2E run ${runId}`, [
+    async () => {
+      await withAdminConnection(adminUrl, async (admin) => {
+        const names = await admin.listDatabases(`e2e_${runId}_%`);
+
+        for (const name of names) {
+          assertSafeDatabaseName(name, runId);
+          await admin.execute(`DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`);
+        }
+      });
+    },
+    () => sweepRunBuckets(config, runId),
+  ]);
 }

@@ -43,7 +43,11 @@ Key sinh ra luôn có tiền tố `public/uploads/...` — chuẩn bị chỗ ch
 | `make restart`                        | Khởi động lại app; lifecycle migrate → app chạy lại |
 | `make logs`                           | Theo dõi log app                                    |
 | `make test`                           | Chạy unit test                                      |
-| `make test-e2e`                       | Chạy E2E test với PostgreSQL                        |
+| `make test-e2e`                       | Chạy E2E với PostgreSQL + MinIO riêng               |
+| `make stop-e2e`                       | Dừng PostgreSQL + MinIO E2E, giữ container/volume   |
+| `make down-e2e`                       | Xóa container/network E2E, giữ volume               |
+| `make clean-e2e`                      | Xóa toàn bộ project E2E, gồm cả volume              |
+| `make run-in-e2e command='...'`       | Chạy lệnh trong app container với `.env.e2e`        |
 | `make lint`                           | Chạy lint gate giống CI                             |
 | `make build`                          | Build application trong Docker stage độc lập        |
 | `make generate`                       | Generate Prisma Client                              |
@@ -56,6 +60,42 @@ Ví dụ:
 
 ```bash
 make run-in-workspace command='pnpm typecheck'
+```
+
+## Viết và chạy E2E test
+
+Local và CI đều chạy bằng `make test-e2e`. Lệnh này dùng project Compose
+`realworld-e2e`, tự tạo `.env.e2e` đã được ignore từ `.env.e2e.example`, rồi khởi động PostgreSQL và
+MinIO thật rồi chạy Jest trong one-off `app` container. Local giữ hai service lại
+để lần chạy sau nhanh hơn; CI luôn gọi `make clean-e2e` ở bước `always()`.
+
+Mỗi file test có database và bucket riêng. Harness migrate template một lần cho
+cả run, clone database cho từng suite, rồi reset toàn bộ bảng ứng dụng và bucket
+trước mỗi test. Các suite chạy song song với nhau; không dùng `test.concurrent`
+bên trong một file.
+
+Test mới bắt đầu bằng context mỏng:
+
+```ts
+describe('Articles (e2e)', () => {
+  const e2e = useE2eSuite('articles');
+
+  it('creates an article', async () => {
+    const author = await e2e.fixtures.authenticatedUser();
+    await e2e.request
+      .post('/v1/articles')
+      .set('Authorization', author.authorization)
+      .send({ title: 'Hello', description: 'Intro', body: 'Body' })
+      .expect(201);
+  });
+});
+```
+
+Dùng fixture Prisma cho prerequisite và HTTP cho hành vi đang kiểm thử. Suite
+repository dùng `useDatabaseSuite`. Muốn chạy một file:
+
+```bash
+make test-e2e E2E_TEST_ARGS='--runInBand test/articles-crud-lifecycle.e2e-spec.ts'
 ```
 
 Adminer là tool tùy chọn:
@@ -86,7 +126,7 @@ GitHub Actions kiểm tra:
 - Prisma Client không bị stale
 - lint và typecheck
 - unit test
-- E2E test với PostgreSQL
+- E2E test với PostgreSQL + MinIO qua cùng `.env.e2e` được tạo từ template và Compose flow như local
 - application build
 - Docker production image và non-root runtime
 

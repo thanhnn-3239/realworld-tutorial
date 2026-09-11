@@ -1,20 +1,38 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 
-/**
- * Guards every DROP the harness issues. The `runId` segment is what stops
- * parallel runs on a shared PostgreSQL from deleting each other's databases.
- *
- * Matches the template (`e2e_<runId>_tpl`) and clones
- * (`e2e_<runId>_<label>_<hex>`).
- */
-export const SAFE_TEST_DATABASE_NAME = /^e2e_[a-f0-9]{12}_[a-z0-9_]+$/u;
+import { assertSafeDatabaseName as assertRunNamespacedDatabaseName } from './e2e-resource-names';
 
-export function assertSafeDatabaseName(name: string): void {
-  if (!SAFE_TEST_DATABASE_NAME.test(name)) {
-    throw new Error(
-      `Refusing to operate on a database outside the harness namespace: ${name}`,
-    );
+/**
+ * The live e2e application database (e.g. `realworld_e2e`), read from the
+ * same ambient `DATABASE_URL` that `global-setup.ts` reads directly. This
+ * process never mutates that variable, so every caller observes the same
+ * value for its whole lifetime.
+ */
+function readBaseDatabaseName(): string | undefined {
+  const url = process.env.DATABASE_URL;
+
+  if (!url) {
+    return undefined;
   }
+
+  return new URL(url).pathname.replace(/^\//u, '') || undefined;
+}
+
+/**
+ * Guards every CREATE/DROP the harness issues, on top of the central
+ * run-namespace guard in `e2e-resource-names.ts`. The base-database check
+ * runs first and independently of that regex: even if the namespace pattern
+ * were ever loosened, a clone operation could still never target the live
+ * e2e application database itself.
+ */
+export function assertSafeDatabaseName(name: string, runId: string): void {
+  const base = readBaseDatabaseName();
+
+  if (base !== undefined && name === base) {
+    throw new Error(`Refusing to operate on the base e2e database: ${name}`);
+  }
+
+  assertRunNamespacedDatabaseName(name, runId);
 }
 
 /** Rewrites the path segment only, so host and credentials survive untouched. */
