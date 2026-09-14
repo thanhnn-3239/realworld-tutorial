@@ -37,7 +37,6 @@ describe('TokenService', () => {
     markAsUsed: jest.Mock;
     revokeById: jest.Mock;
     revokeAllForUser: jest.Mock;
-    deleteExpired: jest.Mock;
   };
 
   beforeEach(() => {
@@ -49,7 +48,6 @@ describe('TokenService', () => {
       markAsUsed: jest.fn().mockResolvedValue(true),
       revokeById: jest.fn().mockResolvedValue(undefined),
       revokeAllForUser: jest.fn().mockResolvedValue(undefined),
-      deleteExpired: jest.fn().mockResolvedValue(undefined),
     };
 
     prisma = {

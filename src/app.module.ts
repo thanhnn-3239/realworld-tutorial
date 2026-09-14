@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import {
   AcceptLanguageResolver,
   HeaderResolver,
@@ -28,6 +29,7 @@ import { FileStorageModule } from './file-storage/file-storage.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ScheduleModule.forRoot(),
     I18nModule.forRoot({
       fallbackLanguage: 'en',
       loaderOptions: {
