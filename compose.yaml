@@ -19,7 +19,10 @@ services:
       start_period: 10s
 
   minio:
-    image: minio/minio:RELEASE.2024-11-07T00-52-20Z
+    # MinIO restricted public pulls from Docker Hub (docker.io/minio/minio) — even a
+    # previously-cached tag now fails a fresh `docker pull` with "pull access denied".
+    # quay.io/minio/minio carries the same tags/digests and stays publicly pullable.
+    image: quay.io/minio/minio:RELEASE.2024-11-07T00-52-20Z
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${STORAGE_ACCESS_KEY:-minioadmin}
