@@ -43,6 +43,8 @@ jobs:
         run: pnpm test --runInBand
       - name: Production build
         run: pnpm build
+      - name: Image processing worker integration tests
+        run: pnpm test:worker --runInBand
   e2e:
     name: e2e
     runs-on: ubuntu-latest
@@ -71,3 +73,7 @@ jobs:
           docker run --rm --entrypoint pnpm realworld-api:ci exec prisma --version
           docker run --rm --entrypoint sh realworld-api:ci -c \
             'test -d /app/dist && test -d /app/prisma/migrations && test ! -d /app/src && test ! -d /app/test && test ! -e /app/.env'
+          docker run --rm --entrypoint sh realworld-api:ci -c \
+            'test -f /app/dist/image-processing/workers/image-processing.worker.js'
+          docker run --rm --entrypoint node realworld-api:ci -e 'require("sharp")'
+          docker run --rm --entrypoint node realworld-api:ci -e 'require("piscina")'

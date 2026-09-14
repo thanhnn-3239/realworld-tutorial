@@ -69,3 +69,6 @@ docs/superpowers/
 # Git worktrees
 .worktrees/
 /plans
+
+# Agent-tooling memory directory, not part of the delivered code
+.claude/

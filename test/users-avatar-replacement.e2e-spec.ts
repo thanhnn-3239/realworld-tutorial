@@ -1,5 +1,6 @@
 import { HttpStatus } from '@nestjs/common';
 
+import { UsersRepository } from '../src/users/users.repository';
 import { createAvatarTestHelpers } from './support/avatar-test-helpers';
 import { useE2eSuite } from './support/e2e-suite';
 
@@ -22,6 +23,7 @@ describe('Users avatar replacement (e2e)', () => {
     const secondUrl = second.body.data.image as string;
     const storedKey = await avatar.requiredStoredKey(user.id);
 
+    expect(storedKey).toMatch(/\.webp$/);
     expect(secondUrl).not.toBe(firstUrl);
     expect(secondUrl).toContain(storedKey);
     expect(firstUrl).not.toContain(storedKey);
@@ -66,5 +68,41 @@ describe('Users avatar replacement (e2e)', () => {
     expect(response.body.data.image).toBeNull();
     await expect(avatar.count(user.id)).resolves.toBe(0);
     await expect(avatar.storedKey(user.id)).resolves.toBeNull();
+  });
+
+  it('removes the newly processed object and keeps the previous one when the database update fails', async () => {
+    const user = await e2e.fixtures.authenticatedUser();
+    await avatar
+      .upload(user.authorization, 'before-failure')
+      .expect(HttpStatus.OK);
+    const previousKey = await avatar.requiredStoredKey(user.id);
+
+    const usersRepository = e2e.resolve<UsersRepository>(UsersRepository);
+    const updateSpy = jest
+      .spyOn(usersRepository, 'update')
+      .mockRejectedValueOnce(new Error('Simulated database failure'));
+
+    try {
+      await avatar
+        .upload(user.authorization, 'during-failure')
+        .expect(HttpStatus.INTERNAL_SERVER_ERROR);
+    } finally {
+      updateSpy.mockRestore();
+    }
+
+    // The previous key/object survives: the transaction never committed, so
+    // `User.image` was never reassigned away from it.
+    await expect(avatar.storedKey(user.id)).resolves.toBe(previousKey);
+    // The newly uploaded processed object was rolled back by
+    // `AvatarReplacementService.cleanupFailedUpload`, leaving only the
+    // previous key behind.
+    await expect(avatar.list(user.id)).resolves.toEqual([previousKey]);
+
+    // Confirm the repository behaves normally again for any later request in
+    // this suite — the spy is restored even if the assertions above throw.
+    const followUp = await avatar
+      .upload(user.authorization, 'after-failure')
+      .expect(HttpStatus.OK);
+    expect(followUp.body.data.bio).toBe('after-failure');
   });
 });

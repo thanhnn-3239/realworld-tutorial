@@ -10,6 +10,8 @@ import {
 import { runCleanupSteps } from './cleanup';
 import type { E2eBaseConfig } from './e2e-config';
 import { assertSafeBucketName, suiteBucketName } from './e2e-resource-names';
+import type { StoredTestObject } from './interfaces/stored-test-object.interface';
+import { readStoredObject } from './storage-object-reader';
 
 const DELETE_BATCH_SIZE = 1_000;
 
@@ -18,6 +20,7 @@ export interface TestBucket {
   list(prefix?: string, pageSize?: number): Promise<string[]>;
   clear(pageSize?: number): Promise<void>;
   drop(): Promise<void>;
+  read(key: string): Promise<StoredTestObject>;
 }
 
 function createClient(config: E2eBaseConfig): S3Client {
@@ -94,6 +97,7 @@ function bucketHandle(
     name,
     list: (prefix, pageSize) => listKeys(client, name, prefix, pageSize),
     clear,
+    read: (key) => readStoredObject(client, name, key),
     async drop() {
       await runCleanupSteps(`Cleanup failed for test bucket ${name}`, [
         clear,

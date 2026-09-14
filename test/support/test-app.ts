@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
@@ -5,8 +6,15 @@ import { App } from 'supertest/types';
 
 import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/common/bootstrap/configure-app';
+import { IMAGE_PROCESSING_WORKER_PATH_TOKEN } from '../../src/image-processing/constants/image-processing-worker.constants';
 import type { E2eSuiteConfig } from './e2e-config';
 import { TestDatabase } from './test-database';
+
+// ts-jest loads source modules, but the real Piscina thread must execute built JS.
+const E2E_COMPILED_IMAGE_PROCESSING_WORKER_PATH = resolve(
+  process.cwd(),
+  'dist/image-processing/workers/image-processing.worker.js',
+);
 
 /**
  * PrismaService reads configuration only through `get()`, so answering one key
@@ -49,6 +57,8 @@ export async function createTestApp(
   })
     .overrideProvider(ConfigService)
     .useValue(configForSuite({ ...suiteConfig, databaseUrl: db.url }))
+    .overrideProvider(IMAGE_PROCESSING_WORKER_PATH_TOKEN)
+    .useValue(E2E_COMPILED_IMAGE_PROCESSING_WORKER_PATH)
     .compile();
 
   const app = moduleRef.createNestApplication<INestApplication<App>>();

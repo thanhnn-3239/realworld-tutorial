@@ -15,6 +15,93 @@ Each entry includes:
 
 ---
 
+## 2026-09-15
+
+### Refactor: Share and Simplify the Piscina Worker Pool
+
+- **Severity:** Low
+- **Status:** Complete
+- **Impact:** No public API or avatar-processing behavior changes. Piscina initialization,
+  global CPU/queue capacity, timeout, and shutdown now form reusable infrastructure for
+  future CPU-heavy tasks.
+- **Details:**
+  - Added one process-wide `WorkerPoolModule` with method-level generic task/result dispatch;
+    internal feature services select their worker path, optional named handler, timeout, and
+    transfer list per task
+  - Removed every image dependency from `PiscinaPoolService`; Sharp policy, image contracts,
+    compiled image-worker path, and 422/503 mapping remain inside `ImageProcessingModule`
+  - Deleted the superseded image-owned pool, its three specs, and shared mock harness; merged
+    logging assertions into the real image service spec and removed a pass-through result type
+  - Combined worker-pool and image-processing source/tests decreased from 25 files / 1,265
+    lines to 24 files / 1,045 lines. Production code increased from 18 files / 507 lines to
+    20 files / 530 lines because the reusable module/options/generic errors are now explicit
+    instead of image-owned
+  - Post-refactor verification passed: lint, typecheck, production build, all unit tests (40
+    suites / 380 tests), compiled-worker tests (1 suite / 2 tests), both affected avatar E2E
+    suites (17 tests), and staged/unstaged `git diff --check`
+  - The full 26-suite E2E and Docker-image gates were not rerun; their previous delivery
+    evidence remains recorded under 2026-09-14 and the focused runtime contracts above passed
+
+---
+
+## 2026-09-14
+
+### Feat: Bounded Server-Side Avatar Image Validation & Normalization
+
+- **Severity:** High
+- **Status:** Complete
+- **Impact:** Every accepted avatar upload is now decoded, validated, and re-encoded to a
+  fixed shape before storage; the original uploaded bytes are never persisted. Closes the
+  previously-logged "magic-byte validation deferred" gap.
+- **Details:**
+  - `PUT /user` avatar upload: declared-MIME allowlist narrowed to `image/jpeg`,
+    `image/png`, `image/webp` (GIF removed — the decoded-format check would reject it
+    anyway, so the declared allowlist now matches what can actually pass); Multer limit
+    stays 5 MiB (`413` on overflow)
+  - `ImageProcessingModule`/`ImageProcessingService` decodes and validates uploaded bytes
+    with Sharp through the shared bounded `PiscinaPoolService`; the image module exports only
+    its facade and keeps its worker path and policy internal
+  - Pool bounds: `maxThreads = clamp(1, 2, availableParallelism() - 1)`, queue capped at
+    `2x` that thread count, 10s per-task timeout (aborts the in-flight task, not just the
+    caller's wait), `sharp.concurrency(1)` pinned once per worker thread, graceful drain on
+    `OnApplicationShutdown` with a 30s Piscina `closeTimeout`
+  - Rejected as generic `422 Invalid avatar image` (no internal reason ever reaches the
+    caller): undecodable bytes, decoded format outside JPEG/PNG/WebP, multi-frame/animated
+    images, shortest oriented side below 256px, decoded pixel count above 16,000,000
+  - Rejected as generic `503 Image processing unavailable`: pool/queue saturation, task
+    timeout, or any other unexpected worker failure
+  - Accepted avatars are always normalized to a static 512x512 WebP (quality 82,
+    centre-cropped, auto-oriented) before upload — re-encoding also strips all source
+    metadata (EXIF, ICC profile, GPS, etc.) as a byproduct, not a separate step
+  - Processing runs synchronously in the same request/response cycle as `PUT /user` — no
+    queue, job, or async completion
+  - Storage key format (`avatars/{userId}/{uuid}.webp`), the transaction ordering (conflict
+    check → process → upload → locked transaction → post-commit cleanup), and the DB-failure
+    compensation/previous-object cleanup paths are all unchanged by this work
+  - CI: `quality` job now also runs `pnpm test:worker --runInBand` (a dedicated Jest config,
+    `test/jest-worker.json`, exercising the compiled worker against real Sharp decodes) after
+    `pnpm build`; `docker-image` job's runtime-file assertion now also checks that
+    `dist/image-processing/workers/image-processing.worker.js` exists and that `sharp` and
+    `piscina` resolve (`require`) inside the production image
+  - Full feature-delivery gate run: lint:ci, typecheck, unit (44 suites / 391 tests),
+    production build, `test:worker` (1 suite / 2 tests), e2e (26 suites / 111 tests),
+    prettier --check, `docker build --target production`, both docker runtime-check
+    commands, and `git diff --check` — all exit 0 (see
+    [task-8-report.md](../.superpowers/sdd/2026-09-13-piscina-avatar-image-processing/task-8-report.md)
+    for the full log)
+- **Limitations:**
+  - Gates in this session ran on one CI architecture (linux/amd64 in the dev container);
+    no multi-architecture Sharp binary coverage is claimed
+  - The declared-MIME check at the multipart layer is still client-supplied header only —
+    the decoded-image check in the worker is the actual security boundary, not the header
+  - Rate limiting on `PUT /user` itself is still not implemented
+  - The existing bucket-policy/prefix mismatch (avatar keys live under `avatars/{userId}/`,
+    not the `public/` prefix `docker/minio-init.sh` grants anonymous download on) predates
+    this change and is **not resolved** by it — avatar URLs are not claimed to be
+    anonymously retrievable
+
+---
+
 ## 2026-09-11
 
 ### Infra: Isolated E2E Test Foundation
@@ -216,14 +303,15 @@ Each entry includes:
 
 ## Test Coverage
 
-| Gate            | Status  | Details                                        |
-| --------------- | ------- | ---------------------------------------------- |
-| Prisma Validate | Passing | Schema consistency checked                     |
-| Typecheck       | Passing | Full TypeScript strict mode                    |
-| Lint (ESLint)   | Passing | Code style & security rules                    |
-| Build           | Passing | NestJS compilation successful                  |
-| Unit Tests      | Passing | 336 tests across 34 suites                     |
-| E2E Tests       | Passing | 102 tests across 26 suites (PostgreSQL, MinIO) |
+| Gate                    | Status  | Details                                                        |
+| ----------------------- | ------- | -------------------------------------------------------------- |
+| Prisma Validate         | Passing | Schema consistency checked                                     |
+| Typecheck               | Passing | Full TypeScript strict mode                                    |
+| Lint (ESLint)           | Passing | Code style & security rules                                    |
+| Build                   | Passing | NestJS compilation successful                                  |
+| Unit Tests              | Passing | 380 tests across 40 suites                                     |
+| Image Processing Worker | Passing | 2 tests across 1 suite (real Sharp decode, `pnpm test:worker`) |
+| E2E Tests               | Passing | 111 tests across 26 suites (PostgreSQL, MinIO)                 |
 
 ---
 

@@ -78,7 +78,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 12
-      start_period: 20s
+      start_period: 5m
 
   adminer:
     image: adminer:5.4.2

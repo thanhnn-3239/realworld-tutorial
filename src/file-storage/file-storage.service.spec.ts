@@ -1,18 +1,18 @@
 import { BadGatewayException } from '@nestjs/common';
 import { FileStorageService } from './file-storage.service';
 import { StorageDriver } from './storage-driver.interface';
+import { StorageUpload } from './storage-upload.interface';
 import { CustomLoggerService } from '../logger/logger.service';
 
-const makeMockFile = (
-  overrides: Partial<Express.Multer.File> = {},
-): Express.Multer.File =>
-  ({
-    originalname: 'avatar.jpg',
-    mimetype: 'image/jpeg',
-    size: 1024,
-    buffer: Buffer.from('fake-image-data'),
+const makeUpload = (overrides: Partial<StorageUpload> = {}): StorageUpload => {
+  const data = overrides.data ?? new Uint8Array(Buffer.from('fake-image-data'));
+  return {
+    data,
+    mimeType: 'image/webp',
+    size: data.byteLength,
     ...overrides,
-  }) as Express.Multer.File;
+  };
+};
 
 const makeDriver = (): jest.Mocked<StorageDriver> => ({
   put: jest.fn().mockResolvedValue(undefined),
@@ -37,58 +37,59 @@ describe('FileStorageService', () => {
   });
 
   describe('upload', () => {
-    const key = 'avatars/42/photo.jpg';
+    const key = 'avatars/42/photo.webp';
 
     it('returns the provided key', async () => {
-      const file = makeMockFile();
-      const result = await service.upload(key, file);
+      const upload = makeUpload();
+      const result = await service.upload(key, upload);
 
       expect(result).toBe(key);
     });
 
     it('returns the key alone, leaving URL building to publicUrl', async () => {
-      const file = makeMockFile();
-      await service.upload(key, file);
+      const upload = makeUpload();
+      await service.upload(key, upload);
 
       expect(driver.url).not.toHaveBeenCalled();
     });
 
-    it('calls driver.put with the key, Content-Type, and length', async () => {
-      const file = makeMockFile({
-        mimetype: 'image/png',
-        originalname: 'pic.png',
-      });
-      await service.upload('avatars/42/pic.png', file);
+    it('calls driver.put with the key, a Buffer of the same bytes, and Content-Type/length', async () => {
+      const data = new Uint8Array(Buffer.from('image-bytes'));
+      const upload = makeUpload({ data, mimeType: 'image/webp' });
+      await service.upload(key, upload);
 
-      expect(driver.put).toHaveBeenCalledWith(
-        'avatars/42/pic.png',
-        file.buffer,
-        { contentType: 'image/png', contentLength: file.size },
-      );
+      expect(driver.put).toHaveBeenCalledWith(key, Buffer.from(data), {
+        contentType: 'image/webp',
+        contentLength: data.byteLength,
+      });
     });
 
-    it('calls driver.put with the file buffer as the body', async () => {
-      const buffer = Buffer.from('image-bytes');
-      const file = makeMockFile({ buffer });
-      await service.upload(key, file);
+    it('uses data.byteLength as the authoritative content length, ignoring a lying size field', async () => {
+      const data = new Uint8Array(Buffer.from('image-bytes'));
+      const upload = makeUpload({ data, size: 999999 });
+      await service.upload(key, upload);
 
-      expect(driver.put).toHaveBeenCalledWith(key, buffer, expect.anything());
+      expect(driver.put).toHaveBeenCalledWith(
+        key,
+        expect.anything(),
+        expect.objectContaining({ contentLength: data.byteLength }),
+      );
     });
 
     it('throws BadGatewayException when the driver fails', async () => {
       driver.put.mockRejectedValueOnce(new Error('S3 network error'));
-      const file = makeMockFile();
+      const upload = makeUpload();
 
-      await expect(service.upload(key, file)).rejects.toThrow(
+      await expect(service.upload(key, upload)).rejects.toThrow(
         new BadGatewayException('File upload failed'),
       );
     });
 
     it('logs the underlying cause, which the thrown 502 does not carry', async () => {
       driver.put.mockRejectedValueOnce(new Error('S3 network error'));
-      const file = makeMockFile();
+      const upload = makeUpload();
 
-      await expect(service.upload(key, file)).rejects.toThrow(
+      await expect(service.upload(key, upload)).rejects.toThrow(
         BadGatewayException,
       );
       expect(logger.error).toHaveBeenCalledWith(

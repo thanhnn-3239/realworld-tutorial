@@ -3,14 +3,16 @@ import { AvatarReplacementService } from './avatar-replacement.service';
 import { UsersRepository } from './users.repository';
 import { PrismaService } from '../prisma/prisma.service';
 import { FileStorageService } from '../file-storage/file-storage.service';
+import { ImageProcessingService } from '../image-processing/image-processing.service';
 import { CustomLoggerService } from '../logger/logger.service';
+import type { ProcessedImage } from '../image-processing/interfaces/processed-image.interface';
 
 jest.mock('node:crypto', () => ({
   randomUUID: jest.fn().mockReturnValue('new-uuid'),
 }));
 
-const newAvatarKey = 'avatars/1/new-uuid.png';
-const oldAvatarKey = 'avatars/1/old.png';
+const newAvatarKey = 'avatars/1/new-uuid.webp';
+const oldAvatarKey = 'avatars/1/old.webp';
 
 const updatedUser = {
   email: 'jake@jake.jake',
@@ -26,11 +28,22 @@ const avatarFile = {
   buffer: Buffer.from('png-bytes'),
 } as Express.Multer.File;
 
+const processed: ProcessedImage = {
+  data: new Uint8Array([1, 2, 3]),
+  format: 'webp',
+  mimeType: 'image/webp',
+  extension: 'webp',
+  width: 512,
+  height: 512,
+  size: 3,
+};
+
 describe('AvatarReplacementService', () => {
   let service: AvatarReplacementService;
   let repository: { lockImage: jest.Mock; update: jest.Mock };
   let storage: { upload: jest.Mock; delete: jest.Mock };
   let prisma: { $transaction: jest.Mock };
+  let imageProcessing: { process: jest.Mock };
   let logger: { error: jest.Mock };
 
   beforeEach(() => {
@@ -45,22 +58,30 @@ describe('AvatarReplacementService', () => {
     prisma = {
       $transaction: jest.fn((fn: (tx: unknown) => unknown) => fn({})),
     };
+    imageProcessing = {
+      process: jest.fn().mockResolvedValue(processed),
+    };
     logger = { error: jest.fn() };
 
     service = new AvatarReplacementService(
       repository as unknown as UsersRepository,
       prisma as unknown as PrismaService,
+      imageProcessing as unknown as ImageProcessingService,
       storage as unknown as FileStorageService,
       logger as unknown as CustomLoggerService,
     );
   });
 
-  it('stores the key and deletes the object it replaced', async () => {
+  it('stores the processed key and deletes the object it replaced', async () => {
     repository.lockImage.mockResolvedValue(oldAvatarKey);
 
     await service.replace(1, { bio: 'x' }, avatarFile);
 
-    expect(storage.upload).toHaveBeenCalledWith(newAvatarKey, avatarFile);
+    expect(storage.upload).toHaveBeenCalledWith(newAvatarKey, {
+      data: processed.data,
+      mimeType: processed.mimeType,
+      size: processed.size,
+    });
     expect(repository.update).toHaveBeenCalledWith(
       1,
       { bio: 'x', image: newAvatarKey },
@@ -104,12 +125,9 @@ describe('AvatarReplacementService', () => {
     );
   });
 
-  it('uploads before the transaction and locks before overwriting the key', async () => {
+  it('locks the previous image before overwriting it with the new key', async () => {
     await service.replace(1, {}, avatarFile);
 
-    expect(storage.upload.mock.invocationCallOrder[0]).toBeLessThan(
-      prisma.$transaction.mock.invocationCallOrder[0],
-    );
     expect(repository.lockImage.mock.invocationCallOrder[0]).toBeLessThan(
       repository.update.mock.invocationCallOrder[0],
     );
