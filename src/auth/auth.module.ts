@@ -14,6 +14,7 @@ import { AccountResolverService } from './account/account-resolver.service';
 import { AccountUserRepository } from './account/account-user.repository';
 import { AuthProviderRepository } from './account/auth-provider.repository';
 import { RefreshTokenRepository } from './token/refresh-token.repository';
+import { ExpiredTokenCleanupService } from './token/expired-token-cleanup.service';
 import { DEFAULT_ACCESS_TOKEN_TTL, TokenService } from './token/token.service';
 
 @Module({
@@ -42,6 +43,7 @@ import { DEFAULT_ACCESS_TOKEN_TTL, TokenService } from './token/token.service';
     OptionalJwtAuthGuard,
     RefreshTokenRepository,
     TokenService,
+    ExpiredTokenCleanupService,
     AccountUserRepository,
     AuthProviderRepository,
     AccountResolverService,
