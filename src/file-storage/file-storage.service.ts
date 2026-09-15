@@ -1,6 +1,7 @@
 import { BadGatewayException, Inject, Injectable } from '@nestjs/common';
 import { STORAGE_DRIVER } from './storage-driver.interface';
 import type { StorageDriver } from './storage-driver.interface';
+import type { StorageUpload } from './storage-upload.interface';
 import { CustomLoggerService } from '../logger/logger.service';
 
 @Injectable()
@@ -10,11 +11,11 @@ export class FileStorageService {
     private readonly logger: CustomLoggerService,
   ) {}
 
-  async upload(key: string, file: Express.Multer.File): Promise<string> {
+  async upload(key: string, upload: StorageUpload): Promise<string> {
     try {
-      await this.driver.put(key, file.buffer, {
-        contentType: file.mimetype,
-        contentLength: file.size,
+      await this.driver.put(key, Buffer.from(upload.data), {
+        contentType: upload.mimeType,
+        contentLength: upload.data.byteLength,
       });
     } catch (error) {
       this.logger.error(

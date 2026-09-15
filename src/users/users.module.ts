@@ -4,9 +4,10 @@ import { UsersService } from './users.service';
 import { UsersRepository } from './users.repository';
 import { AvatarReplacementService } from './avatar-replacement.service';
 import { PrismaModule } from '../prisma/prisma.module';
+import { ImageProcessingModule } from '../image-processing/image-processing.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, ImageProcessingModule],
   controllers: [UsersController],
   providers: [UsersService, UsersRepository, AvatarReplacementService],
   exports: [UsersService],

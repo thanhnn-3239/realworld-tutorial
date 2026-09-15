@@ -6,7 +6,7 @@ E2E_APP_IMAGE := realworld-e2e-app
 E2E_ENV_FILE := .env.e2e
 E2E_ENV_TEMPLATE := .env.e2e.example
 E2E_TEST_ARGS ?= --maxWorkers=4
-E2E_BOOTSTRAP := CI=true pnpm install --frozen-lockfile --prefer-offline && pnpm db:generate &&
+E2E_BOOTSTRAP := CI=true pnpm install --frozen-lockfile --prefer-offline && pnpm db:generate && pnpm build &&
 
 .PHONY: dev stop down restart logs test test-e2e lint build generate migrate seed shell run-in-workspace e2e-env e2e-image run-in-e2e stop-e2e down-e2e clean-e2e
 

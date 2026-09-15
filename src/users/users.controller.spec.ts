@@ -1,4 +1,4 @@
-import { BadRequestException, HttpStatus, RequestMethod } from '@nestjs/common';
+import { HttpStatus, RequestMethod } from '@nestjs/common';
 import {
   GUARDS_METADATA,
   HTTP_CODE_METADATA,
@@ -6,12 +6,8 @@ import {
   METHOD_METADATA,
   PATH_METADATA,
 } from '@nestjs/common/constants';
-import {
-  UsersController,
-  avatarFileFilter,
-  ALLOWED_AVATAR_MIME_TYPES,
-  USER_AVATAR_MAX_SIZE_BYTES,
-} from './users.controller';
+import { UsersController } from './users.controller';
+import { USER_AVATAR_MAX_SIZE_BYTES } from './constants/avatar-upload.constants';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
@@ -97,33 +93,6 @@ describe('UsersController', () => {
       expect(usersService.updateUser).toHaveBeenCalledWith(1, dto, mockFile);
       expect(result).toBe(updatedUser);
     });
-  });
-
-  describe('avatarFileFilter', () => {
-    it.each(ALLOWED_AVATAR_MIME_TYPES)(
-      'accepts allowed mime type %s',
-      (mimetype) => {
-        const callback = jest.fn();
-        avatarFileFilter(null, { mimetype }, callback);
-
-        expect(callback).toHaveBeenCalledWith(null, true);
-      },
-    );
-
-    it.each(['application/pdf', 'image/svg+xml', 'text/plain', 'image/tiff'])(
-      'rejects disallowed mime type %s with BadRequestException',
-      (mimetype) => {
-        const callback = jest.fn();
-        avatarFileFilter(null, { mimetype }, callback);
-
-        expect(callback).toHaveBeenCalledWith(
-          expect.any(BadRequestException),
-          false,
-        );
-        const error = callback.mock.calls[0][0];
-        expect(error.message).toBe('Unsupported file type');
-      },
-    );
   });
 
   describe('metadata & configuration', () => {

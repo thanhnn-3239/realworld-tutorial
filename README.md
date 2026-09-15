@@ -31,7 +31,7 @@ Toàn bộ workspace, bao gồm `node_modules` và pnpm store, được bind mou
 
 File được lưu trên object storage tương thích S3 (MinIO ở local, AWS S3 ở production), cấu hình qua `STORAGE_BUCKET`, `STORAGE_PUBLIC_URL`, `STORAGE_ENDPOINT`, `STORAGE_ACCESS_KEY`, `STORAGE_SECRET_KEY` trong `.env`. `FileStorageService` gọi vào storage qua interface `StorageDriver`, hiện chỉ có một implementation (`S3StorageDriver`) — interface vẫn giữ lại làm chỗ nối để thêm backend khác sau này mà không phải sửa code gọi nó.
 
-Key sinh ra luôn có tiền tố `public/uploads/...` — chuẩn bị chỗ cho một tiền tố `private/` sau này mà không phải di chuyển object đã có. `docker/minio-init.sh` chỉ mở public-read cho tiền tố `public` trong bucket, không mở cho cả bucket, để tiền tố `private/` sau này mặc định không đọc được.
+Key ảnh đại diện (avatar) có dạng `avatars/{userId}/{uuid}.webp` — không nằm dưới tiền tố `public/`. `docker/minio-init.sh` chỉ mở public-read cho tiền tố `public` trong bucket, không mở cho cả bucket; vì avatar không nằm dưới tiền tố đó, chính sách này hiện **không** cấp quyền đọc ẩn danh cho object avatar dù `FileStorageService.publicUrl` vẫn trả về URL. Đây là điểm chưa khớp giữa key layout và bucket policy, có từ trước, nằm ngoài phạm vi thay đổi hiện tại — không phải đã được xử lý.
 
 ## Lệnh thường dùng
 

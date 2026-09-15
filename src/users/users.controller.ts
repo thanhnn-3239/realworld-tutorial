@@ -8,7 +8,6 @@ import {
   HttpStatus,
   UseInterceptors,
   UploadedFile,
-  BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -26,26 +25,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ResponseMessage } from '../common/decorators/response-message.decorator';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
-
-export const USER_AVATAR_MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
-export const ALLOWED_AVATAR_MIME_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/gif',
-];
-
-export function avatarFileFilter(
-  _req: unknown,
-  file: { mimetype: string },
-  cb: (error: Error | null, acceptFile: boolean) => void,
-): void {
-  if (ALLOWED_AVATAR_MIME_TYPES.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new BadRequestException('Unsupported file type'), false);
-  }
-}
+import { avatarFileFilter } from './avatar-file-filter';
+import { USER_AVATAR_MAX_SIZE_BYTES } from './constants/avatar-upload.constants';
 
 @ApiTags('User')
 @ApiBearerAuth()
@@ -85,7 +66,8 @@ export class UsersController {
           type: 'string',
           format: 'binary',
           description:
-            'Upload an image file (multipart) to set the avatar, or send null (JSON) to remove it — a string is rejected',
+            'Upload a JPEG, PNG, or WebP image (multipart) to set the avatar, or send null (JSON) to remove it — a string is rejected. ' +
+            'The decoded image is re-encoded to a 512x512 WebP before storage.',
         },
       },
     },
@@ -96,12 +78,17 @@ export class UsersController {
   })
   @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
   @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Unsupported declared MIME type for the uploaded file',
+  })
+  @ApiResponse({
     status: HttpStatus.CONFLICT,
     description: 'Username already in use',
   })
   @ApiResponse({
     status: HttpStatus.UNPROCESSABLE_ENTITY,
-    description: 'Validation error',
+    description:
+      'Validation error, or the uploaded bytes failed decoded image validation',
   })
   @ApiResponse({
     status: HttpStatus.PAYLOAD_TOO_LARGE,
@@ -110,6 +97,10 @@ export class UsersController {
   @ApiResponse({
     status: HttpStatus.BAD_GATEWAY,
     description: 'File upload failed',
+  })
+  @ApiResponse({
+    status: HttpStatus.SERVICE_UNAVAILABLE,
+    description: 'Image processing is temporarily unavailable',
   })
   @UseInterceptors(
     FileInterceptor('image', {

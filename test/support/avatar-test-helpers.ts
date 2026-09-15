@@ -2,26 +2,51 @@ import {
   STORAGE_DRIVER,
   type StorageDriver,
 } from '../../src/file-storage/storage-driver.interface';
+import { createValidAvatarFixture } from './avatar-image-fixture.factory';
 import type { E2eContext } from './e2e-suite';
 
-export const PNG_1X1 = Buffer.from(
-  '89504e470d0a1a0a0000000d4948445200000001000000010806000000' +
-    '1f15c4890000000a49444154789c6300010000050001' +
-    '0d0a2db40000000049454e44ae426082',
-  'hex',
-);
+const DEFAULT_FIXTURE_HOOK_TIMEOUT_MS = 30_000;
+
+export interface AvatarUploadOverride {
+  readonly data?: Buffer;
+  readonly filename?: string;
+  readonly contentType?: string;
+}
 
 export function createAvatarTestHelpers(e2e: E2eContext) {
   const driver = () => e2e.resolve<StorageDriver>(STORAGE_DRIVER);
 
-  function upload(authorization: string, bio: string) {
+  // Generated once per suite (not per assertion) and reused as the default
+  // upload body — a real, decodable PNG at the profile's minimum accepted
+  // shortest side, so the default path exercises the same validation a
+  // production upload would, instead of a fixture too small to be real.
+  let defaultFixture: Buffer | undefined;
+
+  beforeAll(async () => {
+    defaultFixture = await createValidAvatarFixture();
+  }, DEFAULT_FIXTURE_HOOK_TIMEOUT_MS);
+
+  function requireDefaultFixture(): Buffer {
+    if (!defaultFixture) {
+      throw new Error(
+        'Default avatar fixture is not initialized; beforeAll did not run',
+      );
+    }
+    return defaultFixture;
+  }
+
+  function upload(
+    authorization: string,
+    bio: string,
+    override?: AvatarUploadOverride,
+  ) {
     return e2e.request
       .put('/v1/user')
       .set('Authorization', authorization)
       .field('bio', bio)
-      .attach('image', PNG_1X1, {
-        filename: 'avatar.png',
-        contentType: 'image/png',
+      .attach('image', override?.data ?? requireDefaultFixture(), {
+        filename: override?.filename ?? 'avatar.png',
+        contentType: override?.contentType ?? 'image/png',
       });
   }
 

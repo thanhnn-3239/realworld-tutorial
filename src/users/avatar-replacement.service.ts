@@ -4,6 +4,7 @@ import { UsersRepository } from './users.repository';
 import { PrismaService } from '../prisma/prisma.service';
 import { FileStorageService } from '../file-storage/file-storage.service';
 import { buildStorageKey } from '../file-storage/file-storage.util';
+import { ImageProcessingService } from '../image-processing/image-processing.service';
 import { CustomLoggerService } from '../logger/logger.service';
 import type { UserRow } from './interfaces/user-row.interface';
 
@@ -12,6 +13,7 @@ export class AvatarReplacementService {
   constructor(
     private readonly usersRepository: UsersRepository,
     private readonly prisma: PrismaService,
+    private readonly imageProcessingService: ImageProcessingService,
     private readonly fileStorageService: FileStorageService,
     private readonly logger: CustomLoggerService,
   ) {}
@@ -21,9 +23,20 @@ export class AvatarReplacementService {
     updateData: Prisma.UserUpdateInput,
     file: Express.Multer.File,
   ): Promise<UserRow> {
-    const uploadedKey = buildStorageKey(`avatars/${userId}`, file);
+    const processed = await this.imageProcessingService.process(
+      file.buffer,
+      'avatar',
+    );
+    const uploadedKey = buildStorageKey(
+      `avatars/${userId}`,
+      processed.extension,
+    );
 
-    await this.fileStorageService.upload(uploadedKey, file);
+    await this.fileStorageService.upload(uploadedKey, {
+      data: processed.data,
+      mimeType: processed.mimeType,
+      size: processed.size,
+    });
 
     let result: { user: UserRow; previous: string | null };
 

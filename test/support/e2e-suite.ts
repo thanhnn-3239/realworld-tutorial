@@ -14,6 +14,7 @@ import {
   createFixtureFactory,
   type FixtureFactory,
 } from './fixtures/fixture-factory';
+import type { StoredTestObject } from './interfaces/stored-test-object.interface';
 
 const HOOK_TIMEOUT_MS = 60_000;
 
@@ -22,7 +23,10 @@ export interface E2eContext {
   readonly request: ReturnType<typeof request>;
   readonly prisma: PrismaService;
   readonly fixtures: FixtureFactory;
+  readonly bucket: TestBucket;
   resolve<T>(token: unknown): T;
+  /** Convenience for `bucket.read(key)` — authenticated, test-only object inspection. */
+  read(key: string): Promise<StoredTestObject>;
 }
 
 interface E2eSuiteState {
@@ -136,8 +140,14 @@ export function useE2eSuite(label: string): E2eContext {
     get fixtures() {
       return current().fixtures;
     },
+    get bucket() {
+      return current().bucket;
+    },
     resolve<T>(token: unknown): T {
       return current().app.get(token as never);
+    },
+    read(key: string) {
+      return current().bucket.read(key);
     },
   };
 }
