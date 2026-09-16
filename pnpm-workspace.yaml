@@ -4,6 +4,9 @@ allowBuilds:
   '@scarf/scarf': false
   bcrypt: true
   esbuild: true
+  msgpackr-extract: false
   prisma: true
   sharp: true
   unrs-resolver: true
+minimumReleaseAgeExclude:
+  - '@types/nodemailer@8.0.2'

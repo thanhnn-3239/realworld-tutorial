@@ -85,6 +85,8 @@ export function useE2eSuite(label: string): E2eContext {
         baseConfig,
         partial.database.name,
         partial.bucket.name,
+        runId,
+        label,
       );
       partial.app = await createTestApp(partial.database, suiteConfig);
       const prisma = partial.app.get(PrismaService);

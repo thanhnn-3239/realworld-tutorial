@@ -30,10 +30,24 @@ function configForSuite(config: E2eSuiteConfig): ConfigService {
     STORAGE_SECRET_KEY: config.storageSecretKey,
     STORAGE_PUBLIC_URL: config.storagePublicUrl,
     STORAGE_REGION: config.storageRegion,
+    REDIS_URL: config.redisUrl,
+    REDIS_PREFIX: config.redisPrefix,
+    SMTP_HOST: config.smtpHost,
+    SMTP_PORT: String(config.smtpPort),
+    MAIL_FROM: config.mailFrom,
+    MAILPIT_API_URL: config.mailpitApiUrl,
+    GOOGLE_LINK_CONFIRM_URL: config.googleLinkConfirmUrl,
   };
   const facade = {
     get: <T>(key: string, defaultValue?: T) =>
       (values[key] ?? process.env[key] ?? defaultValue) as T,
+    getOrThrow: <T>(key: string, defaultValue?: T) => {
+      const val = values[key] ?? process.env[key] ?? defaultValue;
+      if (val === undefined || val === null || val === '') {
+        throw new Error(`Configuration key "${key}" does not exist`);
+      }
+      return val as T;
+    },
   };
 
   return facade as unknown as ConfigService;

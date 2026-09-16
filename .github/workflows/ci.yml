@@ -55,7 +55,7 @@ jobs:
         run: make test-e2e
       - name: Print E2E service logs
         if: failure()
-        run: docker compose --project-name realworld-e2e --env-file .env.e2e logs postgres minio
+        run: docker compose --project-name realworld-e2e --env-file .env.e2e logs postgres minio redis mailpit
       - name: Clean E2E project
         if: always()
         run: make clean-e2e

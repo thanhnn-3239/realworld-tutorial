@@ -23,6 +23,7 @@ import { CommentsModule } from './comments/comments.module';
 import { ProfilesModule } from './profiles/profiles.module';
 import { HealthModule } from './health/health.module';
 import { FileStorageModule } from './file-storage/file-storage.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { FileStorageModule } from './file-storage/file-storage.module';
     CommentsModule,
     ProfilesModule,
     HealthModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [
