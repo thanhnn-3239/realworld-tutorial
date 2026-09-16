@@ -17,7 +17,9 @@
     "commentNotFound": "Không tìm thấy bình luận",
     "commentForbidden": "Chỉ tác giả bình luận mới có thể xóa bình luận này",
     "profileNotFound": "Không tìm thấy hồ sơ người dùng",
-    "followSelf": "Bạn không thể theo dõi chính mình"
+    "followSelf": "Bạn không thể theo dõi chính mình",
+    "invalidOrExpiredLinkToken": "Liên kết xác nhận không hợp lệ hoặc đã hết hạn",
+    "providerLinkConflict": "Tài khoản liên kết này đã được liên kết với người dùng khác"
   },
   "validation": {
     "required": "{field} là bắt buộc",
