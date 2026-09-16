@@ -21,9 +21,9 @@ export class ProviderLinkEmailTemplateService {
   private readonly confirmUrl: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.confirmUrl = this.configService.getOrThrow<string>(
-      'GOOGLE_LINK_CONFIRM_URL',
-    );
+    this.confirmUrl =
+      this.configService.get<string>('GOOGLE_LINK_CONFIRM_URL') ||
+      'http://localhost:3000/auth/google/link/confirm';
   }
 
   render(rawToken: string): ProviderLinkEmailContent {

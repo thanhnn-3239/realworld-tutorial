@@ -5,14 +5,18 @@ import {
 } from '../interfaces/pending-provider-link.interface';
 
 export function createMockPendingPrisma() {
-  return {
+  const client = {
     pendingAuthProviderLink: {
       findFirst: jest.fn(),
       create: jest.fn(),
       updateMany: jest.fn(),
       deleteMany: jest.fn(),
     },
+    $transaction: jest.fn(async (cb: (tx: unknown) => Promise<unknown>) =>
+      cb(client),
+    ),
   };
+  return client;
 }
 
 export type MockPendingPrisma = ReturnType<typeof createMockPendingPrisma>;

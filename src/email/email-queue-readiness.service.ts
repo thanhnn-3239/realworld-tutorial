@@ -17,13 +17,15 @@ export class EmailQueueReadinessService {
   ) {}
 
   async ping(): Promise<void> {
-    const client = (await this.queue.getBackend()
-      .client) as unknown as PingableRedisClient;
     let timeout: NodeJS.Timeout | undefined;
 
     try {
       await Promise.race([
-        client.ping(),
+        (async () => {
+          const client = (await this.queue.getBackend()
+            .client) as unknown as PingableRedisClient;
+          await client.ping();
+        })(),
         new Promise<never>((_, reject) => {
           timeout = setTimeout(
             () => reject(new Error('Email queue readiness timed out')),

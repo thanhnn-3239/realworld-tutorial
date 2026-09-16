@@ -19,38 +19,61 @@ export class PendingProviderLinkRepository {
     const existing = await this.findExisting(input);
 
     if (existing) {
-      return this.handleExistingOrConflict(existing, input, now);
+      const elapsedMs = now.getTime() - existing.createdAt.getTime();
+      if (elapsedMs < PENDING_LINK_RESEND_COOLDOWN_MS) {
+        return { kind: 'cooldown', pendingId: existing.id };
+      }
     }
 
     try {
-      const created = await this.prisma.pendingAuthProviderLink.create({
-        data: {
-          userId: input.userId,
-          provider: input.provider,
-          providerAccountId: input.providerAccountId,
-          tokenHash: input.tokenHash,
-          expiresAt: input.expiresAt,
-          createdAt: now,
-        },
-      });
+      return await this.prisma.$transaction(async (tx) => {
+        const client = tx as Prisma.TransactionClient;
+        await client.pendingAuthProviderLink.deleteMany({
+          where: {
+            OR: [
+              {
+                provider: input.provider,
+                providerAccountId: input.providerAccountId,
+              },
+              { userId: input.userId, provider: input.provider },
+            ],
+          },
+        });
 
-      return {
-        kind: 'issued',
-        pendingId: created.id,
-        tokenHash: created.tokenHash,
-        expiresAt: created.expiresAt,
-      };
+        const created = await client.pendingAuthProviderLink.create({
+          data: {
+            userId: input.userId,
+            provider: input.provider,
+            providerAccountId: input.providerAccountId,
+            tokenHash: input.tokenHash,
+            expiresAt: input.expiresAt,
+            createdAt: now,
+          },
+        });
+
+        return {
+          kind: 'issued',
+          pendingId: created.id,
+          tokenHash: created.tokenHash,
+          expiresAt: created.expiresAt,
+        };
+      });
     } catch (error) {
       if (this.isUniqueConstraintViolation(error)) {
         const conflict = await this.findExisting(input);
-
         if (conflict) {
-          return this.handleExistingOrConflict(conflict, input, now);
+          return { kind: 'cooldown', pendingId: conflict.id };
         }
       }
-
       throw error;
     }
+  }
+
+  private isUniqueConstraintViolation(error: unknown): boolean {
+    return (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    );
   }
 
   async findValid(
@@ -111,49 +134,6 @@ export class PendingProviderLinkRepository {
     return result.count;
   }
 
-  private async handleExistingOrConflict(
-    existing: PendingProviderLinkRow,
-    input: IssuePendingProviderLinkInput,
-    now: Date,
-  ): Promise<PendingIssueResult> {
-    const elapsedMs = now.getTime() - existing.createdAt.getTime();
-    if (elapsedMs < PENDING_LINK_RESEND_COOLDOWN_MS) {
-      return { kind: 'cooldown', pendingId: existing.id };
-    }
-
-    const updated = await this.prisma.pendingAuthProviderLink.updateMany({
-      where: {
-        id: existing.id,
-        tokenHash: existing.tokenHash,
-        createdAt: existing.createdAt,
-      },
-      data: {
-        userId: input.userId,
-        provider: input.provider,
-        providerAccountId: input.providerAccountId,
-        tokenHash: input.tokenHash,
-        expiresAt: input.expiresAt,
-        createdAt: now,
-      },
-    });
-
-    if (updated.count !== 1) {
-      const conflict = await this.findExisting(input);
-      if (conflict) {
-        return this.handleExistingOrConflict(conflict, input, now);
-      }
-
-      return this.issue({ ...input, now });
-    }
-
-    return {
-      kind: 'issued',
-      pendingId: existing.id,
-      tokenHash: input.tokenHash,
-      expiresAt: input.expiresAt,
-    };
-  }
-
   private findExisting(input: IssuePendingProviderLinkInput) {
     return this.prisma.pendingAuthProviderLink.findFirst({
       where: {
@@ -167,12 +147,5 @@ export class PendingProviderLinkRepository {
       },
       orderBy: { createdAt: 'desc' },
     });
-  }
-
-  private isUniqueConstraintViolation(error: unknown): boolean {
-    return (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === 'P2002'
-    );
   }
 }

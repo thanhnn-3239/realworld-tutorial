@@ -39,7 +39,8 @@ Each entry includes:
     clearing passwords or revoking refresh tokens.
   - Added `POST /v1/auth/google/link/confirm` accepting `{ "token": "..." }`. The endpoint claims
     and deletes the unexpired pending link in an atomic Prisma transaction, creates the
-    `AuthProvider` row, and returns `200 OK` (`{ "confirmed": true }`) idempotently without
+    `AuthProvider` row, and returns `200 OK` (`{ "confirmed": true }`) idempotently on concurrent
+    confirmations (while sequential replays of consumed tokens reject with `400 Bad Request`), without
     issuing application tokens.
   - Added daily scheduled cleanup at 04:00 (`0 0 4 * * *`) via `ScheduleModule` to prune expired
     pending links.

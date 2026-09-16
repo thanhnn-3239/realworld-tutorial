@@ -19,6 +19,8 @@ jest.mock('bullmq', () => ({
   Worker: jest.fn().mockImplementation((name, processor, opts) => ({
     name,
     opts,
+    on: jest.fn().mockReturnThis(),
+    emit: jest.fn(),
     close: jest.fn().mockResolvedValue(undefined),
   })),
 }));

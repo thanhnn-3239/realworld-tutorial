@@ -54,7 +54,7 @@ describe('PendingProviderLinkRepository (e2e)', () => {
     expect(rotated.tokenHash).not.toBe(first.tokenHash);
     expect(await repository.findValid(first.tokenHash, rotatedTime)).toBeNull();
     const valid = await repository.findValid(rotated.tokenHash, rotatedTime);
-    expect(valid?.id).toBe(first.pendingId);
+    expect(valid?.id).toBe(rotated.pendingId);
   });
 
   it('enforces unique constraints on (provider, providerAccountId) and (userId, provider)', async () => {

@@ -1,5 +1,5 @@
 import { Inject } from '@nestjs/common';
-import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { CustomLoggerService } from '../logger/logger.service';
 import {
@@ -66,10 +66,27 @@ export class EmailProcessor extends WorkerHost {
         `Delivered confirmation email for job ${job.id ?? 'unknown'} (pendingId: ${pendingId})`,
       );
     } catch (error) {
+      const err = error as { name?: string; code?: string };
       this.logger.error(
-        `Failed to deliver email for job ${job.id ?? 'unknown'} (pendingId: ${pendingId}, attempt: ${job.attemptsMade + 1})`,
+        `Failed to deliver email for job ${job.id ?? 'unknown'} (pendingId: ${pendingId}, attempt: ${job.attemptsMade + 1}, error: ${err.code || err.name || 'UNKNOWN'})`,
       );
       throw error;
     }
+  }
+
+  @OnWorkerEvent('failed')
+  onFailed(job: Job, error: Error): void {
+    const err = error as { name?: string; code?: string };
+    this.logger.error(
+      `Job ${job.id ?? 'unknown'} permanently failed: ${err.name || 'Error'} (${err.code || 'UNKNOWN'})`,
+    );
+  }
+
+  @OnWorkerEvent('error')
+  onError(error: Error): void {
+    const err = error as { name?: string; code?: string };
+    this.logger.error(
+      `Email worker encountered error: ${err.name || 'Error'} (${err.code || 'UNKNOWN'})`,
+    );
   }
 }

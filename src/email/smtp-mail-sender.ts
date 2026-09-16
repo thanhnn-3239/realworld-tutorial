@@ -26,6 +26,9 @@ export class SmtpMailSender implements MailSender, OnModuleDestroy {
       port: this.config.smtpPort,
       secure: this.config.smtpSecure,
       requireTLS: this.config.smtpRequireTls,
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 20_000,
       auth:
         this.config.smtpUser && this.config.smtpPassword
           ? {
@@ -52,7 +55,10 @@ export class SmtpMailSender implements MailSender, OnModuleDestroy {
         `Email delivered for jobId: ${jobIdentifier}, messageId: ${info?.messageId ?? 'none'}`,
       );
     } catch (error) {
-      this.logger.error(`Failed to send email for jobId: ${jobIdentifier}`);
+      const err = error as { name?: string; code?: string };
+      this.logger.error(
+        `Failed to send email for jobId: ${jobIdentifier}, error: ${err.name || 'Error'}, code: ${err.code || 'UNKNOWN'}`,
+      );
       throw error;
     }
   }

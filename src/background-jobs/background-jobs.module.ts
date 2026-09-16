@@ -10,7 +10,9 @@ import { parseRedisUrl } from './redis.config';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         connection: {
-          ...parseRedisUrl(config.getOrThrow<string>('REDIS_URL')),
+          ...parseRedisUrl(
+            config.get<string>('REDIS_URL') || 'redis://localhost:6379',
+          ),
           maxRetriesPerRequest: 1,
         },
         prefix: config.get<string>('REDIS_PREFIX') || 'realworld',
@@ -20,7 +22,9 @@ import { parseRedisUrl } from './redis.config';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         connection: {
-          ...parseRedisUrl(config.getOrThrow<string>('REDIS_URL')),
+          ...parseRedisUrl(
+            config.get<string>('REDIS_URL') || 'redis://localhost:6379',
+          ),
           maxRetriesPerRequest: null,
         },
         prefix: config.get<string>('REDIS_PREFIX') || 'realworld',

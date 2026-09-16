@@ -54,15 +54,24 @@ describe('ProviderLinkEmailTemplateService', () => {
 
   it('escapes HTML special characters in the confirmation link', () => {
     const baseWithAmp = {
-      getOrThrow: jest.fn(
-        () => 'http://frontend.test/confirm?mode=link&lang=en',
-      ),
+      get: jest.fn(() => 'http://frontend.test/confirm?mode=link&lang=en'),
     } as unknown as ConfigService;
     const customService = new ProviderLinkEmailTemplateService(baseWithAmp);
 
     const result = customService.render('token-abc');
     expect(result.html).toContain(
       'http://frontend.test/confirm?mode=link&amp;lang=en&amp;token=token-abc',
+    );
+  });
+
+  it('falls back to default confirm URL when unset', () => {
+    const emptyConfig = {
+      get: jest.fn(() => undefined),
+    } as unknown as ConfigService;
+    const defaultService = new ProviderLinkEmailTemplateService(emptyConfig);
+    const result = defaultService.render('test-token');
+    expect(result.text).toContain(
+      'http://localhost:3000/auth/google/link/confirm?token=test-token',
     );
   });
 });

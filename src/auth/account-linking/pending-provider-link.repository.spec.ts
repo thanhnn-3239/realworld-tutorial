@@ -7,7 +7,6 @@ import {
   fakeIssueInput,
   fakePendingRow,
   MockPendingPrisma,
-  P2002_ERROR,
 } from './testing/pending-link-test-fixtures';
 
 describe('PendingProviderLinkRepository', () => {
@@ -63,15 +62,22 @@ describe('PendingProviderLinkRepository', () => {
       expect(mockPrisma.pendingAuthProviderLink.create).not.toHaveBeenCalled();
     });
 
-    it('rotates token when past 60 seconds cooldown', async () => {
+    it('replaces existing pending link when past 60 seconds cooldown', async () => {
       const now = new Date('2026-09-16T12:01:05Z');
       const expiresAt = new Date('2026-09-16T12:15:00Z');
+      const createdRow = fakePendingRow({
+        id: 43,
+        tokenHash: 'rotated-hash',
+        expiresAt,
+        createdAt: now,
+      });
       mockPrisma.pendingAuthProviderLink.findFirst.mockResolvedValue(
-        fakePendingRow({ id: 42 }),
+        fakePendingRow({ id: 42, createdAt: BASE_TEST_DATE }),
       );
-      mockPrisma.pendingAuthProviderLink.updateMany.mockResolvedValue({
+      mockPrisma.pendingAuthProviderLink.deleteMany.mockResolvedValue({
         count: 1,
       });
+      mockPrisma.pendingAuthProviderLink.create.mockResolvedValue(createdRow);
 
       const result = await repository.issue(
         fakeIssueInput({ tokenHash: 'rotated-hash', expiresAt, now }),
@@ -79,58 +85,55 @@ describe('PendingProviderLinkRepository', () => {
 
       expect(result).toEqual({
         kind: 'issued',
-        pendingId: 42,
+        pendingId: 43,
         tokenHash: 'rotated-hash',
         expiresAt,
       });
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
       expect(
-        mockPrisma.pendingAuthProviderLink.updateMany,
+        mockPrisma.pendingAuthProviderLink.deleteMany,
       ).toHaveBeenCalledWith({
         where: {
-          id: 42,
-          tokenHash: 'hash-1',
-          createdAt: BASE_TEST_DATE,
+          OR: [
+            { provider: 'google', providerAccountId: 'sub-1' },
+            { userId: 10, provider: 'google' },
+          ],
         },
+      });
+      expect(mockPrisma.pendingAuthProviderLink.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
+          userId: 10,
+          provider: 'google',
+          providerAccountId: 'sub-1',
           tokenHash: 'rotated-hash',
+          expiresAt,
           createdAt: now,
         }),
       });
     });
 
-    it('returns cooldown after losing a concurrent token rotation', async () => {
-      const now = new Date('2026-09-16T12:01:05Z');
-      mockPrisma.pendingAuthProviderLink.findFirst
-        .mockResolvedValueOnce(fakePendingRow({ id: 42 }))
-        .mockResolvedValueOnce(
-          fakePendingRow({ id: 42, tokenHash: 'winner-hash', createdAt: now }),
-        );
-      mockPrisma.pendingAuthProviderLink.updateMany.mockResolvedValue({
-        count: 0,
+    it('deletes conflicting pending links by user or account inside transaction', async () => {
+      const row = fakePendingRow();
+      mockPrisma.pendingAuthProviderLink.findFirst.mockResolvedValue(null);
+      mockPrisma.pendingAuthProviderLink.deleteMany.mockResolvedValue({
+        count: 2,
       });
+      mockPrisma.pendingAuthProviderLink.create.mockResolvedValue(row);
 
-      const result = await repository.issue(
-        fakeIssueInput({ tokenHash: 'loser-hash', now }),
-      );
+      const result = await repository.issue(fakeIssueInput());
 
-      expect(result).toEqual({ kind: 'cooldown', pendingId: 42 });
+      expect(result.kind).toBe('issued');
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
       expect(
-        mockPrisma.pendingAuthProviderLink.findFirst,
-      ).toHaveBeenCalledTimes(2);
-    });
-
-    it('handles concurrent P2002 conflict on create by applying cooldown decision', async () => {
-      const conflictRow = fakePendingRow({ id: 99, createdAt: BASE_TEST_DATE });
-      mockPrisma.pendingAuthProviderLink.findFirst
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(conflictRow);
-      mockPrisma.pendingAuthProviderLink.create.mockRejectedValue(P2002_ERROR);
-
-      const result = await repository.issue(
-        fakeIssueInput({ now: new Date('2026-09-16T12:00:10Z') }),
-      );
-
-      expect(result).toEqual({ kind: 'cooldown', pendingId: 99 });
+        mockPrisma.pendingAuthProviderLink.deleteMany,
+      ).toHaveBeenCalledWith({
+        where: {
+          OR: [
+            { provider: 'google', providerAccountId: 'sub-1' },
+            { userId: 10, provider: 'google' },
+          ],
+        },
+      });
     });
   });
 

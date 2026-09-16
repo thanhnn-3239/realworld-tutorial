@@ -214,7 +214,7 @@ clears passwords, revokes existing sessions, or issues application tokens.
    ```json
    {
      "statusCode": 200,
-     "message": "Provider link confirmed successfully",
+     "message": "Google account link confirmed",
      "data": {
        "confirmed": true
      }

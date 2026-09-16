@@ -70,7 +70,7 @@ High-level overview of the RealWorld API backend, its components, data flow, and
 ### Authentication
 
 - **Strategy:** JWT via Passport and Google OAuth 2.0
-- **Token Location:** `Authorization: Token <jwt>` or `Bearer <jwt>`
+- **Token Location:** `Authorization: Bearer <jwt>`
 - **Protected:** All user-specific and write operations
 - **Registration:** Creates new user account (or passwordless account on Google sign-in)
 - **Login:** Email + password, or Google sign-in; returns JWT token pair
