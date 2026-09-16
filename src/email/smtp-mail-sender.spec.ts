@@ -115,7 +115,16 @@ describe('SmtpMailSender', () => {
   });
 
   it('logs sanitized error and rethrows when sendMail fails', async () => {
-    const error = new Error('SMTP connection refused');
+    const forbidden = [
+      email,
+      bodyText,
+      'secret-raw-token',
+      'https://app.example.com/confirm?token=secret-raw-token',
+      'smtp-login',
+      'smtp-password',
+      '<p>private HTML payload</p>',
+    ];
+    const error = new Error(forbidden.join(' '));
     mockTransporter.sendMail.mockRejectedValue(error);
 
     const options: SendMailOptions = {
@@ -126,18 +135,18 @@ describe('SmtpMailSender', () => {
       jobId: 'job-99',
     };
 
-    await expect(sender.send(options)).rejects.toThrow(
-      'SMTP connection refused',
-    );
+    await expect(sender.send(options)).rejects.toBe(error);
 
     expect(mockLogger.error).toHaveBeenCalledWith(
       expect.stringContaining('job-99'),
     );
-    const errorMessages = mockLogger.error.mock.calls
-      .map((c) => c[0])
-      .join(' ');
-    expect(errorMessages).not.toContain(email);
-    expect(errorMessages).not.toContain(bodyText);
+    const errorMessages = JSON.stringify([
+      ...mockLogger.log.mock.calls,
+      ...mockLogger.error.mock.calls,
+      ...mockLogger.warn.mock.calls,
+      ...mockLogger.debug.mock.calls,
+    ]);
+    for (const value of forbidden) expect(errorMessages).not.toContain(value);
   });
 
   it('closes transporter on module destroy', () => {

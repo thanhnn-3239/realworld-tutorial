@@ -52,11 +52,7 @@ export class SmtpMailSender implements MailSender, OnModuleDestroy {
         `Email delivered for jobId: ${jobIdentifier}, messageId: ${info?.messageId ?? 'none'}`,
       );
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Unknown transport error';
-      this.logger.error(
-        `Failed to send email for jobId: ${jobIdentifier}: ${message}`,
-      );
+      this.logger.error(`Failed to send email for jobId: ${jobIdentifier}`);
       throw error;
     }
   }

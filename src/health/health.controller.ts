@@ -16,10 +16,13 @@ export class HealthController {
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Readiness check for Render' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Database is reachable' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Database and email queue are reachable',
+  })
   @ApiResponse({
     status: HttpStatus.SERVICE_UNAVAILABLE,
-    description: 'Database is unavailable',
+    description: 'A required dependency is unavailable',
   })
   getHealth() {
     return this.healthService.check();

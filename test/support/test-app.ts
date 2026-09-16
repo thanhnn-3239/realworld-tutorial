@@ -10,6 +10,16 @@ import { IMAGE_PROCESSING_WORKER_PATH_TOKEN } from '../../src/image-processing/c
 import type { E2eSuiteConfig } from './e2e-config';
 import { TestDatabase } from './test-database';
 
+export interface TestOverride {
+  readonly token: unknown;
+  readonly value: unknown;
+}
+
+export interface TestAppOptions {
+  readonly providerOverrides?: readonly TestOverride[];
+  readonly guardOverrides?: readonly TestOverride[];
+}
+
 // ts-jest loads source modules, but the real Piscina thread must execute built JS.
 const E2E_COMPILED_IMAGE_PROCESSING_WORKER_PATH = resolve(
   process.cwd(),
@@ -65,15 +75,24 @@ function configForSuite(config: E2eSuiteConfig): ConfigService {
 export async function createTestApp(
   db: TestDatabase,
   suiteConfig: E2eSuiteConfig,
+  options: TestAppOptions = {},
 ): Promise<INestApplication<App>> {
-  const moduleRef = await Test.createTestingModule({
+  const builder = Test.createTestingModule({
     imports: [AppModule],
   })
     .overrideProvider(ConfigService)
     .useValue(configForSuite({ ...suiteConfig, databaseUrl: db.url }))
     .overrideProvider(IMAGE_PROCESSING_WORKER_PATH_TOKEN)
-    .useValue(E2E_COMPILED_IMAGE_PROCESSING_WORKER_PATH)
-    .compile();
+    .useValue(E2E_COMPILED_IMAGE_PROCESSING_WORKER_PATH);
+
+  for (const override of options.providerOverrides ?? []) {
+    builder.overrideProvider(override.token).useValue(override.value);
+  }
+  for (const override of options.guardOverrides ?? []) {
+    builder.overrideGuard(override.token).useValue(override.value);
+  }
+
+  const moduleRef = await builder.compile();
 
   const app = moduleRef.createNestApplication<INestApplication<App>>();
   configureApp(app);

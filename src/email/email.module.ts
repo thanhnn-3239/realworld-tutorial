@@ -7,6 +7,7 @@ import {
 } from './constants/email-queue.constants';
 import { SMTP_MAIL_SENDER } from './constants/mail-sender.constants';
 import { EmailQueueProducer } from './email-queue.producer';
+import { EmailQueueReadinessService } from './email-queue-readiness.service';
 import { EmailProcessor } from './email.processor';
 import { ProviderLinkEmailTemplateService } from './provider-link-email-template.service';
 import { SmtpMailSender } from './smtp-mail-sender';
@@ -14,13 +15,17 @@ import { SmtpMailSender } from './smtp-mail-sender';
 @Module({
   imports: [
     BackgroundJobsModule,
-    BullModule.registerQueue({
-      name: EMAIL_QUEUE_NAME,
+    BullModule.registerQueueAsync({
+      // A distinct DI token lets processor discovery use email-worker config.
+      // The factory name remains the actual Redis queue shared by both clients.
+      name: EMAIL_PRODUCER_CONFIG_KEY,
       configKey: EMAIL_PRODUCER_CONFIG_KEY,
+      useFactory: () => ({ name: EMAIL_QUEUE_NAME }),
     }),
   ],
   providers: [
     EmailQueueProducer,
+    EmailQueueReadinessService,
     EmailProcessor,
     ProviderLinkEmailTemplateService,
     {
@@ -28,6 +33,11 @@ import { SmtpMailSender } from './smtp-mail-sender';
       useClass: SmtpMailSender,
     },
   ],
-  exports: [BullModule, EmailQueueProducer, SMTP_MAIL_SENDER],
+  exports: [
+    BullModule,
+    EmailQueueProducer,
+    EmailQueueReadinessService,
+    SMTP_MAIL_SENDER,
+  ],
 })
 export class EmailModule {}

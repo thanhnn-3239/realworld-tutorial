@@ -66,10 +66,8 @@ export class EmailProcessor extends WorkerHost {
         `Delivered confirmation email for job ${job.id ?? 'unknown'} (pendingId: ${pendingId})`,
       );
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Unknown email error';
       this.logger.error(
-        `Failed to deliver email for job ${job.id ?? 'unknown'} (pendingId: ${pendingId}, attempt: ${job.attemptsMade + 1}): ${message}`,
+        `Failed to deliver email for job ${job.id ?? 'unknown'} (pendingId: ${pendingId}, attempt: ${job.attemptsMade + 1})`,
       );
       throw error;
     }

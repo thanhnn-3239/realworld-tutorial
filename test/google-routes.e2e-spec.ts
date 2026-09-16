@@ -1,6 +1,8 @@
 import { HttpStatus } from '@nestjs/common';
 import { readGoogleAuthConfig } from '../src/auth/providers/google/google-auth.config';
+import { GoogleAuthGuard } from '../src/auth/providers/google/google-auth.guard';
 import { useE2eSuite } from './support/e2e-suite';
+import { GoogleAuthGuardStub } from './support/google-auth-guard.stub';
 
 /**
  * Asserts the branch matching the ambient environment, so the suite is correct whether or not
@@ -8,7 +10,11 @@ import { useE2eSuite } from './support/e2e-suite';
  * running with the three variables set exercises the redirect path.
  */
 describe('Google routes (e2e)', () => {
-  const e2e = useE2eSuite('google-routes');
+  const e2e = useE2eSuite('google-routes', {
+    guardOverrides: [
+      { token: GoogleAuthGuard, value: new GoogleAuthGuardStub() },
+    ],
+  });
   const configured = readGoogleAuthConfig() !== null;
 
   it('boots regardless of whether Google is configured', () => {

@@ -6,18 +6,18 @@ import { EnqueueProviderLinkEmail } from './interfaces/enqueue-provider-link-ema
 import {
   AUTH_PROVIDER_LINK_CONFIRMATION_JOB,
   EMAIL_JOB_ID_PREFIX,
+  EMAIL_PRODUCER_CONFIG_KEY,
   EMAIL_QUEUE_ATTEMPTS,
   EMAIL_QUEUE_BACKOFF_DELAY_MS,
   EMAIL_QUEUE_BACKOFF_TYPE,
   EMAIL_QUEUE_FAILED_JOB_AGE_SECS,
   EMAIL_QUEUE_FAILED_JOB_MAX_COUNT,
-  EMAIL_QUEUE_NAME,
 } from './constants/email-queue.constants';
 
 @Injectable()
 export class EmailQueueProducer {
   constructor(
-    @InjectQueue(EMAIL_QUEUE_NAME)
+    @InjectQueue(EMAIL_PRODUCER_CONFIG_KEY)
     private readonly emailQueue: Queue,
     private readonly logger: CustomLoggerService,
   ) {

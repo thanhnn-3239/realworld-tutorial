@@ -7,7 +7,7 @@ import { PasswordService } from '../../src/common/password/password.service';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { runCleanupSteps } from './cleanup';
 import { buildE2eSuiteConfig, readE2eBaseConfig } from './e2e-config';
-import { createTestApp } from './test-app';
+import { createTestApp, type TestAppOptions } from './test-app';
 import { createTestBucket, type TestBucket } from './storage-admin';
 import { createTestDatabase, type TestDatabase } from './test-database';
 import {
@@ -62,7 +62,10 @@ async function cleanupState(state: PartialE2eSuiteState): Promise<void> {
   ]);
 }
 
-export function useE2eSuite(label: string): E2eContext {
+export function useE2eSuite(
+  label: string,
+  options: TestAppOptions = {},
+): E2eContext {
   let state: E2eSuiteState | undefined;
 
   function current(): E2eSuiteState {
@@ -88,7 +91,7 @@ export function useE2eSuite(label: string): E2eContext {
         runId,
         label,
       );
-      partial.app = await createTestApp(partial.database, suiteConfig);
+      partial.app = await createTestApp(partial.database, suiteConfig, options);
       const prisma = partial.app.get(PrismaService);
       const fixtures = createFixtureFactory({
         prisma,

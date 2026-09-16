@@ -126,18 +126,30 @@ describe('EmailProcessor', () => {
       expiresAt: futureDate,
     });
 
-    const smtpError = new Error('SMTP connection timeout');
+    const forbidden = [
+      recipient,
+      rawToken,
+      confirmUrl,
+      'smtp-login',
+      'smtp-password',
+      'private text payload',
+      '<p>private HTML payload</p>',
+    ];
+    const smtpError = new Error(forbidden.join(' '));
     mockMailSender.send.mockRejectedValue(smtpError);
 
-    await expect(processor.process(job)).rejects.toThrow(smtpError);
+    await expect(processor.process(job)).rejects.toBe(smtpError);
 
     expect(mockLogger.error).toHaveBeenCalledWith(
       expect.stringContaining(job.id!),
     );
 
-    const loggedErrors = mockLogger.error.mock.calls.map((c) => c[0]).join(' ');
-    expect(loggedErrors).not.toContain(recipient);
-    expect(loggedErrors).not.toContain(rawToken);
-    expect(loggedErrors).not.toContain(confirmUrl);
+    const loggedErrors = JSON.stringify([
+      ...mockLogger.log.mock.calls,
+      ...mockLogger.error.mock.calls,
+      ...mockLogger.warn.mock.calls,
+      ...mockLogger.debug.mock.calls,
+    ]);
+    for (const value of forbidden) expect(loggedErrors).not.toContain(value);
   });
 });
