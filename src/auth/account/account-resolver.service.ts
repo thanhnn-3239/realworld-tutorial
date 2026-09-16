@@ -1,12 +1,11 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { RefreshTokenRepository } from '../token/refresh-token.repository';
+import { ProviderLinkService } from '../account-linking/provider-link.service';
 import { VerifiedIdentity } from '../providers/verified-identity.interface';
 import { AccountRow, AccountUserRepository } from './account-user.repository';
 import { AuthProviderRepository } from './auth-provider.repository';
+import { AccountResolution } from './interfaces/account-resolution.interface';
 import { generateUsername } from './username-generator';
-
-export type ResolvedAccount = AccountRow;
 
 @Injectable()
 export class AccountResolverService {
@@ -14,15 +13,15 @@ export class AccountResolverService {
     private readonly prisma: PrismaService,
     private readonly accountUsers: AccountUserRepository,
     private readonly authProviders: AuthProviderRepository,
-    private readonly refreshTokens: RefreshTokenRepository,
+    private readonly providerLinks: ProviderLinkService,
   ) {}
 
-  async resolve(identity: VerifiedIdentity): Promise<ResolvedAccount> {
+  async resolve(identity: VerifiedIdentity): Promise<AccountResolution> {
     const linkedAccount =
       await this.authProviders.findAccountByProvider(identity);
 
     if (linkedAccount !== null) {
-      return linkedAccount;
+      return { kind: 'account', account: linkedAccount };
     }
 
     const existingAccountUserId = await this.accountUsers.findIdByEmail(
@@ -33,32 +32,31 @@ export class AccountResolverService {
       return this.linkToExisting(existingAccountUserId, identity);
     }
 
-    return this.createAccount(identity);
+    const account = await this.createAccount(identity);
+    return { kind: 'account', account };
   }
 
   private async linkToExisting(
     userId: number,
     identity: VerifiedIdentity,
-  ): Promise<ResolvedAccount> {
+  ): Promise<AccountResolution> {
     if (!identity.emailVerified) {
       throw new ConflictException(
         'Sign in with your password first, then link this provider',
       );
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      await this.authProviders.create(userId, identity, tx);
-
-      const account = await this.accountUsers.clearPassword(userId, tx);
-      await this.refreshTokens.revokeAllForUser(userId, tx);
-
-      return account;
+    await this.providerLinks.requestLink({
+      userId,
+      recipient: identity.email,
+      provider: identity.provider,
+      providerAccountId: identity.providerAccountId,
     });
+
+    return { kind: 'confirmation-required' };
   }
 
-  private async createAccount(
-    identity: VerifiedIdentity,
-  ): Promise<ResolvedAccount> {
+  private async createAccount(identity: VerifiedIdentity): Promise<AccountRow> {
     const username = generateUsername(identity.email);
 
     return this.prisma.$transaction(async (tx) => {

@@ -4,13 +4,15 @@ import {
   HttpCode,
   HttpStatus,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { AuthService } from '../../auth.service';
 import { AuthResponseDto } from '../../dto/auth-response.dto';
+import { ProviderLinkPendingResponseDto } from '../../dto/provider-link-pending-response.dto';
 import { VerifiedIdentity } from '../verified-identity.interface';
 import { GoogleAuthGuard } from './google-auth.guard';
 import { GOOGLE_PROVIDER } from './google.strategy';
@@ -43,11 +45,11 @@ export class GoogleAuthController {
   @Get('callback')
   @UseGuards(GoogleAuthGuard)
   @HttpCode(HttpStatus.OK)
-  @ResponseMessage('Login successful')
+  @ResponseMessage('Google sign-in processed')
   @ApiOperation({
     summary: 'Google sign-in callback',
     description:
-      'Resolves the Google identity to an account and returns the same token pair as password login. Answers with JSON rather than a redirect, so tokens never enter a URL, browser history or access log. Signing in with an address that already has a password account links the two, after which that account can no longer sign in with a password — there is no endpoint to set one again.',
+      'Resolves the Google identity to an account. Returns tokens for an existing provider link or a new account. When the email belongs to a local account, sends a confirmation email and returns 202 without tokens.',
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -55,13 +57,26 @@ export class GoogleAuthController {
     type: AuthResponseDto,
   })
   @ApiResponse({
+    status: HttpStatus.ACCEPTED,
+    description: 'Email confirmation is required before linking',
+    type: ProviderLinkPendingResponseDto,
+  })
+  @ApiResponse({
     status: HttpStatus.CONFLICT,
     description:
       'The email already has an account and Google did not verify the address',
   })
-  async callback(@Req() request: Request): Promise<AuthResponseDto> {
+  async callback(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<AuthResponseDto | ProviderLinkPendingResponseDto> {
     const identity = request.user as unknown as VerifiedIdentity;
+    const result = await this.authService.handleOAuthCallback(identity);
 
-    return this.authService.handleOAuthCallback(identity);
+    if (result.kind === 'confirmation-required') {
+      response.status(HttpStatus.ACCEPTED);
+    }
+
+    return result.data;
   }
 }
