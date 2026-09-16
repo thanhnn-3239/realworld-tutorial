@@ -7,7 +7,10 @@ import { ProviderLinkService } from './provider-link.service';
 import {
   createPendingRowFixture,
   createTestProviderLinkService,
+  mockEnqueueFailure,
   mockIssuedPending,
+  mockProviderCreateRace,
+  mockValidPendingClaim,
   MOCK_LINK_REQUEST,
   MOCK_RAW_TOKEN,
   MOCK_TOKEN_HASH,
@@ -57,11 +60,7 @@ describe('ProviderLinkService', () => {
     });
 
     it('compensates via deleteIfCurrent and throws 503 on enqueue error', async () => {
-      mockIssuedPending(mocks.pendingRepo);
-      mocks.emailQueue.enqueueProviderLinkConfirmation.mockRejectedValue(
-        new Error('Redis down'),
-      );
-      mocks.pendingRepo.deleteIfCurrent.mockResolvedValue(true);
+      mockEnqueueFailure(mocks);
 
       await expect(service.requestLink(MOCK_LINK_REQUEST)).rejects.toThrow(
         ServiceUnavailableException,
@@ -73,21 +72,18 @@ describe('ProviderLinkService', () => {
     });
 
     it('swallows compensation error, logs identifiers without token/email, and throws 503', async () => {
-      mockIssuedPending(mocks.pendingRepo);
-      mocks.emailQueue.enqueueProviderLinkConfirmation.mockRejectedValue(
-        new Error('Redis down'),
-      );
-      mocks.pendingRepo.deleteIfCurrent.mockRejectedValue(
-        new Error('DB failure'),
+      mockEnqueueFailure(
+        mocks,
+        new Error(
+          `DB rejected ${MOCK_LINK_REQUEST.recipient} token ${MOCK_RAW_TOKEN}`,
+        ),
       );
 
       await expect(service.requestLink(MOCK_LINK_REQUEST)).rejects.toThrow(
         ServiceUnavailableException,
       );
 
-      const logs = mocks.logger.error.mock.calls
-        .map((c) => c.join(' '))
-        .join(' ');
+      const logs = mocks.logger.error.mock.calls.flat().join(' ');
       expect(logs).toContain('42');
       expect(logs).not.toContain(MOCK_RAW_TOKEN);
       expect(logs).not.toContain(MOCK_LINK_REQUEST.recipient);
@@ -96,8 +92,7 @@ describe('ProviderLinkService', () => {
 
   describe('confirm', () => {
     it('claims pending link and creates AuthProvider atomically', async () => {
-      mocks.pendingRepo.findValid.mockResolvedValue(createPendingRowFixture());
-      mocks.pendingRepo.claim.mockResolvedValue(true);
+      mockValidPendingClaim(mocks);
       mocks.authProviders.findAccountByProvider.mockResolvedValue(null);
       mocks.authProviders.create.mockResolvedValue(undefined);
 
@@ -118,8 +113,7 @@ describe('ProviderLinkService', () => {
     });
 
     it('returns already-confirmed when provider is already attached to same user', async () => {
-      mocks.pendingRepo.findValid.mockResolvedValue(createPendingRowFixture());
-      mocks.pendingRepo.claim.mockResolvedValue(true);
+      mockValidPendingClaim(mocks);
       mocks.authProviders.findAccountByProvider.mockResolvedValue({ id: 7 });
 
       const res = await service.confirm(MOCK_RAW_TOKEN);
@@ -139,8 +133,7 @@ describe('ProviderLinkService', () => {
     });
 
     it('rejects with 409 conflict when provider is linked to another user', async () => {
-      mocks.pendingRepo.findValid.mockResolvedValue(createPendingRowFixture());
-      mocks.pendingRepo.claim.mockResolvedValue(true);
+      mockValidPendingClaim(mocks);
       mocks.authProviders.findAccountByProvider.mockResolvedValue({ id: 99 });
 
       await expect(service.confirm(MOCK_RAW_TOKEN)).rejects.toThrow(
@@ -167,16 +160,32 @@ describe('ProviderLinkService', () => {
       );
     });
 
+    it('returns already-confirmed when create fails with P2002 and provider belongs to same user', async () => {
+      mockProviderCreateRace(mocks, { id: 7 });
+
+      const res = await service.confirm(MOCK_RAW_TOKEN);
+
+      expect(res).toEqual({ kind: 'already-confirmed' });
+    });
+
+    it('rejects with 409 conflict when create fails with P2002 and provider belongs to other user', async () => {
+      mockProviderCreateRace(mocks, { id: 99 });
+
+      await expect(service.confirm(MOCK_RAW_TOKEN)).rejects.toThrow(
+        ConflictException,
+      );
+    });
+
     it('never mutates password or session repositories during confirmation', async () => {
-      mocks.pendingRepo.findValid.mockResolvedValue(createPendingRowFixture());
-      mocks.pendingRepo.claim.mockResolvedValue(true);
+      mockValidPendingClaim(mocks);
       mocks.authProviders.findAccountByProvider.mockResolvedValue(null);
       mocks.authProviders.create.mockResolvedValue(undefined);
 
       await service.confirm(MOCK_RAW_TOKEN);
 
-      expect((service as any).passwordService).toBeUndefined();
-      expect((service as any).refreshTokens).toBeUndefined();
+      const s = service as unknown as Record<string, unknown>;
+      expect(s.passwordService).toBeUndefined();
+      expect(s.refreshTokens).toBeUndefined();
     });
   });
 });

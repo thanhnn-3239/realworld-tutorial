@@ -68,10 +68,9 @@ export class ProviderLinkService {
       });
 
       return { kind: 'issued', pendingId: issueResult.pendingId };
-    } catch (queueError) {
+    } catch {
       this.logger.error(
         `Failed to enqueue provider link email for pendingId: ${issueResult.pendingId}`,
-        queueError instanceof Error ? queueError.stack : String(queueError),
       );
 
       try {
@@ -79,12 +78,9 @@ export class ProviderLinkService {
           issueResult.pendingId,
           tokenHash,
         );
-      } catch (compensationError) {
+      } catch {
         this.logger.error(
           `Compensation delete failed for pendingId: ${issueResult.pendingId}`,
-          compensationError instanceof Error
-            ? compensationError.stack
-            : String(compensationError),
         );
       }
 
@@ -103,66 +99,73 @@ export class ProviderLinkService {
 
     const tokenHash = this.tokenService.hash(rawToken);
     const now = new Date();
-
-    return this.prisma.$transaction(async (tx) => {
-      const pending = await this.pendingRepo.findValid(tokenHash, now, tx);
-      if (!pending) {
-        throw new BadRequestException(
-          this.i18n.t('common.error.invalidOrExpiredLinkToken'),
-        );
-      }
-
-      const claimed = await this.pendingRepo.claim(
-        pending.id,
-        tokenHash,
-        now,
-        tx,
-      );
-
-      const identity = {
-        provider: pending.provider,
-        providerAccountId: pending.providerAccountId,
-      };
-
-      const existingAccount = await this.authProviders.findAccountByProvider(
-        identity,
-        tx,
-      );
-
-      if (existingAccount) {
-        if (existingAccount.id === pending.userId) {
-          return { kind: 'already-confirmed' };
+    let racedIdentity:
+      | {
+          userId: number;
+          provider: string;
+          providerAccountId: string;
         }
-        throw new ConflictException(
-          this.i18n.t('common.error.providerLinkConflict'),
-        );
-      }
+      | undefined;
 
-      if (!claimed) {
-        throw new BadRequestException(
-          this.i18n.t('common.error.invalidOrExpiredLinkToken'),
-        );
-      }
-
-      try {
-        await this.authProviders.create(pending.userId, identity, tx);
-        return { kind: 'confirmed' };
-      } catch (error) {
-        if (this.isUniqueConstraintViolation(error)) {
-          const conflict = await this.authProviders.findAccountByProvider(
-            identity,
-            tx,
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const pending = await this.pendingRepo.findValid(tokenHash, now, tx);
+        if (!pending) {
+          throw new BadRequestException(
+            this.i18n.t('common.error.invalidOrExpiredLinkToken'),
           );
-          if (conflict && conflict.id === pending.userId) {
+        }
+
+        const claimed = await this.pendingRepo.claim(
+          pending.id,
+          tokenHash,
+          now,
+          tx,
+        );
+
+        const identity = {
+          provider: pending.provider,
+          providerAccountId: pending.providerAccountId,
+        };
+
+        const existingAccount = await this.authProviders.findAccountByProvider(
+          identity,
+          tx,
+        );
+
+        if (existingAccount) {
+          if (existingAccount.id === pending.userId) {
             return { kind: 'already-confirmed' };
           }
           throw new ConflictException(
             this.i18n.t('common.error.providerLinkConflict'),
           );
         }
+
+        if (!claimed) {
+          throw new BadRequestException(
+            this.i18n.t('common.error.invalidOrExpiredLinkToken'),
+          );
+        }
+
+        racedIdentity = { userId: pending.userId, ...identity };
+        await this.authProviders.create(pending.userId, identity, tx);
+        return { kind: 'confirmed' };
+      });
+    } catch (error) {
+      if (!this.isUniqueConstraintViolation(error) || !racedIdentity) {
         throw error;
       }
-    });
+
+      const { userId, ...identity } = racedIdentity;
+      const conflict = await this.authProviders.findAccountByProvider(identity);
+      if (conflict?.id === userId) {
+        return { kind: 'already-confirmed' };
+      }
+      throw new ConflictException(
+        this.i18n.t('common.error.providerLinkConflict'),
+      );
+    }
   }
 
   private isUniqueConstraintViolation(error: unknown): boolean {

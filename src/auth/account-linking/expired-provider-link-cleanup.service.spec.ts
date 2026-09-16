@@ -42,15 +42,31 @@ describe('ExpiredProviderLinkCleanupService', () => {
   });
 
   it('swallows repository error and logs it so scheduler survives', async () => {
-    repository.deleteExpired.mockRejectedValue(new Error('db down'));
+    const secrets = [
+      'jane@example.com',
+      'raw-provider-link-token',
+      'https://user:password@example.com/private',
+      'postgresql://admin:secret@db.internal/app',
+    ];
+    repository.deleteExpired.mockRejectedValue(
+      new Error(`Database rejected payload: ${secrets.join(' ')}`),
+    );
 
     await expect(service.removeExpiredLinks()).resolves.toBeUndefined();
 
     expect(logger.error).toHaveBeenCalledWith(
-      expect.stringContaining('db down'),
+      'Expired provider link cleanup failed',
       expect.any(String),
     );
     expect(logger.log).not.toHaveBeenCalled();
+
+    const logged = Object.values(logger)
+      .flatMap((method) => method.mock.calls)
+      .flat()
+      .join(' ');
+    for (const secret of secrets) {
+      expect(logged).not.toContain(secret);
+    }
   });
 });
 

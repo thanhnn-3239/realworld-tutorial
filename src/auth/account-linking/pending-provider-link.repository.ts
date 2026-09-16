@@ -14,29 +14,16 @@ export class PendingProviderLinkRepository {
 
   async issue(
     input: IssuePendingProviderLinkInput,
-    client: Prisma.TransactionClient = this.prisma,
   ): Promise<PendingIssueResult> {
     const now = input.now ?? new Date();
-
-    const existing = await client.pendingAuthProviderLink.findFirst({
-      where: {
-        OR: [
-          {
-            provider: input.provider,
-            providerAccountId: input.providerAccountId,
-          },
-          { userId: input.userId, provider: input.provider },
-        ],
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const existing = await this.findExisting(input);
 
     if (existing) {
-      return this.handleExistingOrConflict(existing, input, now, client);
+      return this.handleExistingOrConflict(existing, input, now);
     }
 
     try {
-      const created = await client.pendingAuthProviderLink.create({
+      const created = await this.prisma.pendingAuthProviderLink.create({
         data: {
           userId: input.userId,
           provider: input.provider,
@@ -55,21 +42,10 @@ export class PendingProviderLinkRepository {
       };
     } catch (error) {
       if (this.isUniqueConstraintViolation(error)) {
-        const conflict = await client.pendingAuthProviderLink.findFirst({
-          where: {
-            OR: [
-              {
-                provider: input.provider,
-                providerAccountId: input.providerAccountId,
-              },
-              { userId: input.userId, provider: input.provider },
-            ],
-          },
-          orderBy: { createdAt: 'desc' },
-        });
+        const conflict = await this.findExisting(input);
 
         if (conflict) {
-          return this.handleExistingOrConflict(conflict, input, now, client);
+          return this.handleExistingOrConflict(conflict, input, now);
         }
       }
 
@@ -139,15 +115,18 @@ export class PendingProviderLinkRepository {
     existing: PendingProviderLinkRow,
     input: IssuePendingProviderLinkInput,
     now: Date,
-    client: Prisma.TransactionClient,
   ): Promise<PendingIssueResult> {
     const elapsedMs = now.getTime() - existing.createdAt.getTime();
     if (elapsedMs < PENDING_LINK_RESEND_COOLDOWN_MS) {
       return { kind: 'cooldown', pendingId: existing.id };
     }
 
-    const updated = await client.pendingAuthProviderLink.update({
-      where: { id: existing.id },
+    const updated = await this.prisma.pendingAuthProviderLink.updateMany({
+      where: {
+        id: existing.id,
+        tokenHash: existing.tokenHash,
+        createdAt: existing.createdAt,
+      },
       data: {
         userId: input.userId,
         provider: input.provider,
@@ -158,12 +137,36 @@ export class PendingProviderLinkRepository {
       },
     });
 
+    if (updated.count !== 1) {
+      const conflict = await this.findExisting(input);
+      if (conflict) {
+        return this.handleExistingOrConflict(conflict, input, now);
+      }
+
+      return this.issue({ ...input, now });
+    }
+
     return {
       kind: 'issued',
-      pendingId: updated.id,
-      tokenHash: updated.tokenHash,
-      expiresAt: updated.expiresAt,
+      pendingId: existing.id,
+      tokenHash: input.tokenHash,
+      expiresAt: input.expiresAt,
     };
+  }
+
+  private findExisting(input: IssuePendingProviderLinkInput) {
+    return this.prisma.pendingAuthProviderLink.findFirst({
+      where: {
+        OR: [
+          {
+            provider: input.provider,
+            providerAccountId: input.providerAccountId,
+          },
+          { userId: input.userId, provider: input.provider },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   private isUniqueConstraintViolation(error: unknown): boolean {

@@ -1,4 +1,13 @@
+import { I18nService } from 'nestjs-i18n';
+import { CustomLoggerService } from '../../../logger/logger.service';
+import { EmailQueueProducer } from '../../../email/email-queue.producer';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { AuthProviderRepository } from '../../account/auth-provider.repository';
+import { PendingProviderLinkRepository } from '../pending-provider-link.repository';
 import { ProviderLinkService } from '../provider-link.service';
+import { ProviderLinkTokenService } from '../provider-link-token.service';
+
+import { P2002_ERROR } from './pending-link-test-fixtures';
 
 export const createMockPrisma = (txClient?: unknown) => ({
   $transaction: jest.fn(async (callback: (tx: unknown) => Promise<unknown>) =>
@@ -62,13 +71,13 @@ export const createTestProviderLinkService = (
   mocks: ReturnType<typeof setupTestMocks>,
 ) =>
   new ProviderLinkService(
-    mocks.prisma as any,
-    mocks.pendingRepo as any,
-    mocks.authProviders as any,
-    mocks.tokenService as any,
-    mocks.emailQueue as any,
-    mocks.logger as any,
-    mocks.i18n as any,
+    mocks.prisma as unknown as PrismaService,
+    mocks.pendingRepo as unknown as PendingProviderLinkRepository,
+    mocks.authProviders as unknown as AuthProviderRepository,
+    mocks.tokenService as unknown as ProviderLinkTokenService,
+    mocks.emailQueue as unknown as EmailQueueProducer,
+    mocks.logger as unknown as CustomLoggerService,
+    mocks.i18n as unknown as I18nService,
   );
 
 export const MOCK_LINK_REQUEST = {
@@ -102,3 +111,44 @@ export const mockIssuedPending = (
     tokenHash: MOCK_TOKEN_HASH,
     expiresAt: new Date(Date.now() + 900_000),
   });
+
+export const mockValidPendingClaim = (
+  mocks: ReturnType<typeof setupTestMocks>,
+  pending = createPendingRowFixture(),
+) => {
+  mocks.pendingRepo.findValid.mockResolvedValue(pending);
+  mocks.pendingRepo.claim.mockResolvedValue(true);
+};
+
+export const mockEnqueueFailure = (
+  mocks: ReturnType<typeof setupTestMocks>,
+  dbError?: Error,
+) => {
+  mockIssuedPending(mocks.pendingRepo);
+  mocks.emailQueue.enqueueProviderLinkConfirmation.mockRejectedValue(
+    new Error(
+      `Queue rejected ${MOCK_LINK_REQUEST.recipient} token ${MOCK_RAW_TOKEN}`,
+    ),
+  );
+  if (dbError) {
+    mocks.pendingRepo.deleteIfCurrent.mockRejectedValue(dbError);
+  } else {
+    mocks.pendingRepo.deleteIfCurrent.mockResolvedValue(true);
+  }
+};
+
+export const mockProviderCreateRace = (
+  mocks: ReturnType<typeof setupTestMocks>,
+  account: { id: number },
+) => {
+  mockValidPendingClaim(mocks);
+  mocks.authProviders.findAccountByProvider
+    .mockResolvedValueOnce(null)
+    .mockImplementationOnce((_identity: unknown, client?: unknown) => {
+      if (client) {
+        throw new Error('current transaction is aborted');
+      }
+      return account;
+    });
+  mocks.authProviders.create.mockRejectedValue(P2002_ERROR);
+};

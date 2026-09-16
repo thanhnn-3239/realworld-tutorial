@@ -56,10 +56,21 @@ describe('Account linking (e2e)', () => {
     };
   }
 
+  function expectAccount(
+    resolution: Awaited<ReturnType<AccountResolverService['resolve']>>,
+  ) {
+    expect(resolution.kind).toBe('account');
+    if (resolution.kind !== 'account') {
+      throw new Error('Expected an account resolution');
+    }
+
+    return resolution.account;
+  }
+
   it('creates a passwordless account with a username derived from the email', async () => {
     const identity = identityFor(`lnk-new-${suiteNonce}@example.com`);
 
-    const account = await resolver.resolve(identity);
+    const account = expectAccount(await resolver.resolve(identity));
 
     expect(account.email).toBe(identity.email);
     expect(account.username).toMatch(/^[a-z0-9._-]{3,30}$/);
@@ -74,8 +85,8 @@ describe('Account linking (e2e)', () => {
   it('returns the same account on a second sign-in, without creating another', async () => {
     const identity = identityFor(`lnk-repeat-${suiteNonce}@example.com`);
 
-    const first = await resolver.resolve(identity);
-    const second = await resolver.resolve(identity);
+    const first = expectAccount(await resolver.resolve(identity));
+    const second = expectAccount(await resolver.resolve(identity));
 
     expect(second.id).toBe(first.id);
     expect(second.username).toBe(first.username);
@@ -83,33 +94,34 @@ describe('Account linking (e2e)', () => {
 
   it('derives a distinct username when the derived one is taken', async () => {
     const shared = `lnk-dup-${suiteNonce}`;
-    const first = await resolver.resolve(identityFor(`${shared}@example.com`));
-    const second = await resolver.resolve(
-      identityFor(`${shared}@other.example.com`),
+    const first = expectAccount(
+      await resolver.resolve(identityFor(`${shared}@example.com`)),
+    );
+    const second = expectAccount(
+      await resolver.resolve(identityFor(`${shared}@other.example.com`)),
     );
 
     expect(second.username).not.toBe(first.username);
     expect(second.username.startsWith(first.username.slice(0, 5))).toBe(true);
   });
 
-  it('links to an existing local account, clearing its password and sessions', async () => {
+  it('requests confirmation for a local account without clearing credentials', async () => {
     const local = await registerLocal('take');
 
-    const account = await resolver.resolve(identityFor(local.email));
+    const resolution = await resolver.resolve(identityFor(local.email));
 
-    expect(account.email).toBe(local.email);
+    expect(resolution).toEqual({ kind: 'confirmation-required' });
 
-    // The password that worked a moment ago no longer does.
+    // The password and session remain valid until the owner confirms the link.
     await e2e.request
       .post('/v1/auth/login')
       .send({ email: local.email, password: local.password })
-      .expect(HttpStatus.UNAUTHORIZED);
+      .expect(HttpStatus.OK);
 
-    // And the session it had is gone.
     await e2e.request
       .post('/v1/auth/refresh')
       .send({ refreshToken: local.refreshToken })
-      .expect(HttpStatus.UNAUTHORIZED);
+      .expect(HttpStatus.OK);
   });
 
   it('refuses to link an unverified provider email and leaves the account untouched', async () => {
@@ -131,13 +143,12 @@ describe('Account linking (e2e)', () => {
       .expect(HttpStatus.OK);
   });
 
-  it('links a second provider account to the same user without a second row in User', async () => {
-    const local = await registerLocal('twice');
-
-    const first = await resolver.resolve(identityFor(local.email));
+  it('requires confirmation for a second provider subject with the same email', async () => {
+    const identity = identityFor(`lnk-twice-${suiteNonce}@example.com`);
+    const first = expectAccount(await resolver.resolve(identity));
     // A different provider subject for the same verified address — e.g. re-consented.
-    const second = await resolver.resolve(identityFor(local.email));
+    const second = await resolver.resolve(identityFor(first.email));
 
-    expect(second.id).toBe(first.id);
+    expect(second).toEqual({ kind: 'confirmation-required' });
   });
 });

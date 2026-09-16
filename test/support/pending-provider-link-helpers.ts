@@ -1,8 +1,34 @@
 import { PrismaClient } from '../../src/generated/prisma/client';
 import { PendingProviderLinkRepository } from '../../src/auth/account-linking/pending-provider-link.repository';
+import { PrismaService } from '../../src/prisma/prisma.service';
 
 export const TEST_BASE_TIME = new Date('2026-09-16T12:00:00.000Z');
 export const TEST_EXPIRES_AT = new Date('2026-09-16T12:15:00.000Z');
+
+export function synchronizedIssuanceRepository(prisma: PrismaClient) {
+  let reads = 0;
+  let release!: () => void;
+  const bothRead = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const synchronized = prisma.$extends({
+    query: {
+      pendingAuthProviderLink: {
+        async findFirst({ args, query }) {
+          const result = await query(args);
+          if (++reads <= 2) {
+            if (reads === 2) release();
+            await bothRead;
+          }
+          return result;
+        },
+      },
+    },
+  });
+  return new PendingProviderLinkRepository(
+    synchronized as unknown as PrismaService,
+  );
+}
 
 export function dummyTokenHash(char: string): string {
   return char.repeat(64).slice(0, 64);

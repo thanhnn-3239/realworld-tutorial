@@ -25,11 +25,9 @@ export class ExpiredProviderLinkCleanupService {
         `Deleted ${deleted} expired provider links`,
         EXPIRED_PROVIDER_LINK_CLEANUP_CONTEXT,
       );
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-
+    } catch {
       this.logger.error(
-        `Expired provider link cleanup failed: ${reason}`,
+        'Expired provider link cleanup failed',
         EXPIRED_PROVIDER_LINK_CLEANUP_CONTEXT,
       );
     }
