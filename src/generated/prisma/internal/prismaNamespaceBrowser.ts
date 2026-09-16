@@ -56,7 +56,8 @@ export const ModelName = {
   Tag: 'Tag',
   User: 'User',
   AuthProvider: 'AuthProvider',
-  RefreshToken: 'RefreshToken'
+  RefreshToken: 'RefreshToken',
+  PendingAuthProviderLink: 'PendingAuthProviderLink'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -143,6 +144,19 @@ export const RefreshTokenScalarFieldEnum = {
 } as const
 
 export type RefreshTokenScalarFieldEnum = (typeof RefreshTokenScalarFieldEnum)[keyof typeof RefreshTokenScalarFieldEnum]
+
+
+export const PendingAuthProviderLinkScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  provider: 'provider',
+  providerAccountId: 'providerAccountId',
+  tokenHash: 'tokenHash',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt'
+} as const
+
+export type PendingAuthProviderLinkScalarFieldEnum = (typeof PendingAuthProviderLinkScalarFieldEnum)[keyof typeof PendingAuthProviderLinkScalarFieldEnum]
 
 
 export const SortOrder = {

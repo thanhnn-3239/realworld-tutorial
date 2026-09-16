@@ -13,6 +13,8 @@ export async function resetApplicationTables(
 
   try {
     const result = await adapter.queryRaw({
+      // Truncates all application tables in public schema, dynamically including
+      // PendingAuthProviderLink, AuthProvider, RefreshToken, User, Article, etc.
       sql: `
         SELECT tablename
         FROM pg_tables

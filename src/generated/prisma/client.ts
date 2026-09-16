@@ -67,3 +67,8 @@ export type AuthProvider = Prisma.AuthProviderModel
  * 
  */
 export type RefreshToken = Prisma.RefreshTokenModel
+/**
+ * Model PendingAuthProviderLink
+ * 
+ */
+export type PendingAuthProviderLink = Prisma.PendingAuthProviderLinkModel

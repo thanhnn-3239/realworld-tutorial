@@ -1,0 +1,1 @@
+export const PENDING_LINK_RESEND_COOLDOWN_MS = 60 * 1_000;
