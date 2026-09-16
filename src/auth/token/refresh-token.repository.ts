@@ -67,10 +67,12 @@ export class RefreshTokenRepository {
     });
   }
 
-  async deleteExpired(now: Date): Promise<void> {
-    await this.prisma.refreshToken.deleteMany({
+  async deleteExpired(now: Date): Promise<number> {
+    const result = await this.prisma.refreshToken.deleteMany({
       where: { expiresAt: { lt: now } },
     });
+
+    return result.count;
   }
 
   private readonly rowSelect = {
