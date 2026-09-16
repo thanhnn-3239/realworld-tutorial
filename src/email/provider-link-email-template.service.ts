@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { buildProviderLinkEmailHtml } from './templates/provider-link-email-html.template';
 
 export interface ProviderLinkEmailContent {
   subject: string;
@@ -29,15 +30,23 @@ export class ProviderLinkEmailTemplateService {
   render(rawToken: string): ProviderLinkEmailContent {
     const url = new URL(this.confirmUrl);
     url.searchParams.set('token', rawToken);
+    const urlString = url.toString();
 
     return {
       subject: 'Confirm your Google account link',
-      text: 'Confirm the link within 15 minutes: ' + url.toString(),
-      html:
-        '<p>Confirm this Google account link within 15 minutes.</p>' +
-        '<p><a href="' +
-        escapeHtml(url.toString()) +
-        '">Confirm Google account</a></p>',
+      text: [
+        'Conduit - Confirm your Google account link',
+        '',
+        'We received a request to sign in with Google using this email address for your Conduit account.',
+        'Your existing password has not been changed and remains secure.',
+        '',
+        'Confirm the link within 15 minutes:',
+        urlString,
+        '',
+        'If you did not make this request, you can safely ignore this email.',
+        'Your Conduit account and password remain completely secure.',
+      ].join('\n'),
+      html: buildProviderLinkEmailHtml(escapeHtml(urlString)),
     };
   }
 }

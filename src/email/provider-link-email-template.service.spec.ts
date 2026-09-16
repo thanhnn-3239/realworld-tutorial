@@ -32,12 +32,12 @@ describe('ProviderLinkEmailTemplateService', () => {
     expect(result.text).toContain(
       'http://frontend.test/auth/google/link/confirm?token=test-token-12345',
     );
+    expect(result.html).toContain('conduit');
+    expect(result.html).toContain('15 minutes');
     expect(result.html).toContain(
-      '<p>Confirm this Google account link within 15 minutes.</p>',
+      'href="http://frontend.test/auth/google/link/confirm?token=test-token-12345"',
     );
-    expect(result.html).toContain(
-      '<p><a href="http://frontend.test/auth/google/link/confirm?token=test-token-12345">Confirm Google account</a></p>',
-    );
+    expect(result.html).toContain('Confirm Google account');
   });
 
   it('safely URL-encodes special characters in raw token', () => {
