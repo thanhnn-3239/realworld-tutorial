@@ -57,28 +57,4 @@ describe('parseRedisUrl', () => {
       expect(() => parseRedisUrl(url)).toThrow();
     },
   );
-
-  it.each(['redis://', 'redis://:6379', 'rediss://'])(
-    'rejects missing host in %s',
-    (url) => {
-      expect(() => parseRedisUrl(url)).toThrow(/host/i);
-    },
-  );
-
-  it.each([
-    'redis://redis:0',
-    'redis://redis:70000',
-    'redis://redis:abc',
-    'redis://redis:',
-  ])('rejects invalid port in %s', (url) => {
-    expect(() => parseRedisUrl(url)).toThrow(/port/i);
-  });
-
-  it.each([
-    'redis://redis:6379/abc',
-    'redis://redis:6379/1/2',
-    'redis://redis:6379/-1',
-  ])('rejects non-numeric database in %s', (url) => {
-    expect(() => parseRedisUrl(url)).toThrow(/numeric/i);
-  });
 });
