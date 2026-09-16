@@ -1,8 +1,9 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
 import { parseRedisUrl } from './redis.config';
 
+@Global()
 @Module({
   imports: [
     BullModule.forRootAsync('email-producer', {
