@@ -22,10 +22,21 @@ Các địa chỉ mặc định:
 - API: `http://localhost:3000/api`
 - Health check: `http://localhost:3000/health`
 - Swagger: `http://localhost:3000/docs`
+- Mailpit UI: `http://localhost:8025`
+- Redis: `localhost:6379`
 
 Các biến của app nằm trong `.env`. Compose chỉ ghi đè `DATABASE_URL` để đổi hostname từ `localhost` sang service `postgres`; nhờ vậy cùng một `.env` dùng được cho cả lệnh chạy trên host và app trong container.
 
 Toàn bộ workspace, bao gồm `node_modules` và pnpm store, được bind mount giữa host và container để IDE trên host đọc dependency. Sau khi dùng `make dev`, không chạy `pnpm` trực tiếp trên host vì metadata store mang đường dẫn `/app`; hãy chạy mọi lệnh pnpm qua các target `make` hoặc `make run-in-workspace`.
+
+## Background jobs & Email delivery
+
+Hệ thống sử dụng BullMQ và Redis để xử lý tác vụ nền (gửi email xác nhận liên kết tài khoản Google).
+Ở môi trường local development và E2E testing:
+
+- Redis chạy qua Docker service `redis` (cổng 6379, cấu hình qua `REDIS_URL`).
+- Email được gửi qua Mailpit SMTP server (cổng 1025) và có thể xem trực tiếp qua web UI tại `http://localhost:8025` (cấu hình qua `MAILPIT_UI_PORT`).
+- Production yêu cầu dịch vụ Redis và SMTP provider được quản lý (managed services); các biến cấu hình gồm `REDIS_URL`, `REDIS_PREFIX`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_SECURE`, `SMTP_REQUIRE_TLS`, `MAIL_FROM`, `GOOGLE_LINK_CONFIRM_URL`.
 
 ## Storage driver
 
@@ -35,26 +46,26 @@ Key ảnh đại diện (avatar) có dạng `avatars/{userId}/{uuid}.webp` — k
 
 ## Lệnh thường dùng
 
-| Lệnh                                  | Mục đích                                            |
-| ------------------------------------- | --------------------------------------------------- |
-| `make dev`                            | Build và chạy development stack                     |
-| `make stop`                           | Dừng container nhưng giữ lại container và volume    |
-| `make down`                           | Xóa container/network, giữ volume database          |
-| `make restart`                        | Khởi động lại app; lifecycle migrate → app chạy lại |
-| `make logs`                           | Theo dõi log app                                    |
-| `make test`                           | Chạy unit test                                      |
-| `make test-e2e`                       | Chạy E2E với PostgreSQL + MinIO riêng               |
-| `make stop-e2e`                       | Dừng PostgreSQL + MinIO E2E, giữ container/volume   |
-| `make down-e2e`                       | Xóa container/network E2E, giữ volume               |
-| `make clean-e2e`                      | Xóa toàn bộ project E2E, gồm cả volume              |
-| `make run-in-e2e command='...'`       | Chạy lệnh trong app container với `.env.e2e`        |
-| `make lint`                           | Chạy lint gate giống CI                             |
-| `make build`                          | Build application trong Docker stage độc lập        |
-| `make generate`                       | Generate Prisma Client                              |
-| `make migrate`                        | Chạy migration thủ công                             |
-| `make seed`                           | Seed database, cần `DEMO_USER_PASSWORD`             |
-| `make shell`                          | Mở shell trong app container                        |
-| `make run-in-workspace command='...'` | Chạy lệnh bất kỳ trong workspace container          |
+| Lệnh                                  | Mục đích                                             |
+| ------------------------------------- | ---------------------------------------------------- |
+| `make dev`                            | Build và chạy development stack                      |
+| `make stop`                           | Dừng container nhưng giữ lại container và volume     |
+| `make down`                           | Xóa container/network, giữ volume database           |
+| `make restart`                        | Khởi động lại app; lifecycle migrate → app chạy lại  |
+| `make logs`                           | Theo dõi log app                                     |
+| `make test`                           | Chạy unit test                                       |
+| `make test-e2e`                       | Chạy E2E với PostgreSQL, MinIO, Redis, Mailpit riêng |
+| `make stop-e2e`                       | Dừng PostgreSQL, MinIO, Redis, Mailpit E2E           |
+| `make down-e2e`                       | Xóa container/network E2E, giữ volume                |
+| `make clean-e2e`                      | Xóa toàn bộ project E2E, gồm cả volume               |
+| `make run-in-e2e command='...'`       | Chạy lệnh trong app container với `.env.e2e`         |
+| `make lint`                           | Chạy lint gate giống CI                              |
+| `make build`                          | Build application trong Docker stage độc lập         |
+| `make generate`                       | Generate Prisma Client                               |
+| `make migrate`                        | Chạy migration thủ công                              |
+| `make seed`                           | Seed database, cần `DEMO_USER_PASSWORD`              |
+| `make shell`                          | Mở shell trong app container                         |
+| `make run-in-workspace command='...'` | Chạy lệnh bất kỳ trong workspace container           |
 
 Ví dụ:
 
@@ -65,8 +76,8 @@ make run-in-workspace command='pnpm typecheck'
 ## Viết và chạy E2E test
 
 Local và CI đều chạy bằng `make test-e2e`. Lệnh này dùng project Compose
-`realworld-e2e`, tự tạo `.env.e2e` đã được ignore từ `.env.e2e.example`, rồi khởi động PostgreSQL và
-MinIO thật rồi chạy Jest trong one-off `app` container. Local giữ hai service lại
+`realworld-e2e`, tự tạo `.env.e2e` đã được ignore từ `.env.e2e.example`, rồi khởi động PostgreSQL,
+MinIO, Redis và Mailpit thật rồi chạy Jest trong one-off `app` container. Local giữ các service lại
 để lần chạy sau nhanh hơn; CI luôn gọi `make clean-e2e` ở bước `always()`.
 
 Mỗi file test có database và bucket riêng. Harness migrate template một lần cho

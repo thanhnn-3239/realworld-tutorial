@@ -14,7 +14,8 @@ High-level overview of the RealWorld API backend, its components, data flow, and
 │                   NestJS Application                         │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │  Controllers (Endpoints)                             │   │
-│  │  - AuthController (login, register)                  │   │
+│  │  - AuthController (login, register, link confirm)    │   │
+│  │  - GoogleAuthController (OAuth start, callback)      │   │
 │  │  - UsersController (GET/PUT user)                    │   │
 │  │  - ArticlesController (CRUD, list, filter, paginate) │   │
 │  │  - CommentsController (CRUD on articles)             │   │
@@ -23,32 +24,34 @@ High-level overview of the RealWorld API backend, its components, data flow, and
 │  └──────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │  Services (Business Logic)                           │   │
-│  │  - UsersService                                      │   │
-│  │  - ArticlesService                                   │   │
-│  │  - CommentsService                                   │   │
-│  │  - ProfilesService                                   │   │
+│  │  - UsersService, ArticlesService, CommentsService    │   │
+│  │  - ProfilesService, AuthService, AccountResolver     │   │
+│  │  - ProviderLinkService (pending links, confirmation) │   │
+│  │  - EmailQueueProducer & EmailProcessor (worker)      │   │
+│  │  - SmtpMailSender (SMTP transport adapter)           │   │
 │  │  - AvatarReplacementService (locked swap of the key) │   │
-│  │  - FileStorageService (facade: key naming, MIME      │   │
-│  │    map, 502 mapping) -> StorageDriver (S3-compatible)│   │
+│  │  - FileStorageService -> StorageDriver (S3)          │   │
 │  └──────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │  Infrastructure                                      │   │
-│  │  - Passport/JWT authentication strategy              │   │
+│  │  - Passport/JWT & Google OAuth strategies            │   │
+│  │  - BullMQ background job queues with Redis           │   │
 │  │  - Multer for multipart file handling                │   │
 │  │  - Prisma ORM with PostgreSQL adapter                │   │
 │  │  - Winston logger                                    │   │
 │  └──────────────────────────────────────────────────────┘   │
 └──────────────────────────────────────────────────────────────┘
-           │                                   │
-           ▼                                   ▼
-┌──────────────────────────┐      ┌──────────────────────────┐
-│   PostgreSQL Database    │      │  Storage Driver          │
-│  ┌────────────────────┐  │      │  (S3-compatible)         │
-│  │ User               │  │      └──────────────────────────┘
-│  │ Article            │  │
-│  │ Comment            │  │
-│  │ Favorite           │  │
-│  │ Follow             │  │
+           │                  │                │
+           ▼                  ▼                ▼
+┌──────────────────────────┐ ┌──────────────┐ ┌──────────────────────────┐
+│   PostgreSQL Database    │ │    Redis     │ │  Storage Driver          │
+│  ┌────────────────────┐  │ │  (BullMQ)    │ │  (S3-compatible)         │
+│  │ User               │  │ └──────────────┘ └──────────────────────────┘
+│  │ AuthProvider       │  │         │
+│  │ PendingAuthProvider│  │         ▼
+│  │   Link             │  │   SMTP Server
+│  │ Article, Comment   │  │   (Mailpit locally,
+│  │ Favorite, Follow   │  │    outbound provider in prod)
 │  └────────────────────┘  │
 └──────────────────────────┘
 ```
@@ -59,23 +62,26 @@ High-level overview of the RealWorld API backend, its components, data flow, and
 
 - **Framework:** NestJS 11 with TypeScript 5.7 in strict mode
 - **Port:** 3000
-- **Health Check:** GET /health (database-aware)
+- **Health Check:** GET /health (database- and Redis queue-aware)
 - **Swagger Docs:** GET /docs
 - **Database Connection:** Prisma ORM with PostgreSQL native adapter
+- **Job Queue:** BullMQ backed by Redis with separate producer and worker connection policies
 
 ### Authentication
 
-- **Strategy:** JWT via Passport
-- **Token Location:** `Authorization: Token <jwt>`
+- **Strategy:** JWT via Passport and Google OAuth 2.0
+- **Token Location:** `Authorization: Token <jwt>` or `Bearer <jwt>`
 - **Protected:** All user-specific and write operations
-- **Registration:** Optional; creates new user account
-- **Login:** Email + password; returns JWT token
+- **Registration:** Creates new user account (or passwordless account on Google sign-in)
+- **Login:** Email + password, or Google sign-in; returns JWT token pair
+- **Account Linking:** Email collisions return `202 Accepted` requiring one-time email confirmation; existing passwords and sessions are preserved
 
 ### API Endpoints (by feature)
 
 | Feature        | Endpoints                                                                                   | Status                                                                                      |
 | -------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| Authentication | POST /register, POST /login                                                                 | Complete                                                                                    |
+| Authentication | POST /register, POST /login, POST /refresh, POST /logout                                    | Complete                                                                                    |
+| Google Auth    | GET /auth/google, GET /auth/google/callback, POST /auth/google/link/confirm                 | Complete                                                                                    |
 | Users          | GET /user, PUT /user                                                                        | Complete                                                                                    |
 | Articles       | GET /articles, POST /articles, PUT /articles/:slug, DELETE /articles/:slug                  | Complete                                                                                    |
 | Comments       | POST /articles/:slug/comments, DELETE /articles/:slug/comments/:id                          | Complete                                                                                    |
@@ -288,6 +294,53 @@ through `.resize().webp()` rather than a separate strip step.
 **Original bytes never reach storage:** `AvatarReplacementService.replace`
 uploads only `processed.data` — the worker's re-encoded output — never
 `file.buffer`, the original upload.
+
+## Google Account Linking & Email Delivery Architecture
+
+### Background & Collision Flow
+
+When a user signs in with Google using an email address that matches an existing password account,
+the Google identity is not automatically attached. Instead, the application triggers a durable
+confirmation flow:
+
+```
+1. Google Callback Collision
+   ├─ Existing account detected with different/missing Google provider
+   ├─ ProviderLinkService issues a 32-byte base64url random token
+   ├─ Persists only SHA-256 hash to PendingAuthProviderLink (15m TTL, 60s cooldown)
+   ├─ Enqueues background job 'auth-provider-link-confirmation' to BullMQ 'email' queue
+   └─ Responds with 202 Accepted { "status": "confirmation_required" }
+      (Password, sessions, and credentials remain completely untouched)
+
+2. BullMQ & SMTP Delivery
+   ├─ BackgroundJobsModule: producer uses maxRetriesPerRequest: 1; worker uses null
+   ├─ EmailProcessor (WorkerHost) consumes job from Redis
+   ├─ Checks expiration against Date.now(); skips expired jobs
+   ├─ Renders confirmation URL with raw token query parameter
+   └─ Dispatches outbound mail via SmtpMailSender (Mailpit locally, SMTP in prod)
+      (Retries up to 3 times with exponential backoff starting at 5s)
+
+3. Atomic Confirmation (POST /v1/auth/google/link/confirm)
+   ├─ User submits raw token from email
+   ├─ Single Prisma transaction:
+   │  ├─ Find unexpired row by SHA-256(rawToken)
+   │  ├─ Conditionally claim/delete row (id, tokenHash, unexpired)
+   │  ├─ Query existing AuthProvider by provider & sub
+   │  ├─ Idempotent success if already linked to same user
+   │  ├─ 409 Conflict if linked to different user
+   │  └─ Create AuthProvider row for target user
+   └─ Responds with 200 OK { "confirmed": true } (no login tokens issued)
+
+4. Scheduled Cleanup
+   └─ ExpiredProviderLinkCleanupService runs daily at 04:00 ('0 0 4 * * *')
+      to remove expired pending links.
+```
+
+### Security & Privacy Boundaries
+
+- **Token Storage:** Raw tokens exist only in memory, transiently in the BullMQ payload, and in the sent email link. PostgreSQL stores only the 64-character lowercase hex SHA-256 digest.
+- **Log Sanitation:** Logs never record recipient email addresses, raw tokens, confirmation URLs, SMTP credentials, or full job payloads.
+- **Single-Use & Concurrency Guard:** Deleting the pending link inside the atomic transaction enforces single-use. Replay attacks or sequential re-submissions return a generic 400. Concurrent submissions resolve via the AuthProvider uniqueness constraint.
 
 ## Data Model
 

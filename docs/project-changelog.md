@@ -15,6 +15,41 @@ Each entry includes:
 
 ---
 
+## 2026-09-16
+
+### Feat: Google Account Link Confirmation Email via BullMQ & Redis
+
+- **Severity:** High
+- **Status:** Complete
+- **Impact:** Google account collisions with existing password accounts no longer automatically
+  link or evict password credentials. Instead, the API requires explicit one-time email
+  confirmation before attaching the Google identity. Existing passwords and active user
+  sessions remain intact throughout.
+- **Details:**
+  - Added background email processing architecture with BullMQ and Redis (`BackgroundJobsModule`,
+    `EmailModule`). Producer connections configure `maxRetriesPerRequest: 1`, worker connections
+    configure `maxRetriesPerRequest: null`.
+  - Added `PendingAuthProviderLink` model with single-use 32-byte cryptographically random
+    token (base64url encoded, SHA-256 digest persisted, 15-minute TTL, 60-second resend cooldown).
+  - Outbound email jobs enqueue to BullMQ `email` queue with bounded retries (3 attempts, exponential
+    backoff starting at 5s). Nodemailer SMTP sender transmits HTML and plain text confirmation
+    emails (Mailpit locally, SMTP provider in production).
+  - On Google OAuth callback collision, the server responds with `202 Accepted`
+    (`{ "status": "confirmation_required" }`) and enqueues the link confirmation email without
+    clearing passwords or revoking refresh tokens.
+  - Added `POST /v1/auth/google/link/confirm` accepting `{ "token": "..." }`. The endpoint claims
+    and deletes the unexpired pending link in an atomic Prisma transaction, creates the
+    `AuthProvider` row, and returns `200 OK` (`{ "confirmed": true }`) idempotently without
+    issuing application tokens.
+  - Added daily scheduled cleanup at 04:00 (`0 0 4 * * *`) via `ScheduleModule` to prune expired
+    pending links.
+  - Verification & quality gates: lint (`pnpm lint:ci`), typecheck (`pnpm typecheck`), unit tests
+    (57 suites / 480 tests), compiled worker tests (1 suite / 2 tests), and full E2E test suite
+    with PostgreSQL, Redis, and Mailpit (30 suites / 132 tests) passing cleanly. Multi-stage
+    production Docker image verified with compiled application and background queue dependencies.
+
+---
+
 ## 2026-09-15
 
 ### Refactor: Share and Simplify the Piscina Worker Pool
