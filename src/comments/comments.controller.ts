@@ -20,7 +20,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { OptionalCurrentUser } from '../auth/decorators/optional-current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
-import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { ResponseMessage } from '../common/decorators/response-message.decorator';
 import { CommentsService } from './comments.service';
 import { CommentResponseDto } from './dto/comment-response.dto';
@@ -47,7 +47,7 @@ export class CommentsController {
     description: 'Article not found',
   })
   list(
-    @OptionalCurrentUser() user: JwtPayload | undefined,
+    @OptionalCurrentUser() user: AuthenticatedUser | undefined,
     @Param('slug') slug: string,
   ) {
     return this.commentsService.list(slug, user?.id);
@@ -74,7 +74,7 @@ export class CommentsController {
     description: 'Validation error',
   })
   create(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('slug') slug: string,
     @Body() dto: CreateCommentDto,
   ) {
@@ -98,7 +98,7 @@ export class CommentsController {
     description: 'Article or comment not found',
   })
   remove(
-    @CurrentUser() user: JwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('slug') slug: string,
     @Param('id', ParseIntPipe) commentId: number,
   ) {

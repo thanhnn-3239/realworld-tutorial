@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { i18nValidationMessage } from 'nestjs-i18n';
+import { NormalizeEmail } from '../../common/decorators/normalize-email.decorator';
 import {
   IsEmail,
   IsNotEmpty,
@@ -15,6 +16,7 @@ export class RegisterDto {
     example: 'john@example.com',
     description: 'User email address',
   })
+  @NormalizeEmail()
   @IsEmail({}, { message: i18nValidationMessage('common.validation.email') })
   @IsNotEmpty({
     message: i18nValidationMessage('common.validation.required', {

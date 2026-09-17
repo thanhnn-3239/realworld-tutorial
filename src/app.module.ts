@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import {
   AcceptLanguageResolver,
   HeaderResolver,
@@ -15,17 +16,23 @@ import { APP_FILTER } from '@nestjs/core';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { LoggerModule } from './logger/logger.module';
 import { AuthModule } from './auth/auth.module';
+import { GoogleAuthModule } from './auth/providers/google/google-auth.module';
 import { UsersModule } from './users/users.module';
 import { ArticlesModule } from './articles/articles.module';
 import { CommentsModule } from './comments/comments.module';
 import { ProfilesModule } from './profiles/profiles.module';
 import { FavoritesModule } from './favorites/favorites.module';
+import { HealthModule } from './health/health.module';
+import { FileStorageModule } from './file-storage/file-storage.module';
+import { BackgroundJobsModule } from './background-jobs/background-jobs.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ScheduleModule.forRoot(),
     I18nModule.forRoot({
       fallbackLanguage: 'en',
       loaderOptions: {
@@ -40,12 +47,17 @@ import { FavoritesModule } from './favorites/favorites.module';
     }),
     PrismaModule,
     LoggerModule.register(),
+    FileStorageModule,
     AuthModule,
+    GoogleAuthModule.register(),
     UsersModule,
     ArticlesModule,
     CommentsModule,
     ProfilesModule,
     FavoritesModule,
+    HealthModule,
+    BackgroundJobsModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [

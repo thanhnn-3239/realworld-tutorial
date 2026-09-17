@@ -2,13 +2,14 @@
 
 ## Favorite Article
 
-| | |
-|---|---|
-| **Method** | `POST` |
+|              |                            |
+| ------------ | -------------------------- |
+| **Method**   | `POST`                     |
 | **Endpoint** | `/articles/:slug/favorite` |
-| **Auth** | Yes |
+| **Auth**     | Yes                        |
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,
@@ -27,13 +28,14 @@
 
 ## Unfavorite Article
 
-| | |
-|---|---|
-| **Method** | `DELETE` |
+|              |                            |
+| ------------ | -------------------------- |
+| **Method**   | `DELETE`                   |
 | **Endpoint** | `/articles/:slug/favorite` |
-| **Auth** | Yes |
+| **Auth**     | Yes                        |
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,

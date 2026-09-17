@@ -26,6 +26,8 @@ export class ArticleSlugService {
         return await write(slug);
       } catch (error) {
         if (!this.isSlugConflict(error)) {
+          // Preserve the original rejection value instead of wrapping it.
+          // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
           return Promise.reject(error);
         }
       }

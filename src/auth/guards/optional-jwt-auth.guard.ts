@@ -11,7 +11,7 @@ import { AuthGuard } from '@nestjs/passport';
 export class OptionalJwtAuthGuard extends AuthGuard('jwt') {
   handleRequest<TUser>(err: any, user: TUser): TUser {
     // Suppress both token errors and missing-token cases.
-    // Returns JwtPayload when authenticated, undefined otherwise.
+    // Returns AuthenticatedUser when authenticated, undefined otherwise.
     return user;
   }
 }

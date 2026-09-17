@@ -1,0 +1,79 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  quality:
+    name: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/setup@v2
+        with:
+          version: 11.5.1
+          runtime: node@22.22.3
+          cache: true
+          install: false
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm exec prisma generate
+      - name: Check committed Prisma client is up to date
+        run: git diff --exit-code -- src/generated/prisma
+      - name: Lint
+        run: pnpm lint:ci
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Unit tests
+        run: pnpm test --runInBand
+      - name: Production build
+        run: pnpm build
+      - name: Image processing worker integration tests
+        run: pnpm test:worker --runInBand
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: E2E tests
+        run: make test-e2e
+      - name: Print E2E service logs
+        if: failure()
+        run: docker compose --project-name realworld-e2e --env-file .env.e2e logs postgres minio redis mailpit
+      - name: Clean E2E project
+        if: always()
+        run: make clean-e2e
+  docker-image:
+    name: docker-image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build production image
+        run: docker build --target production --tag realworld-api:ci .
+      - name: Check production user and runtime files
+        run: |
+          test "$(docker run --rm --entrypoint node realworld-api:ci -p 'process.getuid()')" != "0"
+          docker run --rm --entrypoint pnpm realworld-api:ci exec prisma --version
+          docker run --rm --entrypoint sh realworld-api:ci -c \
+            'test -d /app/dist && test -d /app/prisma/migrations && test ! -d /app/src && test ! -d /app/test && test ! -e /app/.env'
+          docker run --rm --entrypoint sh realworld-api:ci -c \
+            'test -f /app/dist/image-processing/workers/image-processing.worker.js'
+          docker run --rm --entrypoint node realworld-api:ci -e 'require("sharp")'
+          docker run --rm --entrypoint node realworld-api:ci -e 'require("piscina")'

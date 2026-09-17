@@ -1,7 +1,14 @@
 import { ArticleResponseMapper } from './article-response.mapper';
 import { ArticleRecord } from './article-select';
+import { FileStorageService } from '../file-storage/file-storage.service';
 
 const timestamp = new Date('2026-08-23T00:00:00.000Z');
+
+const fileStorage = {
+  publicUrl: jest.fn((key: string | null) =>
+    key === null ? null : `https://cdn.test/${key}`,
+  ),
+} as unknown as FileStorageService;
 
 // Base fixture: the viewer does not follow the author and has not favorited the
 // article. The repository always selects both relations, so anonymous reads
@@ -22,7 +29,7 @@ const baseArticle = {
 } satisfies ArticleRecord;
 
 describe('ArticleResponseMapper', () => {
-  const mapper = new ArticleResponseMapper();
+  const mapper = new ArticleResponseMapper(fileStorage);
 
   it('returns following: false when author.followedBy is empty', () => {
     expect(mapper.toResponse(baseArticle).author.following).toBe(false);
@@ -85,5 +92,19 @@ describe('ArticleResponseMapper', () => {
 
   it('maps an empty list to an empty list', () => {
     expect(mapper.toResponseList([])).toEqual([]);
+  });
+
+  it('returns the author avatar as a URL, not the stored key', () => {
+    const response = mapper.toResponse({
+      ...baseArticle,
+      author: {
+        ...baseArticle.author,
+        image: 'public/uploads/User/7/a.png',
+      },
+    });
+
+    expect(response.author.image).toBe(
+      'https://cdn.test/public/uploads/User/7/a.png',
+    );
   });
 });

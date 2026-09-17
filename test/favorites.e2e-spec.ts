@@ -1,76 +1,25 @@
-import { randomBytes } from 'node:crypto';
-import { HttpStatus, INestApplication } from '@nestjs/common';
-import request from 'supertest';
-import { App } from 'supertest/types';
-import { createTestApp } from './support/test-app';
-import { createTestDatabase, TestDatabase } from './support/test-database';
+import { HttpStatus } from '@nestjs/common';
+import type request from 'supertest';
 
-const HOOK_TIMEOUT_MS = 60_000;
+import { createArticleViaApi } from './support/article-test-helpers';
+import { useE2eSuite } from './support/e2e-suite';
 
 describe('Article favorites (e2e)', () => {
-  const suiteNonce = randomBytes(5).toString('hex');
-  let db: TestDatabase | undefined;
-  let app: INestApplication<App> | undefined;
-  let fixtureNumber = 0;
+  const e2e = useE2eSuite('favorites');
 
-  beforeAll(async () => {
-    db = await createTestDatabase('favorites_http');
-    app = await createTestApp(db);
-  }, HOOK_TIMEOUT_MS);
-
-  afterAll(async () => {
-    await app?.close();
-    await db?.drop();
-  }, HOOK_TIMEOUT_MS);
-
-  function httpServer() {
-    if (!app) {
-      throw new Error('Favorites HTTP e2e application is not initialized');
-    }
-    return app.getHttpServer();
-  }
-
-  /** Keep `role` short: username max length is 30. */
-  async function register(role: string) {
-    fixtureNumber += 1;
-    const fixtureId = `${suiteNonce}${fixtureNumber}`;
-    const username = `fav_${role}_${fixtureId}`;
-    const response = await request(httpServer())
-      .post('/v1/auth/register')
-      .send({
-        email: `fav-e2e-${role}-${fixtureId}@example.com`,
-        username,
-        password: 'password123',
-        password_confirmation: 'password123',
-      })
-      .expect(HttpStatus.CREATED);
-
-    return { token: response.body.data.token as string, username };
-  }
-
-  async function createArticle(token: string) {
-    fixtureNumber += 1;
-    const response = await request(httpServer())
-      .post('/v1/articles')
-      .set('Authorization', `Bearer ${token}`)
-      .send({
-        title: `Favorite me ${suiteNonce}${fixtureNumber}`,
-        description: 'Description',
-        body: 'Body',
-      })
-      .expect(HttpStatus.CREATED);
-
+  async function createArticle(authorization: string, title = 'Favorite me') {
+    const response = await createArticleViaApi(e2e, authorization, title);
     return response.body.data.slug as string;
   }
 
-  function favorite(slug: string, token?: string) {
-    const call = request(httpServer()).post(`/v1/articles/${slug}/favorite`);
-    return token ? call.set('Authorization', `Bearer ${token}`) : call;
+  function favorite(slug: string, authorization?: string) {
+    const call = e2e.request.post(`/v1/articles/${slug}/favorite`);
+    return authorization ? call.set('Authorization', authorization) : call;
   }
 
-  function unfavorite(slug: string, token?: string) {
-    const call = request(httpServer()).delete(`/v1/articles/${slug}/favorite`);
-    return token ? call.set('Authorization', `Bearer ${token}`) : call;
+  function unfavorite(slug: string, authorization?: string) {
+    const call = e2e.request.delete(`/v1/articles/${slug}/favorite`);
+    return authorization ? call.set('Authorization', authorization) : call;
   }
 
   function expectFlags(
@@ -83,85 +32,98 @@ describe('Article favorites (e2e)', () => {
 
   describe('authentication and existence', () => {
     it('rejects favorite and unfavorite without a token', async () => {
-      const author = await register('author');
-      const slug = await createArticle(author.token);
+      const author = await e2e.fixtures.authenticatedUser();
+      const slug = await createArticle(author.authorization);
 
       await favorite(slug).expect(HttpStatus.UNAUTHORIZED);
       await unfavorite(slug).expect(HttpStatus.UNAUTHORIZED);
     });
 
     it('rejects a malformed token', async () => {
-      const author = await register('author');
-      const slug = await createArticle(author.token);
+      const author = await e2e.fixtures.authenticatedUser();
+      const slug = await createArticle(author.authorization);
 
-      await favorite(slug, 'not-a-real-token').expect(HttpStatus.UNAUTHORIZED);
-      await unfavorite(slug, 'not-a-real-token').expect(
+      await favorite(slug, 'Bearer not-a-real-token').expect(
+        HttpStatus.UNAUTHORIZED,
+      );
+      await unfavorite(slug, 'Bearer not-a-real-token').expect(
         HttpStatus.UNAUTHORIZED,
       );
     });
 
     it('answers 404 for an unknown slug on both verbs', async () => {
-      const fan = await register('fan');
-      const missing = `no-such-article-${suiteNonce}`;
+      const fan = await e2e.fixtures.authenticatedUser();
 
-      await favorite(missing, fan.token).expect(HttpStatus.NOT_FOUND);
-      await unfavorite(missing, fan.token).expect(HttpStatus.NOT_FOUND);
+      await favorite('no-such-article', fan.authorization).expect(
+        HttpStatus.NOT_FOUND,
+      );
+      await unfavorite('no-such-article', fan.authorization).expect(
+        HttpStatus.NOT_FOUND,
+      );
     });
   });
 
   describe('favorite and unfavorite', () => {
     it('favorites an article and reports the new count', async () => {
-      const author = await register('author');
-      const fan = await register('fan');
-      const slug = await createArticle(author.token);
+      const author = await e2e.fixtures.authenticatedUser();
+      const fan = await e2e.fixtures.authenticatedUser();
+      const slug = await createArticle(author.authorization);
 
-      const response = await favorite(slug, fan.token).expect(HttpStatus.OK);
+      const response = await favorite(slug, fan.authorization).expect(
+        HttpStatus.OK,
+      );
 
       expect(response.body.message).toBe('Article favorited successfully');
       expectFlags(response, true, 1);
     });
 
     it('is idempotent: favoriting twice does not double the count', async () => {
-      const author = await register('author');
-      const fan = await register('fan');
-      const slug = await createArticle(author.token);
+      const author = await e2e.fixtures.authenticatedUser();
+      const fan = await e2e.fixtures.authenticatedUser();
+      const slug = await createArticle(author.authorization);
 
-      await favorite(slug, fan.token).expect(HttpStatus.OK);
-      const second = await favorite(slug, fan.token).expect(HttpStatus.OK);
+      await favorite(slug, fan.authorization).expect(HttpStatus.OK);
+      const second = await favorite(slug, fan.authorization).expect(
+        HttpStatus.OK,
+      );
 
       expectFlags(second, true, 1);
     });
 
     it('unfavorites an article and reports the new count', async () => {
-      const author = await register('author');
-      const fan = await register('fan');
-      const slug = await createArticle(author.token);
-      await favorite(slug, fan.token).expect(HttpStatus.OK);
+      const author = await e2e.fixtures.authenticatedUser();
+      const fan = await e2e.fixtures.authenticatedUser();
+      const slug = await createArticle(author.authorization);
+      await favorite(slug, fan.authorization).expect(HttpStatus.OK);
 
-      const response = await unfavorite(slug, fan.token).expect(HttpStatus.OK);
+      const response = await unfavorite(slug, fan.authorization).expect(
+        HttpStatus.OK,
+      );
 
       expect(response.body.message).toBe('Article unfavorited successfully');
       expectFlags(response, false, 0);
     });
 
     it('is idempotent: unfavoriting twice stays 200 with count 0', async () => {
-      const author = await register('author');
-      const fan = await register('fan');
-      const slug = await createArticle(author.token);
-      await favorite(slug, fan.token).expect(HttpStatus.OK);
+      const author = await e2e.fixtures.authenticatedUser();
+      const fan = await e2e.fixtures.authenticatedUser();
+      const slug = await createArticle(author.authorization);
+      await favorite(slug, fan.authorization).expect(HttpStatus.OK);
 
-      await unfavorite(slug, fan.token).expect(HttpStatus.OK);
-      const second = await unfavorite(slug, fan.token).expect(HttpStatus.OK);
+      await unfavorite(slug, fan.authorization).expect(HttpStatus.OK);
+      const second = await unfavorite(slug, fan.authorization).expect(
+        HttpStatus.OK,
+      );
 
       expectFlags(second, false, 0);
     });
 
     it('permits unfavoriting an article that was never favorited', async () => {
-      const author = await register('author');
-      const stranger = await register('other');
-      const slug = await createArticle(author.token);
+      const author = await e2e.fixtures.authenticatedUser();
+      const stranger = await e2e.fixtures.authenticatedUser();
+      const slug = await createArticle(author.authorization);
 
-      const response = await unfavorite(slug, stranger.token).expect(
+      const response = await unfavorite(slug, stranger.authorization).expect(
         HttpStatus.OK,
       );
 
@@ -169,10 +131,12 @@ describe('Article favorites (e2e)', () => {
     });
 
     it('permits favoriting your own article, unlike self-follow', async () => {
-      const author = await register('author');
-      const slug = await createArticle(author.token);
+      const author = await e2e.fixtures.authenticatedUser();
+      const slug = await createArticle(author.authorization);
 
-      const response = await favorite(slug, author.token).expect(HttpStatus.OK);
+      const response = await favorite(slug, author.authorization).expect(
+        HttpStatus.OK,
+      );
 
       expectFlags(response, true, 1);
     });
@@ -180,21 +144,21 @@ describe('Article favorites (e2e)', () => {
 
   describe('the flag is per viewer, the count is global', () => {
     it('scopes favorited to the bearer token while the count stays shared', async () => {
-      const author = await register('author');
-      const fan = await register('fan');
-      const other = await register('other');
-      const slug = await createArticle(author.token);
-      await favorite(slug, fan.token).expect(HttpStatus.OK);
+      const author = await e2e.fixtures.authenticatedUser();
+      const fan = await e2e.fixtures.authenticatedUser();
+      const other = await e2e.fixtures.authenticatedUser();
+      const slug = await createArticle(author.authorization);
+      await favorite(slug, fan.authorization).expect(HttpStatus.OK);
 
-      const asFan = await request(httpServer())
+      const asFan = await e2e.request
         .get(`/v1/articles/${slug}`)
-        .set('Authorization', `Bearer ${fan.token}`)
+        .set('Authorization', fan.authorization)
         .expect(HttpStatus.OK);
-      const asOther = await request(httpServer())
+      const asOther = await e2e.request
         .get(`/v1/articles/${slug}`)
-        .set('Authorization', `Bearer ${other.token}`)
+        .set('Authorization', other.authorization)
         .expect(HttpStatus.OK);
-      const anonymous = await request(httpServer())
+      const anonymous = await e2e.request
         .get(`/v1/articles/${slug}`)
         .expect(HttpStatus.OK);
 
@@ -206,14 +170,14 @@ describe('Article favorites (e2e)', () => {
 
   describe('every read path resolves the flag', () => {
     it('resolves favorited on the article list', async () => {
-      const author = await register('author');
-      const fan = await register('fan');
-      const slug = await createArticle(author.token);
-      await favorite(slug, fan.token).expect(HttpStatus.OK);
+      const author = await e2e.fixtures.authenticatedUser();
+      const fan = await e2e.fixtures.authenticatedUser();
+      const slug = await createArticle(author.authorization);
+      await favorite(slug, fan.authorization).expect(HttpStatus.OK);
 
-      const response = await request(httpServer())
+      const response = await e2e.request
         .get(`/v1/articles?author=${author.username}`)
-        .set('Authorization', `Bearer ${fan.token}`)
+        .set('Authorization', fan.authorization)
         .expect(HttpStatus.OK);
 
       const article = response.body.data.find(
@@ -223,18 +187,18 @@ describe('Article favorites (e2e)', () => {
     });
 
     it('resolves favorited on the feed', async () => {
-      const author = await register('author');
-      const fan = await register('fan');
-      const slug = await createArticle(author.token);
-      await request(httpServer())
-        .post(`/v1/profiles/${author.username}/follow`)
-        .set('Authorization', `Bearer ${fan.token}`)
-        .expect(HttpStatus.OK);
-      await favorite(slug, fan.token).expect(HttpStatus.OK);
+      const author = await e2e.fixtures.authenticatedUser();
+      const fan = await e2e.fixtures.authenticatedUser();
+      const slug = await createArticle(author.authorization);
+      await e2e.prisma.user.update({
+        where: { id: fan.id },
+        data: { following: { connect: { id: author.id } } },
+      });
+      await favorite(slug, fan.authorization).expect(HttpStatus.OK);
 
-      const response = await request(httpServer())
+      const response = await e2e.request
         .get('/v1/articles/feed')
-        .set('Authorization', `Bearer ${fan.token}`)
+        .set('Authorization', fan.authorization)
         .expect(HttpStatus.OK);
 
       const article = response.body.data.find(
@@ -244,13 +208,13 @@ describe('Article favorites (e2e)', () => {
     });
 
     it('resolves favorited on the update response for a self-favorited article', async () => {
-      const author = await register('author');
-      const slug = await createArticle(author.token);
-      await favorite(slug, author.token).expect(HttpStatus.OK);
+      const author = await e2e.fixtures.authenticatedUser();
+      const slug = await createArticle(author.authorization);
+      await favorite(slug, author.authorization).expect(HttpStatus.OK);
 
-      const response = await request(httpServer())
+      const response = await e2e.request
         .put(`/v1/articles/${slug}`)
-        .set('Authorization', `Bearer ${author.token}`)
+        .set('Authorization', author.authorization)
         .send({ body: 'Updated body' })
         .expect(HttpStatus.OK);
 
@@ -258,18 +222,13 @@ describe('Article favorites (e2e)', () => {
     });
 
     it('still reports favorited: false on a freshly created article', async () => {
-      const author = await register('author');
-      fixtureNumber += 1;
+      const author = await e2e.fixtures.authenticatedUser();
 
-      const response = await request(httpServer())
-        .post('/v1/articles')
-        .set('Authorization', `Bearer ${author.token}`)
-        .send({
-          title: `Brand new ${suiteNonce}${fixtureNumber}`,
-          description: 'Description',
-          body: 'Body',
-        })
-        .expect(HttpStatus.CREATED);
+      const response = await createArticleViaApi(
+        e2e,
+        author.authorization,
+        'Brand new',
+      );
 
       expectFlags(response, false, 0);
     });
@@ -277,13 +236,16 @@ describe('Article favorites (e2e)', () => {
 
   describe('regression: the favorited filter', () => {
     it('still filters the list by the user who favorited', async () => {
-      const author = await register('author');
-      const fan = await register('fan');
-      const favoritedSlug = await createArticle(author.token);
-      const untouchedSlug = await createArticle(author.token);
-      await favorite(favoritedSlug, fan.token).expect(HttpStatus.OK);
+      const author = await e2e.fixtures.authenticatedUser();
+      const fan = await e2e.fixtures.authenticatedUser();
+      const favoritedSlug = await createArticle(author.authorization, 'Chosen');
+      const untouchedSlug = await createArticle(
+        author.authorization,
+        'Ignored',
+      );
+      await favorite(favoritedSlug, fan.authorization).expect(HttpStatus.OK);
 
-      const response = await request(httpServer())
+      const response = await e2e.request
         .get(`/v1/articles?favorited=${fan.username}`)
         .expect(HttpStatus.OK);
 

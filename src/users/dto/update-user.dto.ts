@@ -1,25 +1,20 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { i18nValidationMessage } from 'nestjs-i18n';
 import {
-  IsEmail,
+  IsIn,
   IsOptional,
   IsString,
-  IsUrl,
   MaxLength,
   MinLength,
   ValidateIf,
 } from 'class-validator';
 import { AUTH_VALIDATION } from '../../auth/auth.config';
 
+/**
+ * Profile fields only. Email and password are credentials, not profile data, and changing an
+ * email here would let an account claim an address its holder does not own.
+ */
 export class UpdateUserDto {
-  @ApiPropertyOptional({
-    example: 'newemail@example.com',
-    description: 'User email address',
-  })
-  @ValidateIf((_, value) => value !== undefined)
-  @IsEmail({}, { message: i18nValidationMessage('common.validation.email') })
-  email?: string;
-
   @ApiPropertyOptional({
     example: 'newusername',
     description: 'Unique username',
@@ -47,32 +42,6 @@ export class UpdateUserDto {
   username?: string;
 
   @ApiPropertyOptional({
-    example: 'new-password123',
-    description: `New password (min ${AUTH_VALIDATION.password.minLength} characters). Hashed before it is stored.`,
-    minLength: AUTH_VALIDATION.password.minLength,
-    maxLength: AUTH_VALIDATION.password.maxLength,
-  })
-  @ValidateIf((_, value) => value !== undefined)
-  @MinLength(AUTH_VALIDATION.password.minLength, {
-    message: i18nValidationMessage('common.validation.minLength', {
-      field: 'Password',
-      min: AUTH_VALIDATION.password.minLength,
-    }),
-  })
-  @MaxLength(AUTH_VALIDATION.password.maxLength, {
-    message: i18nValidationMessage('common.validation.maxLength', {
-      field: 'Password',
-      max: AUTH_VALIDATION.password.maxLength,
-    }),
-  })
-  @IsString({
-    message: i18nValidationMessage('common.validation.invalid', {
-      field: 'Password',
-    }),
-  })
-  password?: string;
-
-  @ApiPropertyOptional({
     example: 'I like to code',
     description: 'User bio. Send null to clear it.',
     nullable: true,
@@ -86,18 +55,16 @@ export class UpdateUserDto {
   bio?: string | null;
 
   @ApiPropertyOptional({
-    example: 'https://example.com/avatar.jpg',
-    description: 'User profile image URL. Send null to clear it.',
+    description:
+      'Send null to remove the avatar. To set one, upload a file in the multipart `image` field — a string is rejected.',
     nullable: true,
+    type: 'null',
   })
-  @IsOptional()
-  @IsUrl(
-    {},
-    {
-      message: i18nValidationMessage('common.validation.invalid', {
-        field: 'Image URL',
-      }),
-    },
-  )
-  image?: string | null;
+  @ValidateIf((_, value) => value !== undefined)
+  @IsIn([null], {
+    message: i18nValidationMessage('common.validation.invalid', {
+      field: 'Image',
+    }),
+  })
+  image?: null;
 }

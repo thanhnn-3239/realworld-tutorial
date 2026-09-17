@@ -1,5 +1,3 @@
-import { randomBytes } from 'node:crypto';
-
 import { PrismaPg } from '@prisma/adapter-pg';
 
 import { PrismaClient } from '../../src/generated/prisma/client';
@@ -8,11 +6,15 @@ import {
   databaseUrlFor,
   withAdminConnection,
 } from './database-admin';
+import { resetApplicationTables } from './database-reset';
+import { suiteDatabaseName } from './e2e-resource-names';
 
 export interface TestDatabase {
+  readonly name: string;
   readonly url: string;
   /** Connects on first call, so a suite that never queries opens no connection. */
   client(): Promise<PrismaClient>;
+  reset(): Promise<void>;
   /** Disconnects first, so the drop never has to force-terminate our own session. */
   drop(): Promise<void>;
 }
@@ -42,8 +44,8 @@ export async function createTestDatabase(label: string): Promise<TestDatabase> {
   const templateName = requireEnv('E2E_TEMPLATE_DB');
   const adminUrl = requireEnv('E2E_ADMIN_URL');
 
-  const name = `e2e_${runId}_${label}_${randomBytes(4).toString('hex')}`;
-  assertSafeDatabaseName(name);
+  const name = suiteDatabaseName(runId, label);
+  assertSafeDatabaseName(name, runId);
 
   await withAdminConnection(adminUrl, (admin) =>
     admin.execute(`CREATE DATABASE "${name}" TEMPLATE "${templateName}"`),
@@ -53,6 +55,7 @@ export async function createTestDatabase(label: string): Promise<TestDatabase> {
   let client: PrismaClient | undefined;
 
   return {
+    name,
     url,
 
     async client() {
@@ -64,6 +67,10 @@ export async function createTestDatabase(label: string): Promise<TestDatabase> {
       }
 
       return client;
+    },
+
+    async reset() {
+      await resetApplicationTables(url);
     },
 
     async drop() {
@@ -78,7 +85,7 @@ export async function createTestDatabase(label: string): Promise<TestDatabase> {
       }
 
       try {
-        assertSafeDatabaseName(name);
+        assertSafeDatabaseName(name, runId);
         await withAdminConnection(adminUrl, (admin) =>
           admin.execute(`DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`),
         );

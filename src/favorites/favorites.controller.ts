@@ -16,7 +16,7 @@ import {
 import { ArticleResponseDto } from '../articles/dto/article-response.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { ResponseMessage } from '../common/decorators/response-message.decorator';
 import { FavoritesService } from './favorites.service';
 
@@ -41,7 +41,10 @@ export class FavoritesController {
     status: HttpStatus.NOT_FOUND,
     description: 'Article not found',
   })
-  favorite(@CurrentUser() user: JwtPayload, @Param('slug') slug: string) {
+  favorite(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('slug') slug: string,
+  ) {
     return this.favoritesService.favorite(user.id, slug);
   }
 
@@ -61,7 +64,10 @@ export class FavoritesController {
     status: HttpStatus.NOT_FOUND,
     description: 'Article not found',
   })
-  unfavorite(@CurrentUser() user: JwtPayload, @Param('slug') slug: string) {
+  unfavorite(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('slug') slug: string,
+  ) {
     return this.favoritesService.unfavorite(user.id, slug);
   }
 }

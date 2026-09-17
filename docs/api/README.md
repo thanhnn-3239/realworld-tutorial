@@ -6,16 +6,23 @@ This folder contains the API documentation for the RealWorld application.
 **API Version Prefix:** `/v1`
 
 ## Authentication Header
+
 All authenticated endpoints require:
+
 ```
-Authorization: Token jwt.token.here
+Authorization: Bearer <accessToken>
 ```
+
+The access token is valid for **15 minutes**. When it expires, call
+`POST /v1/auth/refresh` with the refresh token to obtain a new pair — see
+[authentication.md](./authentication.md#tokens).
 
 ## Common Response Format
 
 All API responses follow a standardized format:
 
 ### Success Response
+
 ```json
 {
   "statusCode": 200,
@@ -25,6 +32,7 @@ All API responses follow a standardized format:
 ```
 
 ### Success Response with Pagination
+
 ```json
 {
   "statusCode": 200,
@@ -42,6 +50,7 @@ All API responses follow a standardized format:
 ```
 
 ### Error Response
+
 ```json
 {
   "statusCode": 422,
@@ -55,12 +64,13 @@ All API responses follow a standardized format:
 
 ## Endpoints
 
-| File | Description |
-|------|-------------|
-| [authentication.md](./authentication.md) | Login & Registration |
-| [users.md](./users.md) | Current User & Settings |
-| [profiles.md](./profiles.md) | User Profiles & Following |
-| [articles.md](./articles.md) | CRUD Articles & Pagination |
-| [comments.md](./comments.md) | Article Comments |
-| [favorites.md](./favorites.md) | Favorite/Unfavorite Articles |
-| [tags.md](./tags.md) | Tags List |
+| File                                     | Description                                      |
+| ---------------------------------------- | ------------------------------------------------ |
+| [authentication.md](./authentication.md) | Registration, login, refresh, logout, Google sign-in |
+| [users.md](./users.md)                   | Current User & Settings                          |
+| [profiles.md](./profiles.md)             | User Profiles & Following                        |
+| [articles.md](./articles.md)             | CRUD Articles & Pagination                       |
+| [comments.md](./comments.md)             | Article Comments                                 |
+| [favorites.md](./favorites.md)           | Favorite/Unfavorite Articles                     |
+| [tags.md](./tags.md)                     | Tags List                                        |
+| [health.md](./health.md)                 | Render readiness and database-aware health check |

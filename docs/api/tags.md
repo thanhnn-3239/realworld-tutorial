@@ -1,15 +1,17 @@
 # Tags
 
 ## Get Tags
+
 Returns a list of all tags.
 
-| | |
-|---|---|
-| **Method** | `GET` |
+|              |         |
+| ------------ | ------- |
+| **Method**   | `GET`   |
 | **Endpoint** | `/tags` |
-| **Auth** | No |
+| **Auth**     | No      |
 
 **Response:**
+
 ```json
 {
   "statusCode": 200,

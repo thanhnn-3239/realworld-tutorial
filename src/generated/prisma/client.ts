@@ -57,3 +57,18 @@ export type Tag = Prisma.TagModel
  * 
  */
 export type User = Prisma.UserModel
+/**
+ * Model AuthProvider
+ * 
+ */
+export type AuthProvider = Prisma.AuthProviderModel
+/**
+ * Model RefreshToken
+ * 
+ */
+export type RefreshToken = Prisma.RefreshTokenModel
+/**
+ * Model PendingAuthProviderLink
+ * 
+ */
+export type PendingAuthProviderLink = Prisma.PendingAuthProviderLinkModel

@@ -5,6 +5,7 @@ import {
 import { I18nService } from 'nestjs-i18n';
 import { ProfilesRepository } from './profiles.repository';
 import { ProfilesService } from './profiles.service';
+import { FileStorageService } from '../file-storage/file-storage.service';
 
 const VIEWER_ID = 1;
 const TARGET_ID = 2;
@@ -31,6 +32,7 @@ describe('ProfilesService', () => {
     unfollow: jest.Mock;
   };
   let i18n: { t: jest.Mock };
+  let fileStorage: { publicUrl: jest.Mock };
 
   beforeEach(() => {
     repository = {
@@ -40,9 +42,15 @@ describe('ProfilesService', () => {
       unfollow: jest.fn().mockResolvedValue({ id: TARGET_ID }),
     };
     i18n = { t: jest.fn((key: string) => `translated:${key}`) };
+    fileStorage = {
+      publicUrl: jest.fn((key: string | null) =>
+        key === null ? null : `https://cdn.test/${key}`,
+      ),
+    };
     service = new ProfilesService(
       repository as unknown as ProfilesRepository,
       i18n as unknown as I18nService,
+      fileStorage as unknown as FileStorageService,
     );
   });
 
@@ -86,6 +94,17 @@ describe('ProfilesService', () => {
         'translated:common.error.profileNotFound',
       );
       expect(i18n.t).toHaveBeenCalledWith('common.error.profileNotFound');
+    });
+
+    it('returns the avatar as a URL, not the stored key', async () => {
+      repository.findByUsername.mockResolvedValue({
+        ...profileRowNotFollowing,
+        image: 'public/uploads/User/2/a.png',
+      });
+
+      const result = await service.getProfile('jake', VIEWER_ID);
+
+      expect(result.image).toBe('https://cdn.test/public/uploads/User/2/a.png');
     });
   });
 

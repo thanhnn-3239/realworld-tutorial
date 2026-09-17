@@ -9,7 +9,6 @@
     "badRequest": "Yêu cầu không hợp lệ",
     "internalError": "Lỗi máy chủ nội bộ",
     "userNotFound": "Không tìm thấy người dùng",
-    "emailInUse": "Email đã được sử dụng",
     "usernameInUse": "Tên người dùng đã tồn tại",
     "articleNotFound": "Không tìm thấy bài viết",
     "articleForbidden": "Chỉ tác giả mới được sửa hoặc xóa bài viết này",
@@ -18,7 +17,9 @@
     "commentNotFound": "Không tìm thấy bình luận",
     "commentForbidden": "Chỉ tác giả bình luận mới có thể xóa bình luận này",
     "profileNotFound": "Không tìm thấy hồ sơ người dùng",
-    "followSelf": "Bạn không thể theo dõi chính mình"
+    "followSelf": "Bạn không thể theo dõi chính mình",
+    "invalidOrExpiredLinkToken": "Liên kết xác nhận không hợp lệ hoặc đã hết hạn",
+    "providerLinkConflict": "Tài khoản liên kết này đã được liên kết với người dùng khác"
   },
   "validation": {
     "required": "{field} là bắt buộc",
