@@ -67,8 +67,10 @@ export class EmailProcessor extends WorkerHost {
       );
     } catch (error) {
       const err = error as { name?: string; code?: string };
+      const currentAttempt = job.attemptsMade + 1;
+      const maxAttempts = job.opts?.attempts ?? 1;
       this.logger.error(
-        `Failed to deliver email for job ${job.id ?? 'unknown'} (pendingId: ${pendingId}, attempt: ${job.attemptsMade + 1}, error: ${err.code || err.name || 'UNKNOWN'})`,
+        `Failed to deliver email for job ${job.id ?? 'unknown'} (pendingId: ${pendingId}, attempt: ${currentAttempt}/${maxAttempts}, error: ${err.code || err.name || 'UNKNOWN'})`,
       );
       throw error;
     }
@@ -76,10 +78,19 @@ export class EmailProcessor extends WorkerHost {
 
   @OnWorkerEvent('failed')
   onFailed(job: Job, error: Error): void {
+    const maxAttempts = job.opts?.attempts ?? 1;
+    const isExhausted = job.attemptsMade >= maxAttempts;
     const err = error as { name?: string; code?: string };
-    this.logger.error(
-      `Job ${job.id ?? 'unknown'} permanently failed: ${err.name || 'Error'} (${err.code || 'UNKNOWN'})`,
-    );
+
+    if (isExhausted) {
+      this.logger.error(
+        `Job ${job.id ?? 'unknown'} permanently failed after ${job.attemptsMade} attempts: ${err.name || 'Error'} (${err.code || 'UNKNOWN'})`,
+      );
+    } else {
+      this.logger.warn(
+        `Job ${job.id ?? 'unknown'} failed attempt ${job.attemptsMade}/${maxAttempts}, will retry: ${err.name || 'Error'} (${err.code || 'UNKNOWN'})`,
+      );
+    }
   }
 
   @OnWorkerEvent('error')

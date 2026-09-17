@@ -152,4 +152,42 @@ describe('EmailProcessor', () => {
     ]);
     for (const value of forbidden) expect(loggedErrors).not.toContain(value);
   });
+
+  describe('worker events', () => {
+    it('logs warning when job fails but retry attempts remain', () => {
+      const job = {
+        id: 'job-123',
+        attemptsMade: 1,
+        opts: { attempts: 3 },
+      } as unknown as Job;
+
+      processor.onFailed(job, new Error('ETIMEDOUT'));
+
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('failed attempt 1/3, will retry'),
+      );
+    });
+
+    it('logs error when all retry attempts are exhausted', () => {
+      const job = {
+        id: 'job-123',
+        attemptsMade: 3,
+        opts: { attempts: 3 },
+      } as unknown as Job;
+
+      processor.onFailed(job, new Error('ETIMEDOUT'));
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining('permanently failed after 3 attempts'),
+      );
+    });
+
+    it('logs error on worker error event', () => {
+      processor.onError(new Error('Connection lost'));
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining('Email worker encountered error'),
+      );
+    });
+  });
 });

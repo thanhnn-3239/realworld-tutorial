@@ -18,7 +18,10 @@ import { ProviderLinkRequest } from './interfaces/provider-link-request.interfac
 import { ProviderLinkRequestResult } from './interfaces/provider-link-request-result.interface';
 import { ProviderLinkConfirmationResult } from './interfaces/provider-link-confirmation-result.interface';
 import { PendingProviderLinkRepository } from './pending-provider-link.repository';
-import { ProviderLinkTokenService } from './provider-link-token.service';
+import {
+  hashProviderLinkToken,
+  issueProviderLinkToken,
+} from './provider-link-token.util';
 
 @Injectable()
 export class ProviderLinkService {
@@ -26,7 +29,6 @@ export class ProviderLinkService {
     private readonly prisma: PrismaService,
     private readonly pendingRepo: PendingProviderLinkRepository,
     private readonly authProviders: AuthProviderRepository,
-    private readonly tokenService: ProviderLinkTokenService,
     private readonly emailQueue: EmailQueueProducer,
     private readonly logger: CustomLoggerService,
     private readonly i18n: I18nService,
@@ -37,7 +39,7 @@ export class ProviderLinkService {
   async requestLink(
     input: ProviderLinkRequest,
   ): Promise<ProviderLinkRequestResult> {
-    const { rawToken, tokenHash } = this.tokenService.issue();
+    const { rawToken, tokenHash } = issueProviderLinkToken();
     const now = new Date();
     const expiresAt = new Date(now.getTime() + LINK_TTL_MS);
 
@@ -97,7 +99,7 @@ export class ProviderLinkService {
       );
     }
 
-    const tokenHash = this.tokenService.hash(rawToken);
+    const tokenHash = hashProviderLinkToken(rawToken);
     const now = new Date();
     let racedIdentity:
       | {

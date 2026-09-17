@@ -5,9 +5,13 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { AuthProviderRepository } from '../../account/auth-provider.repository';
 import { PendingProviderLinkRepository } from '../pending-provider-link.repository';
 import { ProviderLinkService } from '../provider-link.service';
-import { ProviderLinkTokenService } from '../provider-link-token.service';
+import * as tokenUtil from '../provider-link-token.util';
 
 import { P2002_ERROR } from './pending-link-test-fixtures';
+
+export const MOCK_RAW_TOKEN = 'mock-raw-token-43-chars-base64url-example';
+export const MOCK_TOKEN_HASH =
+  'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2';
 
 export const createMockPrisma = (txClient?: unknown) => ({
   $transaction: jest.fn(async (callback: (tx: unknown) => Promise<unknown>) =>
@@ -28,19 +32,6 @@ export const createMockAuthProviderRepo = () => ({
   create: jest.fn(),
 });
 
-export const createMockTokenService = () => ({
-  issue: jest.fn().mockReturnValue({
-    rawToken: 'mock-raw-token-43-chars-base64url-example',
-    tokenHash:
-      'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2',
-  }),
-  hash: jest
-    .fn()
-    .mockReturnValue(
-      'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2',
-    ),
-});
-
 export const createMockEmailQueue = () => ({
   enqueueProviderLinkConfirmation: jest.fn().mockResolvedValue(undefined),
 });
@@ -57,15 +48,24 @@ export const createMockI18n = () => ({
   t: jest.fn((key: string) => key),
 });
 
-export const setupTestMocks = () => ({
-  prisma: createMockPrisma(),
-  pendingRepo: createMockPendingRepo(),
-  authProviders: createMockAuthProviderRepo(),
-  tokenService: createMockTokenService(),
-  emailQueue: createMockEmailQueue(),
-  logger: createMockLogger(),
-  i18n: createMockI18n(),
-});
+export const setupTestMocks = () => {
+  jest.spyOn(tokenUtil, 'issueProviderLinkToken').mockReturnValue({
+    rawToken: MOCK_RAW_TOKEN,
+    tokenHash: MOCK_TOKEN_HASH,
+  });
+  jest
+    .spyOn(tokenUtil, 'hashProviderLinkToken')
+    .mockReturnValue(MOCK_TOKEN_HASH);
+
+  return {
+    prisma: createMockPrisma(),
+    pendingRepo: createMockPendingRepo(),
+    authProviders: createMockAuthProviderRepo(),
+    emailQueue: createMockEmailQueue(),
+    logger: createMockLogger(),
+    i18n: createMockI18n(),
+  };
+};
 
 export const createTestProviderLinkService = (
   mocks: ReturnType<typeof setupTestMocks>,
@@ -74,7 +74,6 @@ export const createTestProviderLinkService = (
     mocks.prisma as unknown as PrismaService,
     mocks.pendingRepo as unknown as PendingProviderLinkRepository,
     mocks.authProviders as unknown as AuthProviderRepository,
-    mocks.tokenService as unknown as ProviderLinkTokenService,
     mocks.emailQueue as unknown as EmailQueueProducer,
     mocks.logger as unknown as CustomLoggerService,
     mocks.i18n as unknown as I18nService,
@@ -86,10 +85,6 @@ export const MOCK_LINK_REQUEST = {
   provider: 'google',
   providerAccountId: 'google-sub-1',
 };
-
-export const MOCK_RAW_TOKEN = 'mock-raw-token-43-chars-base64url-example';
-export const MOCK_TOKEN_HASH =
-  'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2';
 
 export const createPendingRowFixture = () => ({
   id: 10,

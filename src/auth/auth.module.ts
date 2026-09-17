@@ -15,7 +15,6 @@ import { AccountResolverService } from './account/account-resolver.service';
 import { AccountUserRepository } from './account/account-user.repository';
 import { AuthProviderRepository } from './account/auth-provider.repository';
 import { PendingProviderLinkRepository } from './account-linking/pending-provider-link.repository';
-import { ProviderLinkTokenService } from './account-linking/provider-link-token.service';
 import { ProviderLinkService } from './account-linking/provider-link.service';
 import { ExpiredProviderLinkCleanupService } from './account-linking/expired-provider-link-cleanup.service';
 import { RefreshTokenRepository } from './token/refresh-token.repository';
@@ -54,7 +53,6 @@ import { DEFAULT_ACCESS_TOKEN_TTL, TokenService } from './token/token.service';
     AuthProviderRepository,
     AccountResolverService,
     PendingProviderLinkRepository,
-    ProviderLinkTokenService,
     ProviderLinkService,
     ExpiredProviderLinkCleanupService,
   ],
@@ -66,7 +64,6 @@ import { DEFAULT_ACCESS_TOKEN_TTL, TokenService } from './token/token.service';
     AccountResolverService,
     ProviderLinkService,
     PendingProviderLinkRepository,
-    ProviderLinkTokenService,
   ],
 })
 export class AuthModule {}
