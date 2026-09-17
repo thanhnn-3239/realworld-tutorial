@@ -23,6 +23,13 @@ describe('parseKafkaConfig', () => {
     expect(config.client.sasl).toBeUndefined();
   });
 
+  it('falls back to default broker when KAFKA_BROKER is empty string', () => {
+    process.env.KAFKA_BROKER = '';
+
+    const config = parseKafkaConfig();
+    expect(config.client.brokers).toEqual(['localhost:9092']);
+  });
+
   it('parses custom broker list', () => {
     process.env.KAFKA_BROKER = 'kafka-1:9092,kafka-2:9092';
 

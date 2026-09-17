@@ -9,6 +9,7 @@ import { ArticleSlugService } from './article-slug.service';
 import { ArticlesRepository } from './articles.repository';
 import { ArticlesService } from './articles.service';
 import { FileStorageService } from '../file-storage/file-storage.service';
+import { ArticleEventProducer } from '../kafka/article-event.producer';
 
 // Fixtures below never carry an image, so a passthrough is enough here; the
 // mapper's own conversion behavior is covered in article-response.mapper.spec.ts.
@@ -64,6 +65,7 @@ describe('ArticlesService', () => {
   };
   const slugService = { execute: jest.fn() };
   const i18n = { t: jest.fn((key: string) => `translated:${key}`) };
+  const eventProducer = { emitArticleCreated: jest.fn() };
   let service: ArticlesService;
 
   beforeEach(() => {
@@ -95,6 +97,7 @@ describe('ArticlesService', () => {
       slugService as unknown as ArticleSlugService,
       new ArticleResponseMapper(fileStorage),
       i18n as unknown as I18nService,
+      eventProducer as unknown as ArticleEventProducer,
     );
   });
 
@@ -152,6 +155,23 @@ describe('ArticlesService', () => {
           image: null,
           following: false,
         },
+      });
+    });
+
+    it('emits article.created event on successful creation', async () => {
+      await service.create(USER_ID, {
+        title: 'Title',
+        description: 'Description',
+        body: 'Body',
+      });
+
+      expect(eventProducer.emitArticleCreated).toHaveBeenCalledWith({
+        articleId: stored.id,
+        slug: stored.slug,
+        title: stored.title,
+        authorId: USER_ID,
+        authorUsername: stored.author.username,
+        occurredAt: expect.any(String),
       });
     });
   });

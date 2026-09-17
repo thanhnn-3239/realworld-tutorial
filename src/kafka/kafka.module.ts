@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ArticleEventProducer } from './article-event.producer';
 import { KAFKA_CLIENT } from './constants/kafka.constants';
 import { parseKafkaConfig } from './kafka.config';
 
@@ -23,6 +24,7 @@ import { parseKafkaConfig } from './kafka.config';
       },
     ]),
   ],
-  exports: [ClientsModule],
+  providers: [ArticleEventProducer],
+  exports: [ClientsModule, ArticleEventProducer],
 })
 export class KafkaModule {}

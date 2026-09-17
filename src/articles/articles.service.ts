@@ -13,11 +13,13 @@ import {
 } from '../prisma/prisma.extension';
 import { ArticleResponseMapper } from './article-response.mapper';
 import { ArticleSlugService } from './article-slug.service';
+import { ArticleEventProducer } from '../kafka/article-event.producer';
 import {
-  ArticleListFilter,
-  ArticlesRepository,
-  UpdateArticleData,
-} from './articles.repository';
+  buildArticleFilter,
+  hasEffectiveUpdate,
+  normalizeTags,
+} from './articles.helper';
+import { ArticlesRepository, UpdateArticleData } from './articles.repository';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { ListArticlesQueryDto } from './dto/list-articles-query.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
@@ -30,6 +32,7 @@ export class ArticlesService {
     private readonly slugService: ArticleSlugService,
     private readonly responseMapper: ArticleResponseMapper,
     private readonly i18n: I18nService,
+    private readonly eventProducer: ArticleEventProducer,
   ) {}
 
   async create(
@@ -38,7 +41,7 @@ export class ArticlesService {
   ): Promise<ArticleResponse> {
     const title = dto.title.trim();
     const description = dto.description.trim();
-    const tags = this.normalizeTags(dto.tagList ?? []);
+    const tags = normalizeTags(dto.tagList ?? []);
     const article = await this.slugService.execute(title, (slug) =>
       this.articlesRepository.create({
         slug,
@@ -50,6 +53,15 @@ export class ArticlesService {
       }),
     );
 
+    this.eventProducer.emitArticleCreated({
+      articleId: article.id,
+      slug: article.slug,
+      title: article.title,
+      authorId: userId,
+      authorUsername: article.author.username,
+      occurredAt: new Date().toISOString(),
+    });
+
     return this.responseMapper.toResponse(article);
   }
 
@@ -59,7 +71,7 @@ export class ArticlesService {
   ): Promise<Paginated<ArticleResponse[]>> {
     const { page = DEFAULT_PAGE, limit = DEFAULT_LIMIT } = query;
     const { data, meta } = await this.articlesRepository.listPaginated(
-      this.buildFilter(query),
+      buildArticleFilter(query),
       page,
       limit,
       viewerId,
@@ -97,7 +109,7 @@ export class ArticlesService {
     dto: UpdateArticleDto,
   ): Promise<ArticleResponse> {
     const identity = await this.requireOwnedArticle(userId, slug);
-    if (!this.hasEffectiveUpdate(dto)) {
+    if (!hasEffectiveUpdate(dto)) {
       throw new UnprocessableEntityException(
         this.i18n.t('common.error.emptyArticleUpdate'),
       );
@@ -112,7 +124,7 @@ export class ArticlesService {
       ...(dto.body === undefined ? {} : { body: dto.body }),
       ...(dto.tagList === undefined
         ? {}
-        : { tags: this.normalizeTags(dto.tagList) }),
+        : { tags: normalizeTags(dto.tagList) }),
     };
 
     const article =
@@ -151,36 +163,5 @@ export class ArticlesService {
     }
 
     return article;
-  }
-
-  private hasEffectiveUpdate(dto: UpdateArticleDto): boolean {
-    return [dto.title, dto.description, dto.body, dto.tagList].some(
-      (value) => value !== undefined,
-    );
-  }
-
-  /**
-   * A tag that normalizes to nothing is dropped rather than sent on: no stored
-   * tag equals the empty string, so keeping it would guarantee an empty page.
-   */
-  private buildFilter(query: ListArticlesQueryDto): ArticleListFilter {
-    const tag =
-      query.tag === undefined ? undefined : this.normalizeTag(query.tag);
-
-    return {
-      ...(tag ? { tag } : {}),
-      ...(query.author === undefined ? {} : { author: query.author }),
-      ...(query.favorited === undefined ? {} : { favorited: query.favorited }),
-    };
-  }
-
-  private normalizeTag(tag: string): string {
-    return tag.trim().toLowerCase();
-  }
-
-  private normalizeTags(tags: string[]): string[] {
-    return [
-      ...new Set(tags.map((tag) => this.normalizeTag(tag)).filter(Boolean)),
-    ];
   }
 }

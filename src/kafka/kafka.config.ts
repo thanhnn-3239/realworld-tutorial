@@ -17,7 +17,7 @@ export interface KafkaClientSettings {
 }
 
 export function parseKafkaConfig(): KafkaClientSettings {
-  const brokerEnv = process.env.KAFKA_BROKER ?? 'localhost:9092';
+  const brokerEnv = process.env.KAFKA_BROKER || 'localhost:9092';
   const brokers = brokerEnv
     .split(',')
     .map((b) => b.trim())

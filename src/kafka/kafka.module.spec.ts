@@ -1,4 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { LoggerModule } from '../logger/logger.module';
+import { ArticleEventProducer } from './article-event.producer';
 import { KafkaModule } from './kafka.module';
 import { KAFKA_CLIENT } from './constants/kafka.constants';
 
@@ -7,7 +9,7 @@ describe('KafkaModule', () => {
 
   beforeEach(async () => {
     moduleRef = await Test.createTestingModule({
-      imports: [KafkaModule],
+      imports: [LoggerModule.register(), KafkaModule],
     }).compile();
   });
 
@@ -18,5 +20,10 @@ describe('KafkaModule', () => {
   it('should provide KAFKA_CLIENT', () => {
     const kafkaClient = moduleRef.get(KAFKA_CLIENT);
     expect(kafkaClient).toBeDefined();
+  });
+
+  it('should provide ArticleEventProducer', () => {
+    const producer = moduleRef.get(ArticleEventProducer);
+    expect(producer).toBeDefined();
   });
 });

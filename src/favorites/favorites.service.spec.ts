@@ -3,8 +3,14 @@ import { I18nService } from 'nestjs-i18n';
 import { ArticleResponseMapper } from '../articles/article-response.mapper';
 import { ArticlesRepository } from '../articles/articles.repository';
 import { Prisma } from '../generated/prisma/client';
+import { ArticleEventProducer } from '../kafka/article-event.producer';
 import { FavoritesRepository } from './favorites.repository';
 import { FavoritesService } from './favorites.service';
+import {
+  favorited,
+  notFavorited,
+  USER_ID,
+} from './testing/favorites-test-fixtures';
 
 describe('FavoritesService', () => {
   const articlesRepository = {
@@ -20,10 +26,9 @@ describe('FavoritesService', () => {
   const i18n = {
     t: jest.fn((key: string) => `translated:${key}`),
   };
-
-  const USER_ID = 7;
-  const notFavorited = { slug: 'hello', favoritedBy: [] };
-  const favorited = { slug: 'hello', favoritedBy: [{ id: USER_ID }] };
+  const eventProducer = {
+    emitArticleFavorited: jest.fn(),
+  };
 
   let service: FavoritesService;
 
@@ -34,6 +39,7 @@ describe('FavoritesService', () => {
       favoritesRepository as unknown as FavoritesRepository,
       responseMapper as unknown as ArticleResponseMapper,
       i18n as unknown as I18nService,
+      eventProducer as unknown as ArticleEventProducer,
     );
   });
 
@@ -121,6 +127,34 @@ describe('FavoritesService', () => {
       favoritesRepository.connect.mockRejectedValueOnce(failure);
 
       await expect(service.favorite(USER_ID, 'hello')).rejects.toBe(failure);
+    });
+
+    it('emits article.favorited event with user info, falling back to user-{id}', async () => {
+      articlesRepository.findBySlug.mockResolvedValue(notFavorited);
+      favoritesRepository.connect.mockResolvedValue(favorited);
+
+      await service.favorite(USER_ID, 'hello', 'jake');
+      expect(eventProducer.emitArticleFavorited).toHaveBeenCalledWith({
+        articleId: 1,
+        slug: 'hello',
+        title: 'Hello',
+        authorId: 42,
+        favoritedByUserId: USER_ID,
+        favoritedByUsername: 'jake',
+        occurredAt: expect.any(String),
+      });
+
+      await service.favorite(USER_ID, 'hello');
+      expect(eventProducer.emitArticleFavorited).toHaveBeenLastCalledWith(
+        expect.objectContaining({ favoritedByUsername: `user-${USER_ID}` }),
+      );
+    });
+
+    it('does not emit article.favorited on idempotent favorite', async () => {
+      articlesRepository.findBySlug.mockResolvedValue(favorited);
+
+      await service.favorite(USER_ID, 'hello', 'jake');
+      expect(eventProducer.emitArticleFavorited).not.toHaveBeenCalled();
     });
   });
 

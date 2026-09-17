@@ -5,6 +5,7 @@ import { ArticlesRepository } from '../articles/articles.repository';
 import { ArticleRecord } from '../articles/article-select';
 import { ArticleResponse } from '../articles/interfaces/article-response.interface';
 import { Prisma } from '../generated/prisma/client';
+import { ArticleEventProducer } from '../kafka/article-event.producer';
 import { FavoritesRepository } from './favorites.repository';
 
 @Injectable()
@@ -14,19 +15,34 @@ export class FavoritesService {
     private readonly favoritesRepository: FavoritesRepository,
     private readonly responseMapper: ArticleResponseMapper,
     private readonly i18n: I18nService,
+    private readonly eventProducer: ArticleEventProducer,
   ) {}
 
-  async favorite(userId: number, slug: string): Promise<ArticleResponse> {
+  async favorite(
+    userId: number,
+    slug: string,
+    username?: string,
+  ): Promise<ArticleResponse> {
     const article = await this.requireArticle(userId, slug);
     if (article.favoritedBy.length > 0) {
       return this.responseMapper.toResponse(article);
     }
 
-    return this.responseMapper.toResponse(
-      await this.write(userId, slug, () =>
-        this.favoritesRepository.connect(slug, userId),
-      ),
+    const updated = await this.write(userId, slug, () =>
+      this.favoritesRepository.connect(slug, userId),
     );
+
+    this.eventProducer.emitArticleFavorited({
+      articleId: updated.id,
+      slug: updated.slug,
+      title: updated.title,
+      authorId: updated.authorId,
+      favoritedByUserId: userId,
+      favoritedByUsername: username ?? `user-${userId}`,
+      occurredAt: new Date().toISOString(),
+    });
+
+    return this.responseMapper.toResponse(updated);
   }
 
   async unfavorite(userId: number, slug: string): Promise<ArticleResponse> {
