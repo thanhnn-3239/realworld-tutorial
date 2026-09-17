@@ -37,12 +37,10 @@ exactly.
 `limit` accepts `1..100` and `page` accepts `1` upwards; anything else answers
 `422`.
 
-> **Note:** `author.following` is viewer-aware: send a bearer token and it
-> reports whether you follow the author, resolved in the same query as the
-> article. Without a token it is `false`. `favorited` is still always `false`
-> on every article response until
-> [#8 Favorites](https://github.com/thanhnn-3239/realworld-tutorial/issues/8)
-> lands.
+> **Note:** `author.following` and `favorited` are viewer-aware: send a bearer
+> token and they report whether you follow the author and whether you favorited
+> the article, resolved in the same query as the article. Without a token both
+> are `false`. `favoritesCount` is global — every viewer sees the same number.
 
 **Response:**
 

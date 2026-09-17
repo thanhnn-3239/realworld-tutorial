@@ -120,13 +120,14 @@ export class ArticlesService {
         ? await this.slugService.execute(
             title,
             (newSlug) =>
-              this.articlesRepository.update(identity.id, {
-                ...data,
-                slug: newSlug,
-              }),
+              this.articlesRepository.update(
+                identity.id,
+                { ...data, slug: newSlug },
+                userId,
+              ),
             identity.id,
           )
-        : await this.articlesRepository.update(identity.id, data);
+        : await this.articlesRepository.update(identity.id, data, userId);
 
     return this.responseMapper.toResponse(article);
   }

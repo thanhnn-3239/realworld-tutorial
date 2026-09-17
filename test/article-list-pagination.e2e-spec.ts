@@ -44,7 +44,7 @@ describe('Article list pagination (e2e)', () => {
     expect(past.body.meta).toMatchObject({ total: 5, page: 9 });
   });
 
-  it('keeps the documented article shape and deferred flags', async () => {
+  it('keeps the documented article shape for an anonymous read', async () => {
     const author = await e2e.fixtures.user({ username: 'shape_author' });
     await seedArticles(e2e, author.id, ['shape']);
 

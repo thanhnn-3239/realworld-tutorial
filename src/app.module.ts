@@ -21,6 +21,7 @@ import { UsersModule } from './users/users.module';
 import { ArticlesModule } from './articles/articles.module';
 import { CommentsModule } from './comments/comments.module';
 import { ProfilesModule } from './profiles/profiles.module';
+import { FavoritesModule } from './favorites/favorites.module';
 import { HealthModule } from './health/health.module';
 import { FileStorageModule } from './file-storage/file-storage.module';
 import { BackgroundJobsModule } from './background-jobs/background-jobs.module';
@@ -53,6 +54,7 @@ import { EmailModule } from './email/email.module';
     ArticlesModule,
     CommentsModule,
     ProfilesModule,
+    FavoritesModule,
     HealthModule,
     BackgroundJobsModule,
     EmailModule,
