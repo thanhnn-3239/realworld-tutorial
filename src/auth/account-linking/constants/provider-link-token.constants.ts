@@ -1,0 +1,1 @@
+export const PROVIDER_LINK_TOKEN_BYTE_LENGTH = 32;

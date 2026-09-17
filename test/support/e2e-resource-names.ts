@@ -50,6 +50,12 @@ export function suiteBucketName(runId: string, label: string): string {
   return name;
 }
 
+export function suiteRedisPrefix(runId: string, label: string): string {
+  assertRunId(runId);
+  const safeLabel = normalizeSuiteLabel(label);
+  return `realworld:e2e:${runId}:${safeLabel}`;
+}
+
 export function assertSafeDatabaseName(name: string, runId: string): void {
   assertRunId(runId);
   const prefix = `e2e_${runId}_`;

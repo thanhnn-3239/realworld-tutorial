@@ -10,9 +10,13 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from './guards/optional-jwt-auth.guard';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PasswordModule } from '../common/password/password.module';
+import { EmailModule } from '../email/email.module';
 import { AccountResolverService } from './account/account-resolver.service';
 import { AccountUserRepository } from './account/account-user.repository';
 import { AuthProviderRepository } from './account/auth-provider.repository';
+import { PendingProviderLinkRepository } from './account-linking/pending-provider-link.repository';
+import { ProviderLinkService } from './account-linking/provider-link.service';
+import { ExpiredProviderLinkCleanupService } from './account-linking/expired-provider-link-cleanup.service';
 import { RefreshTokenRepository } from './token/refresh-token.repository';
 import { ExpiredTokenCleanupService } from './token/expired-token-cleanup.service';
 import { DEFAULT_ACCESS_TOKEN_TTL, TokenService } from './token/token.service';
@@ -21,6 +25,7 @@ import { DEFAULT_ACCESS_TOKEN_TTL, TokenService } from './token/token.service';
   imports: [
     PrismaModule,
     PasswordModule,
+    EmailModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       inject: [ConfigService],
@@ -47,6 +52,9 @@ import { DEFAULT_ACCESS_TOKEN_TTL, TokenService } from './token/token.service';
     AccountUserRepository,
     AuthProviderRepository,
     AccountResolverService,
+    PendingProviderLinkRepository,
+    ProviderLinkService,
+    ExpiredProviderLinkCleanupService,
   ],
   exports: [
     AuthService,
@@ -54,6 +62,8 @@ import { DEFAULT_ACCESS_TOKEN_TTL, TokenService } from './token/token.service';
     OptionalJwtAuthGuard,
     TokenService,
     AccountResolverService,
+    ProviderLinkService,
+    PendingProviderLinkRepository,
   ],
 })
 export class AuthModule {}

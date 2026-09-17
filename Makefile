@@ -65,7 +65,7 @@ run-in-e2e: e2e-image
 	$(E2E_RUN) sh -c '$(E2E_BOOTSTRAP) $(command)'
 
 stop-e2e: e2e-env
-	$(E2E_COMPOSE) stop postgres minio
+	$(E2E_COMPOSE) stop postgres minio redis mailpit
 
 down-e2e: e2e-env
 	$(E2E_COMPOSE) down --remove-orphans

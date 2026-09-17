@@ -67,8 +67,9 @@ model User {
   followedBy    User[]         @relation("UserFollows")
   following     User[]         @relation("UserFollows")
   comments      Comment[]
-  authProviders AuthProvider[]
-  refreshTokens RefreshToken[]
+  authProviders            AuthProvider[]
+  refreshTokens            RefreshToken[]
+  pendingAuthProviderLinks PendingAuthProviderLink[]
 }
 
 model AuthProvider {
@@ -96,5 +97,20 @@ model RefreshToken {
   createdAt    DateTime  @default(now())
 
   @@index([userId])
+  @@index([expiresAt])
+}
+
+model PendingAuthProviderLink {
+  id                Int      @id @default(autoincrement())
+  userId            Int
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider          String
+  providerAccountId String
+  tokenHash         String   @unique @db.VarChar(64)
+  expiresAt         DateTime
+  createdAt         DateTime @default(now())
+
+  @@unique([provider, providerAccountId])
+  @@unique([userId, provider])
   @@index([expiresAt])
 }

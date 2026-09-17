@@ -8,11 +8,23 @@
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
   "transform": {
-    "^.+\\.(t|j)s$": "ts-jest"
+    "^.+\\.(t|j)s$": [
+      "ts-jest",
+      {
+        "tsconfig": {
+          "module": "commonjs",
+          "moduleResolution": "node",
+          "resolvePackageJsonExports": false
+        }
+      }
+    ]
   },
   "moduleNameMapper": {
     "^(\\.{1,2}/.*)\\.js$": "$1"
   },
   "globalSetup": "<rootDir>/support/global-setup.ts",
-  "globalTeardown": "<rootDir>/support/global-teardown.ts"
+  "globalTeardown": "<rootDir>/support/global-teardown.ts",
+  "transformIgnorePatterns": [
+    "node_modules/(?!.*(@nestjs[+/]schedule|@nestjs[+/]bullmq|@nestjs[+/]bull-shared))"
+  ]
 }

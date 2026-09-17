@@ -83,12 +83,12 @@ Authenticates an existing user.
 
 Register and login both return two tokens. They are not interchangeable.
 
-| | `accessToken` | `refreshToken` |
-| --- | --- | --- |
+|            | `accessToken`                         | `refreshToken`                      |
+| ---------- | ------------------------------------- | ----------------------------------- |
 | Send it as | `Authorization: Bearer <accessToken>` | the body of `POST /v1/auth/refresh` |
-| Lifetime | 15 minutes | 30 days |
-| Reusable | yes, until it expires | **no — single use** |
-| Carries | only the user id | nothing; it is opaque random bytes |
+| Lifetime   | 15 minutes                            | 30 days                             |
+| Reusable   | yes, until it expires                 | **no — single use**                 |
+| Carries    | only the user id                      | nothing; it is opaque random bytes  |
 
 The access token deliberately carries no email or username: both are mutable, so a token
 holding them would serve stale values for as long as it lived. Read the current profile from
@@ -134,10 +134,10 @@ new about the profile.
 
 **Errors:**
 
-| Status | Cause                                                              |
-| ------ | ------------------------------------------------------------------ |
-| `401`  | Token unknown, expired, revoked, or already spent                  |
-| `422`  | `refreshToken` missing or empty                                    |
+| Status | Cause                                             |
+| ------ | ------------------------------------------------- |
+| `401`  | Token unknown, expired, revoked, or already spent |
+| `422`  | `refreshToken` missing or empty                   |
 
 ---
 
@@ -170,30 +170,82 @@ Optional. All three of `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `GOOGLE_CA
 must be set; with any of them blank both routes return `404` and the rest of the API is
 unaffected.
 
-| | |
-| --- | --- |
-| **Start** | `GET /v1/auth/google` → `302` to the Google consent screen |
+|              |                                                                    |
+| ------------ | ------------------------------------------------------------------ |
+| **Start**    | `GET /v1/auth/google` → `302` to the Google consent screen         |
 | **Callback** | `GET /v1/auth/google/callback` → `200` with the same body as login |
 
 The callback answers with JSON rather than redirecting with tokens in the query string, which
 would put credentials into browser history and access logs.
 
-### Account linking
+### Account linking & collision handling
 
-Signing in with Google using an address that already has a password account **links the two
-and removes password login from that account**. This is deliberate: nothing in this API
-verifies email ownership at registration, so anyone can register an address they do not own.
-Clearing the password evicts whoever set the account up, at the moment the verified owner
-arrives. Every existing session for that account is revoked in the same transaction.
+Signing in with Google using an address that matches an existing password account **requires
+email confirmation** before the Google identity can be linked. An email collision **never**
+clears passwords, revokes existing sessions, or issues application tokens.
 
-There is currently **no endpoint to set a password again**, so such an account is Google-only
-from then on.
+1. **Collision callback:**
+   When Google credentials match an existing account that has not yet linked this Google identity:
+   - Returns `202 Accepted` with payload `{ "status": "confirmation_required" }`.
+   - Generates a single-use 32-byte cryptographically random token valid for 15 minutes.
+   - Enqueues a background email delivery job via BullMQ and Redis.
+   - Enforces a 60-second resend cooldown before rotating the token.
+   - The user receives an email containing a link to the frontend confirmation page with `?token=...`.
 
-If Google reports the address as unverified, the request fails with `409` and nothing changes.
+2. **Confirmation endpoint (`POST /v1/auth/google/link/confirm`):**
+   The frontend posts the raw confirmation token to complete the link:
+
+   |              |                                |
+   | ------------ | ------------------------------ |
+   | **Method**   | `POST`                         |
+   | **Endpoint** | `/v1/auth/google/link/confirm` |
+   | **Auth**     | No                             |
+
+   **Request Body:**
+
+   ```json
+   {
+     "token": "43-character-base64url-token"
+   }
+   ```
+
+   **Response:** `200 OK`
+
+   ```json
+   {
+     "statusCode": 200,
+     "message": "Google account link confirmed",
+     "data": {
+       "confirmed": true
+     }
+   }
+   ```
+
+   Confirmation creates the `AuthProvider` link atomically and consumes the pending token. It
+   does **not** issue access or refresh tokens; the user starts Google login again to sign in.
+   The account's existing password and active sessions remain intact throughout.
 
 **Errors:**
 
-| Status | Cause                                                                     |
-| ------ | ------------------------------------------------------------------------- |
-| `404`  | Google is not configured on this deployment                               |
-| `409`  | The email already has an account and Google did not verify the address    |
+| Status | Cause                                                                       |
+| ------ | --------------------------------------------------------------------------- |
+| `400`  | Token unknown, expired, or already consumed (generic error)                 |
+| `404`  | Google OAuth is not configured on this deployment                           |
+| `409`  | Google email unverified, or Google account already attached to another user |
+| `422`  | `token` missing or invalid format (must be 43 characters)                   |
+| `503`  | Queue backend unavailable during callback collision handling                |
+
+### Queue & Email Operator Notes
+
+- **Delivery semantics:** Email delivery is backgrounded via BullMQ and Redis with 3 retry
+  attempts and exponential backoff. Delivery is at-least-once; transient SMTP network issues
+  may cause duplicate delivery, but confirmation remains idempotent and single-use.
+- **Environment configuration:**
+  - `REDIS_URL`: Connection string for Redis queue backend (`redis://` or `rediss://`).
+  - `REDIS_PREFIX`: Application-level prefix for Redis queue keys (default: `realworld`).
+  - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`: Outbound SMTP server settings.
+  - `SMTP_SECURE`, `SMTP_REQUIRE_TLS`: TLS encryption flags (production enables at least one).
+  - `MAIL_FROM`: Envelope sender address (e.g. `no-reply@realworld.test`).
+  - `GOOGLE_LINK_CONFIRM_URL`: Trusted frontend confirmation base URL.
+- **Production requirement:** Production deployments require managed Redis and SMTP services;
+  local Docker Compose provides Redis and Mailpit for development and testing.

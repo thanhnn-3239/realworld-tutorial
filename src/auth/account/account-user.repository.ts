@@ -40,16 +40,4 @@ export class AccountUserRepository {
       select: ACCOUNT_SELECT,
     });
   }
-
-  /** Used by the provider-link path to evict a password nobody proved they owned. */
-  async clearPassword(
-    id: number,
-    client: Prisma.TransactionClient = this.prisma,
-  ): Promise<AccountRow> {
-    return client.user.update({
-      where: { id },
-      data: { password: null },
-      select: ACCOUNT_SELECT,
-    });
-  }
 }

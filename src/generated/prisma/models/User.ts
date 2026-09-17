@@ -231,6 +231,7 @@ export type UserWhereInput = {
   comments?: Prisma.CommentListRelationFilter
   authProviders?: Prisma.AuthProviderListRelationFilter
   refreshTokens?: Prisma.RefreshTokenListRelationFilter
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -247,6 +248,7 @@ export type UserOrderByWithRelationInput = {
   comments?: Prisma.CommentOrderByRelationAggregateInput
   authProviders?: Prisma.AuthProviderOrderByRelationAggregateInput
   refreshTokens?: Prisma.RefreshTokenOrderByRelationAggregateInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -266,6 +268,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   comments?: Prisma.CommentListRelationFilter
   authProviders?: Prisma.AuthProviderListRelationFilter
   refreshTokens?: Prisma.RefreshTokenListRelationFilter
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkListRelationFilter
 }, "id" | "email" | "username">
 
 export type UserOrderByWithAggregationInput = {
@@ -307,6 +310,7 @@ export type UserCreateInput = {
   comments?: Prisma.CommentCreateNestedManyWithoutAuthorInput
   authProviders?: Prisma.AuthProviderCreateNestedManyWithoutUserInput
   refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -323,6 +327,7 @@ export type UserUncheckedCreateInput = {
   comments?: Prisma.CommentUncheckedCreateNestedManyWithoutAuthorInput
   authProviders?: Prisma.AuthProviderUncheckedCreateNestedManyWithoutUserInput
   refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -338,6 +343,7 @@ export type UserUpdateInput = {
   comments?: Prisma.CommentUpdateManyWithoutAuthorNestedInput
   authProviders?: Prisma.AuthProviderUpdateManyWithoutUserNestedInput
   refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -354,6 +360,7 @@ export type UserUncheckedUpdateInput = {
   comments?: Prisma.CommentUncheckedUpdateManyWithoutAuthorNestedInput
   authProviders?: Prisma.AuthProviderUncheckedUpdateManyWithoutUserNestedInput
   refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -606,6 +613,20 @@ export type UserUpdateOneRequiredWithoutRefreshTokensNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutRefreshTokensInput, Prisma.UserUpdateWithoutRefreshTokensInput>, Prisma.UserUncheckedUpdateWithoutRefreshTokensInput>
 }
 
+export type UserCreateNestedOneWithoutPendingAuthProviderLinksInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutPendingAuthProviderLinksInput, Prisma.UserUncheckedCreateWithoutPendingAuthProviderLinksInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutPendingAuthProviderLinksInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutPendingAuthProviderLinksNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutPendingAuthProviderLinksInput, Prisma.UserUncheckedCreateWithoutPendingAuthProviderLinksInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutPendingAuthProviderLinksInput
+  upsert?: Prisma.UserUpsertWithoutPendingAuthProviderLinksInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutPendingAuthProviderLinksInput, Prisma.UserUpdateWithoutPendingAuthProviderLinksInput>, Prisma.UserUncheckedUpdateWithoutPendingAuthProviderLinksInput>
+}
+
 export type UserCreateWithoutArticlesInput = {
   email: string
   username: string
@@ -618,6 +639,7 @@ export type UserCreateWithoutArticlesInput = {
   comments?: Prisma.CommentCreateNestedManyWithoutAuthorInput
   authProviders?: Prisma.AuthProviderCreateNestedManyWithoutUserInput
   refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutArticlesInput = {
@@ -633,6 +655,7 @@ export type UserUncheckedCreateWithoutArticlesInput = {
   comments?: Prisma.CommentUncheckedCreateNestedManyWithoutAuthorInput
   authProviders?: Prisma.AuthProviderUncheckedCreateNestedManyWithoutUserInput
   refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutArticlesInput = {
@@ -652,6 +675,7 @@ export type UserCreateWithoutFavoritesInput = {
   comments?: Prisma.CommentCreateNestedManyWithoutAuthorInput
   authProviders?: Prisma.AuthProviderCreateNestedManyWithoutUserInput
   refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutFavoritesInput = {
@@ -667,6 +691,7 @@ export type UserUncheckedCreateWithoutFavoritesInput = {
   comments?: Prisma.CommentUncheckedCreateNestedManyWithoutAuthorInput
   authProviders?: Prisma.AuthProviderUncheckedCreateNestedManyWithoutUserInput
   refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutFavoritesInput = {
@@ -697,6 +722,7 @@ export type UserUpdateWithoutArticlesInput = {
   comments?: Prisma.CommentUpdateManyWithoutAuthorNestedInput
   authProviders?: Prisma.AuthProviderUpdateManyWithoutUserNestedInput
   refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutArticlesInput = {
@@ -712,6 +738,7 @@ export type UserUncheckedUpdateWithoutArticlesInput = {
   comments?: Prisma.CommentUncheckedUpdateManyWithoutAuthorNestedInput
   authProviders?: Prisma.AuthProviderUncheckedUpdateManyWithoutUserNestedInput
   refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserUpsertWithWhereUniqueWithoutFavoritesInput = {
@@ -754,6 +781,7 @@ export type UserCreateWithoutCommentsInput = {
   following?: Prisma.UserCreateNestedManyWithoutFollowedByInput
   authProviders?: Prisma.AuthProviderCreateNestedManyWithoutUserInput
   refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCommentsInput = {
@@ -769,6 +797,7 @@ export type UserUncheckedCreateWithoutCommentsInput = {
   following?: Prisma.UserUncheckedCreateNestedManyWithoutFollowedByInput
   authProviders?: Prisma.AuthProviderUncheckedCreateNestedManyWithoutUserInput
   refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCommentsInput = {
@@ -799,6 +828,7 @@ export type UserUpdateWithoutCommentsInput = {
   following?: Prisma.UserUpdateManyWithoutFollowedByNestedInput
   authProviders?: Prisma.AuthProviderUpdateManyWithoutUserNestedInput
   refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCommentsInput = {
@@ -814,6 +844,7 @@ export type UserUncheckedUpdateWithoutCommentsInput = {
   following?: Prisma.UserUncheckedUpdateManyWithoutFollowedByNestedInput
   authProviders?: Prisma.AuthProviderUncheckedUpdateManyWithoutUserNestedInput
   refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutFollowingInput = {
@@ -828,6 +859,7 @@ export type UserCreateWithoutFollowingInput = {
   comments?: Prisma.CommentCreateNestedManyWithoutAuthorInput
   authProviders?: Prisma.AuthProviderCreateNestedManyWithoutUserInput
   refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutFollowingInput = {
@@ -843,6 +875,7 @@ export type UserUncheckedCreateWithoutFollowingInput = {
   comments?: Prisma.CommentUncheckedCreateNestedManyWithoutAuthorInput
   authProviders?: Prisma.AuthProviderUncheckedCreateNestedManyWithoutUserInput
   refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutFollowingInput = {
@@ -862,6 +895,7 @@ export type UserCreateWithoutFollowedByInput = {
   comments?: Prisma.CommentCreateNestedManyWithoutAuthorInput
   authProviders?: Prisma.AuthProviderCreateNestedManyWithoutUserInput
   refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutFollowedByInput = {
@@ -877,6 +911,7 @@ export type UserUncheckedCreateWithoutFollowedByInput = {
   comments?: Prisma.CommentUncheckedCreateNestedManyWithoutAuthorInput
   authProviders?: Prisma.AuthProviderUncheckedCreateNestedManyWithoutUserInput
   refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutFollowedByInput = {
@@ -928,6 +963,7 @@ export type UserCreateWithoutAuthProvidersInput = {
   following?: Prisma.UserCreateNestedManyWithoutFollowedByInput
   comments?: Prisma.CommentCreateNestedManyWithoutAuthorInput
   refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAuthProvidersInput = {
@@ -943,6 +979,7 @@ export type UserUncheckedCreateWithoutAuthProvidersInput = {
   following?: Prisma.UserUncheckedCreateNestedManyWithoutFollowedByInput
   comments?: Prisma.CommentUncheckedCreateNestedManyWithoutAuthorInput
   refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAuthProvidersInput = {
@@ -973,6 +1010,7 @@ export type UserUpdateWithoutAuthProvidersInput = {
   following?: Prisma.UserUpdateManyWithoutFollowedByNestedInput
   comments?: Prisma.CommentUpdateManyWithoutAuthorNestedInput
   refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAuthProvidersInput = {
@@ -988,6 +1026,7 @@ export type UserUncheckedUpdateWithoutAuthProvidersInput = {
   following?: Prisma.UserUncheckedUpdateManyWithoutFollowedByNestedInput
   comments?: Prisma.CommentUncheckedUpdateManyWithoutAuthorNestedInput
   refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutRefreshTokensInput = {
@@ -1002,6 +1041,7 @@ export type UserCreateWithoutRefreshTokensInput = {
   following?: Prisma.UserCreateNestedManyWithoutFollowedByInput
   comments?: Prisma.CommentCreateNestedManyWithoutAuthorInput
   authProviders?: Prisma.AuthProviderCreateNestedManyWithoutUserInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutRefreshTokensInput = {
@@ -1017,6 +1057,7 @@ export type UserUncheckedCreateWithoutRefreshTokensInput = {
   following?: Prisma.UserUncheckedCreateNestedManyWithoutFollowedByInput
   comments?: Prisma.CommentUncheckedCreateNestedManyWithoutAuthorInput
   authProviders?: Prisma.AuthProviderUncheckedCreateNestedManyWithoutUserInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutRefreshTokensInput = {
@@ -1047,6 +1088,7 @@ export type UserUpdateWithoutRefreshTokensInput = {
   following?: Prisma.UserUpdateManyWithoutFollowedByNestedInput
   comments?: Prisma.CommentUpdateManyWithoutAuthorNestedInput
   authProviders?: Prisma.AuthProviderUpdateManyWithoutUserNestedInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutRefreshTokensInput = {
@@ -1062,6 +1104,85 @@ export type UserUncheckedUpdateWithoutRefreshTokensInput = {
   following?: Prisma.UserUncheckedUpdateManyWithoutFollowedByNestedInput
   comments?: Prisma.CommentUncheckedUpdateManyWithoutAuthorNestedInput
   authProviders?: Prisma.AuthProviderUncheckedUpdateManyWithoutUserNestedInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutPendingAuthProviderLinksInput = {
+  email: string
+  username: string
+  password?: string | null
+  image?: string | null
+  bio?: string | null
+  articles?: Prisma.ArticleCreateNestedManyWithoutAuthorInput
+  favorites?: Prisma.ArticleCreateNestedManyWithoutFavoritedByInput
+  followedBy?: Prisma.UserCreateNestedManyWithoutFollowingInput
+  following?: Prisma.UserCreateNestedManyWithoutFollowedByInput
+  comments?: Prisma.CommentCreateNestedManyWithoutAuthorInput
+  authProviders?: Prisma.AuthProviderCreateNestedManyWithoutUserInput
+  refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutPendingAuthProviderLinksInput = {
+  id?: number
+  email: string
+  username: string
+  password?: string | null
+  image?: string | null
+  bio?: string | null
+  articles?: Prisma.ArticleUncheckedCreateNestedManyWithoutAuthorInput
+  favorites?: Prisma.ArticleUncheckedCreateNestedManyWithoutFavoritedByInput
+  followedBy?: Prisma.UserUncheckedCreateNestedManyWithoutFollowingInput
+  following?: Prisma.UserUncheckedCreateNestedManyWithoutFollowedByInput
+  comments?: Prisma.CommentUncheckedCreateNestedManyWithoutAuthorInput
+  authProviders?: Prisma.AuthProviderUncheckedCreateNestedManyWithoutUserInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutPendingAuthProviderLinksInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutPendingAuthProviderLinksInput, Prisma.UserUncheckedCreateWithoutPendingAuthProviderLinksInput>
+}
+
+export type UserUpsertWithoutPendingAuthProviderLinksInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutPendingAuthProviderLinksInput, Prisma.UserUncheckedUpdateWithoutPendingAuthProviderLinksInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutPendingAuthProviderLinksInput, Prisma.UserUncheckedCreateWithoutPendingAuthProviderLinksInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutPendingAuthProviderLinksInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutPendingAuthProviderLinksInput, Prisma.UserUncheckedUpdateWithoutPendingAuthProviderLinksInput>
+}
+
+export type UserUpdateWithoutPendingAuthProviderLinksInput = {
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  articles?: Prisma.ArticleUpdateManyWithoutAuthorNestedInput
+  favorites?: Prisma.ArticleUpdateManyWithoutFavoritedByNestedInput
+  followedBy?: Prisma.UserUpdateManyWithoutFollowingNestedInput
+  following?: Prisma.UserUpdateManyWithoutFollowedByNestedInput
+  comments?: Prisma.CommentUpdateManyWithoutAuthorNestedInput
+  authProviders?: Prisma.AuthProviderUpdateManyWithoutUserNestedInput
+  refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutPendingAuthProviderLinksInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  articles?: Prisma.ArticleUncheckedUpdateManyWithoutAuthorNestedInput
+  favorites?: Prisma.ArticleUncheckedUpdateManyWithoutFavoritedByNestedInput
+  followedBy?: Prisma.UserUncheckedUpdateManyWithoutFollowingNestedInput
+  following?: Prisma.UserUncheckedUpdateManyWithoutFollowedByNestedInput
+  comments?: Prisma.CommentUncheckedUpdateManyWithoutAuthorNestedInput
+  authProviders?: Prisma.AuthProviderUncheckedUpdateManyWithoutUserNestedInput
+  refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserUpdateWithoutFavoritesInput = {
@@ -1076,6 +1197,7 @@ export type UserUpdateWithoutFavoritesInput = {
   comments?: Prisma.CommentUpdateManyWithoutAuthorNestedInput
   authProviders?: Prisma.AuthProviderUpdateManyWithoutUserNestedInput
   refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutFavoritesInput = {
@@ -1091,6 +1213,7 @@ export type UserUncheckedUpdateWithoutFavoritesInput = {
   comments?: Prisma.CommentUncheckedUpdateManyWithoutAuthorNestedInput
   authProviders?: Prisma.AuthProviderUncheckedUpdateManyWithoutUserNestedInput
   refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateManyWithoutFavoritesInput = {
@@ -1114,6 +1237,7 @@ export type UserUpdateWithoutFollowingInput = {
   comments?: Prisma.CommentUpdateManyWithoutAuthorNestedInput
   authProviders?: Prisma.AuthProviderUpdateManyWithoutUserNestedInput
   refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutFollowingInput = {
@@ -1129,6 +1253,7 @@ export type UserUncheckedUpdateWithoutFollowingInput = {
   comments?: Prisma.CommentUncheckedUpdateManyWithoutAuthorNestedInput
   authProviders?: Prisma.AuthProviderUncheckedUpdateManyWithoutUserNestedInput
   refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateManyWithoutFollowingInput = {
@@ -1152,6 +1277,7 @@ export type UserUpdateWithoutFollowedByInput = {
   comments?: Prisma.CommentUpdateManyWithoutAuthorNestedInput
   authProviders?: Prisma.AuthProviderUpdateManyWithoutUserNestedInput
   refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutFollowedByInput = {
@@ -1167,6 +1293,7 @@ export type UserUncheckedUpdateWithoutFollowedByInput = {
   comments?: Prisma.CommentUncheckedUpdateManyWithoutAuthorNestedInput
   authProviders?: Prisma.AuthProviderUncheckedUpdateManyWithoutUserNestedInput
   refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  pendingAuthProviderLinks?: Prisma.PendingAuthProviderLinkUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateManyWithoutFollowedByInput = {
@@ -1191,6 +1318,7 @@ export type UserCountOutputType = {
   comments: number
   authProviders: number
   refreshTokens: number
+  pendingAuthProviderLinks: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1201,6 +1329,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   comments?: boolean | UserCountOutputTypeCountCommentsArgs
   authProviders?: boolean | UserCountOutputTypeCountAuthProvidersArgs
   refreshTokens?: boolean | UserCountOutputTypeCountRefreshTokensArgs
+  pendingAuthProviderLinks?: boolean | UserCountOutputTypeCountPendingAuthProviderLinksArgs
 }
 
 /**
@@ -1262,6 +1391,13 @@ export type UserCountOutputTypeCountRefreshTokensArgs<ExtArgs extends runtime.Ty
   where?: Prisma.RefreshTokenWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountPendingAuthProviderLinksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.PendingAuthProviderLinkWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1277,6 +1413,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   comments?: boolean | Prisma.User$commentsArgs<ExtArgs>
   authProviders?: boolean | Prisma.User$authProvidersArgs<ExtArgs>
   refreshTokens?: boolean | Prisma.User$refreshTokensArgs<ExtArgs>
+  pendingAuthProviderLinks?: boolean | Prisma.User$pendingAuthProviderLinksArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -1316,6 +1453,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   comments?: boolean | Prisma.User$commentsArgs<ExtArgs>
   authProviders?: boolean | Prisma.User$authProvidersArgs<ExtArgs>
   refreshTokens?: boolean | Prisma.User$refreshTokensArgs<ExtArgs>
+  pendingAuthProviderLinks?: boolean | Prisma.User$pendingAuthProviderLinksArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1331,6 +1469,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     comments: Prisma.$CommentPayload<ExtArgs>[]
     authProviders: Prisma.$AuthProviderPayload<ExtArgs>[]
     refreshTokens: Prisma.$RefreshTokenPayload<ExtArgs>[]
+    pendingAuthProviderLinks: Prisma.$PendingAuthProviderLinkPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
@@ -1740,6 +1879,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   comments<T extends Prisma.User$commentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$commentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   authProviders<T extends Prisma.User$authProvidersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$authProvidersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AuthProviderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   refreshTokens<T extends Prisma.User$refreshTokensArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$refreshTokensArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RefreshTokenPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  pendingAuthProviderLinks<T extends Prisma.User$pendingAuthProviderLinksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$pendingAuthProviderLinksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PendingAuthProviderLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2328,6 +2468,30 @@ export type User$refreshTokensArgs<ExtArgs extends runtime.Types.Extensions.Inte
   take?: number
   skip?: number
   distinct?: Prisma.RefreshTokenScalarFieldEnum | Prisma.RefreshTokenScalarFieldEnum[]
+}
+
+/**
+ * User.pendingAuthProviderLinks
+ */
+export type User$pendingAuthProviderLinksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the PendingAuthProviderLink
+   */
+  select?: Prisma.PendingAuthProviderLinkSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the PendingAuthProviderLink
+   */
+  omit?: Prisma.PendingAuthProviderLinkOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PendingAuthProviderLinkInclude<ExtArgs> | null
+  where?: Prisma.PendingAuthProviderLinkWhereInput
+  orderBy?: Prisma.PendingAuthProviderLinkOrderByWithRelationInput | Prisma.PendingAuthProviderLinkOrderByWithRelationInput[]
+  cursor?: Prisma.PendingAuthProviderLinkWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.PendingAuthProviderLinkScalarFieldEnum | Prisma.PendingAuthProviderLinkScalarFieldEnum[]
 }
 
 /**

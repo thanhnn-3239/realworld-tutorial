@@ -6,6 +6,8 @@ import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { TokenPairDto } from './dto/token-pair.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
+import { ConfirmProviderLinkDto } from './dto/confirm-provider-link.dto';
+import { ProviderLinkConfirmedResponseDto } from './dto/provider-link-confirmed-response.dto';
 import { ResponseMessage } from '../common/decorators/response-message.decorator';
 
 @ApiTags('Authentication')
@@ -95,6 +97,36 @@ export class AuthController {
   })
   login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @Post('google/link/confirm')
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage('Google account link confirmed')
+  @ApiOperation({
+    summary: 'Confirm a pending Google account link',
+    description:
+      'Consumes the token from the confirmation email. The caller must repeat Google sign-in to receive tokens.',
+  })
+  @ApiBody({ type: ConfirmProviderLinkDto })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'The Google account link is confirmed',
+    type: ProviderLinkConfirmedResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'The confirmation token is invalid, expired, or consumed',
+  })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'The provider account is linked to another user',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    description: 'The token is missing or malformed',
+  })
+  confirmGoogleLink(@Body() dto: ConfirmProviderLinkDto) {
+    return this.authService.confirmGoogleLink(dto);
   }
 
   @Post('refresh')

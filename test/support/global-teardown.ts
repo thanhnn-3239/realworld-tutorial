@@ -1,6 +1,7 @@
 import { runCleanupSteps } from './cleanup';
 import { assertSafeDatabaseName, withAdminConnection } from './database-admin';
 import { readE2eBaseConfig } from './e2e-config';
+import { sweepRunRedis } from './redis-admin';
 import { sweepRunBuckets } from './storage-admin';
 
 /**
@@ -34,5 +35,8 @@ export default async function globalTeardown(): Promise<void> {
       });
     },
     () => sweepRunBuckets(config, runId),
+    async () => {
+      await sweepRunRedis(config.redisUrl, runId);
+    },
   ]);
 }

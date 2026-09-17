@@ -1,0 +1,7 @@
+export const PENDING_LINK_RESEND_COOLDOWN_MS = 60 * 1_000;
+export const RESEND_COOLDOWN_MS = PENDING_LINK_RESEND_COOLDOWN_MS;
+export const LINK_TTL_MS = 15 * 60 * 1_000;
+export const PROVIDER_LINK_TTL_MS = LINK_TTL_MS;
+export const TOKEN_HASH_PREFIX_LENGTH = 8;
+export const EXPIRED_PROVIDER_LINK_CLEANUP_CONTEXT =
+  'ExpiredProviderLinkCleanup';

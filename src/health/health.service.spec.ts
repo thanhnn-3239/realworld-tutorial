@@ -4,10 +4,12 @@ import { HealthService } from './health.service';
 describe('HealthService', () => {
   it('returns ok after a successful database probe', async () => {
     const prisma = { $queryRaw: jest.fn().mockResolvedValue([{ ready: 1 }]) };
-    const service = new HealthService(prisma as never);
+    const queueReadiness = { ping: jest.fn().mockResolvedValue(undefined) };
+    const service = new HealthService(prisma as never, queueReadiness as never);
 
     await expect(service.check()).resolves.toEqual({ status: 'ok' });
     expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(queueReadiness.ping).toHaveBeenCalledTimes(1);
   });
 
   it('masks database failures behind ServiceUnavailableException', async () => {
@@ -16,7 +18,20 @@ describe('HealthService', () => {
         .fn()
         .mockRejectedValue(new Error('ECONNREFUSED postgres://secret')),
     };
-    const service = new HealthService(prisma as never);
+    const queueReadiness = { ping: jest.fn().mockResolvedValue(undefined) };
+    const service = new HealthService(prisma as never, queueReadiness as never);
+
+    await expect(service.check()).rejects.toThrow(
+      new ServiceUnavailableException('Service unavailable'),
+    );
+  });
+
+  it('masks queue failures behind ServiceUnavailableException', async () => {
+    const prisma = { $queryRaw: jest.fn().mockResolvedValue([{ ready: 1 }]) };
+    const queueReadiness = {
+      ping: jest.fn().mockRejectedValue(new Error('redis://secret')),
+    };
+    const service = new HealthService(prisma as never, queueReadiness as never);
 
     await expect(service.check()).rejects.toThrow(
       new ServiceUnavailableException('Service unavailable'),

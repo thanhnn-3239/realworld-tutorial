@@ -389,7 +389,8 @@ export const ModelName = {
   Tag: 'Tag',
   User: 'User',
   AuthProvider: 'AuthProvider',
-  RefreshToken: 'RefreshToken'
+  RefreshToken: 'RefreshToken',
+  PendingAuthProviderLink: 'PendingAuthProviderLink'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -405,7 +406,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "article" | "comment" | "tag" | "user" | "authProvider" | "refreshToken"
+    modelProps: "article" | "comment" | "tag" | "user" | "authProvider" | "refreshToken" | "pendingAuthProviderLink"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -853,6 +854,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    PendingAuthProviderLink: {
+      payload: Prisma.$PendingAuthProviderLinkPayload<ExtArgs>
+      fields: Prisma.PendingAuthProviderLinkFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PendingAuthProviderLinkFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PendingAuthProviderLinkPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PendingAuthProviderLinkFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PendingAuthProviderLinkPayload>
+        }
+        findFirst: {
+          args: Prisma.PendingAuthProviderLinkFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PendingAuthProviderLinkPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PendingAuthProviderLinkFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PendingAuthProviderLinkPayload>
+        }
+        findMany: {
+          args: Prisma.PendingAuthProviderLinkFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PendingAuthProviderLinkPayload>[]
+        }
+        create: {
+          args: Prisma.PendingAuthProviderLinkCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PendingAuthProviderLinkPayload>
+        }
+        createMany: {
+          args: Prisma.PendingAuthProviderLinkCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PendingAuthProviderLinkCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PendingAuthProviderLinkPayload>[]
+        }
+        delete: {
+          args: Prisma.PendingAuthProviderLinkDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PendingAuthProviderLinkPayload>
+        }
+        update: {
+          args: Prisma.PendingAuthProviderLinkUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PendingAuthProviderLinkPayload>
+        }
+        deleteMany: {
+          args: Prisma.PendingAuthProviderLinkDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PendingAuthProviderLinkUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PendingAuthProviderLinkUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PendingAuthProviderLinkPayload>[]
+        }
+        upsert: {
+          args: Prisma.PendingAuthProviderLinkUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PendingAuthProviderLinkPayload>
+        }
+        aggregate: {
+          args: Prisma.PendingAuthProviderLinkAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePendingAuthProviderLink>
+        }
+        groupBy: {
+          args: Prisma.PendingAuthProviderLinkGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PendingAuthProviderLinkGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PendingAuthProviderLinkCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PendingAuthProviderLinkCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -960,6 +1035,19 @@ export const RefreshTokenScalarFieldEnum = {
 } as const
 
 export type RefreshTokenScalarFieldEnum = (typeof RefreshTokenScalarFieldEnum)[keyof typeof RefreshTokenScalarFieldEnum]
+
+
+export const PendingAuthProviderLinkScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  provider: 'provider',
+  providerAccountId: 'providerAccountId',
+  tokenHash: 'tokenHash',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt'
+} as const
+
+export type PendingAuthProviderLinkScalarFieldEnum = (typeof PendingAuthProviderLinkScalarFieldEnum)[keyof typeof PendingAuthProviderLinkScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1148,6 +1236,7 @@ export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
   authProvider?: Prisma.AuthProviderOmit
   refreshToken?: Prisma.RefreshTokenOmit
+  pendingAuthProviderLink?: Prisma.PendingAuthProviderLinkOmit
 }
 
 /* Types for Logging */

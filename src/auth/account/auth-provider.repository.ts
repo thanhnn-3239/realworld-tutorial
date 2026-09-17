@@ -14,8 +14,9 @@ export class AuthProviderRepository {
 
   async findAccountByProvider(
     identifier: ProviderIdentifier,
+    client: Prisma.TransactionClient = this.prisma,
   ): Promise<AccountRow | null> {
-    const link = await this.prisma.authProvider.findUnique({
+    const link = await client.authProvider.findUnique({
       where: {
         provider_providerAccountId: {
           provider: identifier.provider,

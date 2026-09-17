@@ -13,6 +13,10 @@ import { AuthResponseDto } from './dto/auth-response.dto';
 import { PasswordService } from '../common/password/password.service';
 import { TokenPair, TokenService } from './token/token.service';
 import { AccountResolverService } from './account/account-resolver.service';
+import { ProviderLinkService } from './account-linking/provider-link.service';
+import { ConfirmProviderLinkDto } from './dto/confirm-provider-link.dto';
+import { ProviderLinkConfirmedResponseDto } from './dto/provider-link-confirmed-response.dto';
+import { OAuthCallbackResult } from './interfaces/oauth-callback-result.interface';
 import { VerifiedIdentity } from './providers/verified-identity.interface';
 import { FileStorageService } from '../file-storage/file-storage.service';
 
@@ -28,6 +32,7 @@ export class AuthService implements OnModuleInit {
     private readonly passwordService: PasswordService,
     private readonly accountResolver: AccountResolverService,
     private readonly fileStorage: FileStorageService,
+    private readonly providerLinks: ProviderLinkService,
   ) {}
 
   /**
@@ -123,16 +128,34 @@ export class AuthService implements OnModuleInit {
 
   async handleOAuthCallback(
     identity: VerifiedIdentity,
-  ): Promise<AuthResponseDto> {
-    const account = await this.accountResolver.resolve(identity);
+  ): Promise<OAuthCallbackResult> {
+    const resolution = await this.accountResolver.resolve(identity);
+    if (resolution.kind === 'confirmation-required') {
+      return {
+        kind: 'confirmation-required',
+        data: { status: 'confirmation_required' },
+      };
+    }
+
+    const { account } = resolution;
     const tokens = await this.tokenService.issueTokens(account.id);
 
-    return new AuthResponseDto({
-      email: account.email,
-      username: account.username,
-      bio: account.bio,
-      image: this.fileStorage.publicUrl(account.image),
-      ...tokens,
-    });
+    return {
+      kind: 'authenticated',
+      data: new AuthResponseDto({
+        email: account.email,
+        username: account.username,
+        bio: account.bio,
+        image: this.fileStorage.publicUrl(account.image),
+        ...tokens,
+      }),
+    };
+  }
+
+  async confirmGoogleLink(
+    dto: ConfirmProviderLinkDto,
+  ): Promise<ProviderLinkConfirmedResponseDto> {
+    await this.providerLinks.confirm(dto.token);
+    return { confirmed: true };
   }
 }

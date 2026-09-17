@@ -5,6 +5,7 @@ import {
   normalizeSuiteLabel,
   suiteBucketName,
   suiteDatabaseName,
+  suiteRedisPrefix,
   templateDatabaseName,
 } from './support/e2e-resource-names';
 
@@ -17,6 +18,13 @@ function validEnv(overrides: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
     STORAGE_ENDPOINT: 'http://minio:9000',
     STORAGE_ACCESS_KEY: 'access',
     STORAGE_SECRET_KEY: 'secret',
+    REDIS_URL: 'redis://redis:6379',
+    REDIS_PREFIX: 'realworld-e2e',
+    SMTP_HOST: 'mailpit',
+    SMTP_PORT: '1025',
+    MAIL_FROM: 'no-reply@realworld.test',
+    MAILPIT_API_URL: 'http://mailpit:8025',
+    GOOGLE_LINK_CONFIRM_URL: 'http://frontend.test/auth/google/link/confirm',
     ...overrides,
   };
 }
@@ -41,19 +49,29 @@ describe('E2E configuration', () => {
       storageAccessKey: 'access',
       storageSecretKey: 'secret',
       storageRegion: 'us-east-1',
+      redisUrl: 'redis://redis:6379',
+      redisPrefix: 'realworld-e2e',
+      smtpHost: 'mailpit',
+      smtpPort: 1025,
+      mailFrom: 'no-reply@realworld.test',
+      mailpitApiUrl: 'http://mailpit:8025',
+      googleLinkConfirmUrl: 'http://frontend.test/auth/google/link/confirm',
     });
     expect(Object.isFrozen(config)).toBe(true);
     expect(env.STORAGE_REGION).toBeUndefined();
   });
 
-  it.each(['DATABASE_URL', 'STORAGE_ENDPOINT'] as const)(
-    'rejects a missing or malformed %s',
-    (key) => {
-      expect(() => readE2eBaseConfig(validEnv({ [key]: 'not a url' }))).toThrow(
-        key,
-      );
-    },
-  );
+  it.each([
+    'DATABASE_URL',
+    'STORAGE_ENDPOINT',
+    'REDIS_URL',
+    'MAILPIT_API_URL',
+    'GOOGLE_LINK_CONFIRM_URL',
+  ] as const)('rejects a missing or malformed %s', (key) => {
+    expect(() => readE2eBaseConfig(validEnv({ [key]: 'not a url' }))).toThrow(
+      key,
+    );
+  });
 
   it('builds a frozen suite config with derived URLs', () => {
     const base = readE2eBaseConfig(validEnv());
@@ -61,6 +79,8 @@ describe('E2E configuration', () => {
       base,
       `e2e_${RUN_ID}_articles`,
       `e2e-${RUN_ID}-articles`,
+      RUN_ID,
+      'articles',
     );
 
     expect(config.databaseUrl).toBe(
@@ -69,6 +89,7 @@ describe('E2E configuration', () => {
     expect(config.storagePublicUrl).toBe(
       `http://minio:9000/e2e-${RUN_ID}-articles`,
     );
+    expect(config.redisPrefix).toBe(`realworld:e2e:${RUN_ID}:articles`);
     expect(Object.isFrozen(config)).toBe(true);
   });
 });
@@ -81,6 +102,9 @@ describe('E2E resource names', () => {
     expect(suiteBucketName(RUN_ID, 'articles')).not.toBe(
       suiteBucketName(RUN_ID, 'comments'),
     );
+    expect(suiteRedisPrefix(RUN_ID, 'articles')).not.toBe(
+      suiteRedisPrefix(RUN_ID, 'comments'),
+    );
   });
 
   it('normalizes labels and constructs the template name', () => {
@@ -88,6 +112,9 @@ describe('E2E resource names', () => {
       'article_http_crud',
     );
     expect(templateDatabaseName(RUN_ID)).toBe(`e2e_${RUN_ID}_tpl`);
+    expect(suiteRedisPrefix(RUN_ID, 'Article HTTP / CRUD')).toBe(
+      `realworld:e2e:${RUN_ID}:article_http_crud`,
+    );
   });
 
   it.each(['realworld', 'postgres', 'e2e_wrong'])(

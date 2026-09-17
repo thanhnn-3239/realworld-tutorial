@@ -43,6 +43,30 @@ services:
       retries: 12
       start_period: 10s
 
+  redis:
+    image: redis:7.4.2-alpine
+    volumes:
+      - redis:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+
+  mailpit:
+    image: axllent/mailpit:v1.30.6
+    environment:
+      MP_ENABLE_CHAOS: 'true'
+    ports:
+      - 127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025
+    healthcheck:
+      test: ['CMD', '/mailpit', 'readyz']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+
   app:
     build:
       context: .
@@ -54,6 +78,8 @@ services:
     environment:
       DATABASE_URL: postgresql://${DATABASE_USERNAME:-root}:${DATABASE_PASSWORD:-secret}@postgres:5432/${DATABASE_NAME:-realworld}?schema=public
       STORAGE_ENDPOINT: http://minio:9000
+      REDIS_URL: redis://redis:6379
+      SMTP_HOST: mailpit
     init: true
     command:
       [
@@ -69,6 +95,10 @@ services:
       postgres:
         condition: service_healthy
       minio:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailpit:
         condition: service_healthy
     healthcheck:
       test:
@@ -95,3 +125,4 @@ services:
 volumes:
   postgres:
   minio:
+  redis:
