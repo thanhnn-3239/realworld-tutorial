@@ -20,10 +20,18 @@ export class ArticleEventProducer {
 
   emitArticleFavorited(event: ArticleFavoritedEvent): void {
     try {
-      this.kafkaClient.emit(EVENT_ARTICLE_FAVORITED, {
-        key: String(event.articleId),
-        value: event,
-      });
+      this.kafkaClient
+        .emit(EVENT_ARTICLE_FAVORITED, {
+          key: String(event.articleId),
+          value: event,
+        })
+        .subscribe({
+          error: (err: Error) => {
+            this.logger.error(
+              `Failed to emit ${EVENT_ARTICLE_FAVORITED} for article ${event.articleId}: ${err.message}`,
+            );
+          },
+        });
       this.logger.log(
         `Emitted ${EVENT_ARTICLE_FAVORITED} for article ${event.articleId}`,
       );
@@ -37,10 +45,18 @@ export class ArticleEventProducer {
 
   emitArticleCreated(event: ArticleCreatedEvent): void {
     try {
-      this.kafkaClient.emit(EVENT_ARTICLE_CREATED, {
-        key: String(event.articleId),
-        value: event,
-      });
+      this.kafkaClient
+        .emit(EVENT_ARTICLE_CREATED, {
+          key: String(event.articleId),
+          value: event,
+        })
+        .subscribe({
+          error: (err: Error) => {
+            this.logger.error(
+              `Failed to emit ${EVENT_ARTICLE_CREATED} for article ${event.articleId}: ${err.message}`,
+            );
+          },
+        });
       this.logger.log(
         `Emitted ${EVENT_ARTICLE_CREATED} for article ${event.articleId}`,
       );

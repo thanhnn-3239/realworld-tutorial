@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { CustomLoggerService } from '../logger/logger.service';
 import { ArticleEventProducer } from './article-event.producer';
 import {
@@ -74,7 +74,7 @@ describe('ArticleEventProducer', () => {
     });
   });
 
-  it('catches and logs error without throwing if emit fails', () => {
+  it('catches and logs error without throwing if emit throws synchronously', () => {
     mockKafkaClient.emit.mockImplementation(() => {
       throw new Error('Kafka connection down');
     });
@@ -91,6 +91,47 @@ describe('ArticleEventProducer', () => {
       }),
     ).not.toThrow();
 
-    expect(mockLogger.error).toHaveBeenCalled();
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      expect.stringContaining('Kafka connection down'),
+    );
+  });
+
+  it('logs error when Observable emitted by emitArticleFavorited errors asynchronously', () => {
+    mockKafkaClient.emit.mockReturnValue(
+      throwError(() => new Error('Async broker disconnect')),
+    );
+
+    producer.emitArticleFavorited({
+      articleId: 1,
+      slug: 'slug',
+      title: 'title',
+      authorId: 2,
+      favoritedByUserId: 3,
+      favoritedByUsername: 'user',
+      occurredAt: 'now',
+    });
+
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      expect.stringContaining('Async broker disconnect'),
+    );
+  });
+
+  it('logs error when Observable emitted by emitArticleCreated errors asynchronously', () => {
+    mockKafkaClient.emit.mockReturnValue(
+      throwError(() => new Error('Async broker disconnect on created')),
+    );
+
+    producer.emitArticleCreated({
+      articleId: 2,
+      slug: 'slug-created',
+      title: 'title-created',
+      authorId: 3,
+      authorUsername: 'author',
+      occurredAt: 'now',
+    });
+
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      expect.stringContaining('Async broker disconnect on created'),
+    );
   });
 });

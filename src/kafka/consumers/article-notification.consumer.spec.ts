@@ -1,8 +1,3 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { CustomLoggerService } from '../../logger/logger.service';
-import { UsersRepository } from '../../users/users.repository';
-import { EmailQueueProducer } from '../../email/email-queue.producer';
-import { PrismaService } from '../../prisma/prisma.service';
 import { ArticleNotificationConsumer } from './article-notification.consumer';
 import { ArticleFavoritedEvent } from '../events/article-favorited.event';
 import { ArticleCreatedEvent } from '../events/article-created.event';
@@ -42,20 +37,13 @@ describe('ArticleNotificationConsumer', () => {
     occurredAt: 'now',
   };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.clearAllMocks();
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [ArticleNotificationConsumer],
-      providers: [
-        { provide: UsersRepository, useValue: mockUsersRepo },
-        { provide: EmailQueueProducer, useValue: mockEmailQueueProducer },
-        { provide: PrismaService, useValue: mockPrisma },
-        { provide: CustomLoggerService, useValue: mockLogger },
-      ],
-    }).compile();
-
-    consumer = module.get<ArticleNotificationConsumer>(
-      ArticleNotificationConsumer,
+    consumer = new ArticleNotificationConsumer(
+      mockUsersRepo as any,
+      mockEmailQueueProducer as any,
+      mockPrisma as any,
+      mockLogger as any,
     );
   });
 
@@ -99,6 +87,36 @@ describe('ArticleNotificationConsumer', () => {
       });
     });
 
+    it('resolves acting username via UsersRepository when username starts with user-', async () => {
+      mockUsersRepo.findById
+        .mockResolvedValueOnce({
+          id: 10,
+          email: 'author@example.com',
+          username: 'john',
+        })
+        .mockResolvedValueOnce({
+          id: 20,
+          email: 'jake@example.com',
+          username: 'jake',
+        });
+
+      await consumer.handleArticleFavorited({
+        ...baseFavEvent,
+        favoritedByUsername: 'user-20',
+      });
+
+      expect(mockUsersRepo.findById).toHaveBeenCalledWith(10);
+      expect(mockUsersRepo.findById).toHaveBeenCalledWith(20);
+      expect(
+        mockEmailQueueProducer.enqueueArticleNotification,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subject: 'jake đã thích bài viết của bạn',
+          body: 'Xin chào john, jake vừa thích bài viết "Great Post" của bạn.',
+        }),
+      );
+    });
+
     it('handles author not found gracefully without throwing', async () => {
       mockUsersRepo.findById.mockResolvedValue(null);
 
@@ -134,28 +152,21 @@ describe('ArticleNotificationConsumer', () => {
       expect(
         mockEmailQueueProducer.enqueueArticleNotification,
       ).toHaveBeenCalledTimes(2);
-      expect(
-        mockEmailQueueProducer.enqueueArticleNotification,
-      ).toHaveBeenNthCalledWith(1, {
-        to: 'follower1@example.com',
-        recipientId: 21,
-        recipientUsername: 'follower1',
+      const makePayload = (id: number, username: string) => ({
+        to: `${username}@example.com`,
+        recipientId: id,
+        recipientUsername: username,
         subject: 'john vừa đăng bài viết mới',
-        body: 'Xin chào follower1, tác giả john vừa đăng bài viết mới: "Brand New Post".',
+        body: `Xin chào ${username}, tác giả john vừa đăng bài viết mới: "Brand New Post".`,
         eventType: EVENT_ARTICLE_CREATED,
         articleId: 5,
       });
       expect(
         mockEmailQueueProducer.enqueueArticleNotification,
-      ).toHaveBeenNthCalledWith(2, {
-        to: 'follower2@example.com',
-        recipientId: 22,
-        recipientUsername: 'follower2',
-        subject: 'john vừa đăng bài viết mới',
-        body: 'Xin chào follower2, tác giả john vừa đăng bài viết mới: "Brand New Post".',
-        eventType: EVENT_ARTICLE_CREATED,
-        articleId: 5,
-      });
+      ).toHaveBeenNthCalledWith(1, makePayload(21, 'follower1'));
+      expect(
+        mockEmailQueueProducer.enqueueArticleNotification,
+      ).toHaveBeenNthCalledWith(2, makePayload(22, 'follower2'));
     });
 
     it('handles author with no followers gracefully', async () => {

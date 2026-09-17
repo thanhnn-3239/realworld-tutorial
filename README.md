@@ -42,8 +42,8 @@ Hệ thống sử dụng BullMQ và Redis để xử lý tác vụ nền (gửi 
 ## Apache Kafka & Article Notifications
 
 Hệ thống sử dụng Apache Kafka để triển khai kiến trúc Event-Driven cho các sự kiện bài viết (article notification):
-- Khi bài viết mới được tạo (`POST /api/articles`), sự kiện `article.created` được gửi lên Kafka topic `article-events`. Consumer nhận event và đưa email thông báo cho tất cả người theo dõi (followers) của tác giả vào BullMQ email queue.
-- Khi người dùng thích bài viết (`POST /api/articles/:slug/favorite`), sự kiện `article.favorited` được gửi lên Kafka topic `article-events`. Consumer nhận event và đưa email thông báo cho tác giả bài viết vào BullMQ email queue (bỏ qua nếu tác giả tự thích bài viết của mình).
+- Khi bài viết mới được tạo (`POST /api/articles`), sự kiện được gửi lên Kafka topic `article.created`. Consumer nhận event và đưa email thông báo cho tất cả người theo dõi (followers) của tác giả vào BullMQ email queue.
+- Khi người dùng thích bài viết (`POST /api/articles/:slug/favorite`), sự kiện được gửi lên Kafka topic `article.favorited`. Consumer nhận event và đưa email thông báo cho tác giả bài viết vào BullMQ email queue (bỏ qua nếu tác giả tự thích bài viết của mình).
 
 ### Khởi động Kafka ở môi trường Local
 
@@ -55,16 +55,16 @@ Nếu muốn khởi động hoặc kiểm tra riêng dịch vụ Kafka:
 docker compose up -d kafka
 ```
 
-Để theo dõi các sự kiện được publish lên topic `article-events` qua console consumer:
+Để theo dõi các sự kiện được publish lên topic `article.favorited` (hoặc thay bằng `--topic article.created`) qua console consumer:
 
 ```bash
-docker compose exec kafka /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic article-events --from-beginning
+docker compose exec kafka /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic article.favorited --from-beginning
 ```
 
 Hoặc nếu chạy trực tiếp trên môi trường có sẵn Kafka CLI:
 
 ```bash
-/opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic article-events --from-beginning
+/opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic article.favorited --from-beginning
 ```
 
 ### Kết nối Aiven Kafka Cloud (Free Tier) với SSL/SASL

@@ -22,6 +22,7 @@ import { parseKafkaConfig } from './kafka.config';
             transport: Transport.KAFKA,
             options: {
               client: config.client,
+              producerOnlyMode: true,
               producer: {
                 allowAutoTopicCreation: true,
               },

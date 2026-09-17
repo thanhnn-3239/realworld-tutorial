@@ -41,12 +41,22 @@ export class ArticleNotificationConsumer {
       return;
     }
 
+    let actorUsername = event.favoritedByUsername;
+    if (!actorUsername || actorUsername.startsWith('user-')) {
+      const actor = await this.usersRepository.findById(
+        event.favoritedByUserId,
+      );
+      if (actor?.username) {
+        actorUsername = actor.username;
+      }
+    }
+
     await this.emailQueueProducer.enqueueArticleNotification({
       to: author.email,
       recipientId: author.id,
       recipientUsername: author.username,
-      subject: `${event.favoritedByUsername} đã thích bài viết của bạn`,
-      body: `Xin chào ${author.username}, ${event.favoritedByUsername} vừa thích bài viết "${event.title}" của bạn.`,
+      subject: `${actorUsername} đã thích bài viết của bạn`,
+      body: `Xin chào ${author.username}, ${actorUsername} vừa thích bài viết "${event.title}" của bạn.`,
       eventType: EVENT_ARTICLE_FAVORITED,
       articleId: event.articleId,
     });
@@ -68,17 +78,19 @@ export class ArticleNotificationConsumer {
       return;
     }
 
-    for (const follower of followers) {
-      await this.emailQueueProducer.enqueueArticleNotification({
-        to: follower.email,
-        recipientId: follower.id,
-        recipientUsername: follower.username,
-        subject: `${event.authorUsername} vừa đăng bài viết mới`,
-        body: `Xin chào ${follower.username}, tác giả ${event.authorUsername} vừa đăng bài viết mới: "${event.title}".`,
-        eventType: EVENT_ARTICLE_CREATED,
-        articleId: event.articleId,
-      });
-    }
+    await Promise.all(
+      followers.map((follower) =>
+        this.emailQueueProducer.enqueueArticleNotification({
+          to: follower.email,
+          recipientId: follower.id,
+          recipientUsername: follower.username,
+          subject: `${event.authorUsername} vừa đăng bài viết mới`,
+          body: `Xin chào ${follower.username}, tác giả ${event.authorUsername} vừa đăng bài viết mới: "${event.title}".`,
+          eventType: EVENT_ARTICLE_CREATED,
+          articleId: event.articleId,
+        }),
+      ),
+    );
 
     this.logger.log(
       `Enqueued ${followers.length} notification emails for article ${event.articleId}`,
