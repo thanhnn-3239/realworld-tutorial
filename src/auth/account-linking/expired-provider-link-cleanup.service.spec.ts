@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ScheduleModule, SchedulerRegistry } from '@nestjs/schedule';
+import {
+  CronExpression,
+  ScheduleModule,
+  SchedulerRegistry,
+} from '@nestjs/schedule';
 import { CustomLoggerService } from '../../logger/logger.service';
 import { ExpiredProviderLinkCleanupService } from './expired-provider-link-cleanup.service';
 import { PendingProviderLinkRepository } from './pending-provider-link.repository';
@@ -109,6 +113,6 @@ describe('ExpiredProviderLinkCleanupService scheduling', () => {
   it('schedules the sweep daily at 4am', () => {
     const [job] = [...moduleRef.get(SchedulerRegistry).getCronJobs().values()];
 
-    expect(job.cronTime.source).toBe('0 0 4 * * *');
+    expect(job.cronTime.source).toBe(CronExpression.EVERY_DAY_AT_4AM);
   });
 });
