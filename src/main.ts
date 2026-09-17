@@ -4,6 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { configureApp } from './common/bootstrap/configure-app';
 import { CustomLoggerService } from './logger/logger.service';
+import { createMicroserviceOptions } from './kafka/kafka.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -14,6 +15,11 @@ async function bootstrap() {
   app.useLogger(await app.resolve(CustomLoggerService));
 
   configureApp(app);
+
+  if (process.env.ENABLE_KAFKA !== 'false') {
+    app.connectMicroservice(createMicroserviceOptions());
+    await app.startAllMicroservices();
+  }
 
   // Swagger configuration
   const config = new DocumentBuilder()

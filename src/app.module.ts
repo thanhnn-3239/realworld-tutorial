@@ -26,6 +26,7 @@ import { HealthModule } from './health/health.module';
 import { FileStorageModule } from './file-storage/file-storage.module';
 import { BackgroundJobsModule } from './background-jobs/background-jobs.module';
 import { EmailModule } from './email/email.module';
+import { KafkaModule } from './kafka/kafka.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { EmailModule } from './email/email.module';
     HealthModule,
     BackgroundJobsModule,
     EmailModule,
+    KafkaModule,
   ],
   controllers: [AppController],
   providers: [
