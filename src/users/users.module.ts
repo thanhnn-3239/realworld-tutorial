@@ -10,6 +10,6 @@ import { ImageProcessingModule } from '../image-processing/image-processing.modu
   imports: [PrismaModule, ImageProcessingModule],
   controllers: [UsersController],
   providers: [UsersService, UsersRepository, AvatarReplacementService],
-  exports: [UsersService],
+  exports: [UsersService, UsersRepository],
 })
 export class UsersModule {}
