@@ -3,7 +3,10 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { CustomLoggerService } from '../logger/logger.service';
 import { EnqueueProviderLinkEmail } from './interfaces/enqueue-provider-link-email.interface';
+import { ArticleNotificationJob } from './interfaces/article-notification-job.interface';
 import {
+  ARTICLE_NOTIFICATION_JOB,
+  ARTICLE_NOTIFICATION_JOB_ID_PREFIX,
   AUTH_PROVIDER_LINK_CONFIRMATION_JOB,
   EMAIL_JOB_ID_PREFIX,
   EMAIL_PRODUCER_CONFIG_KEY,
@@ -45,6 +48,30 @@ export class EmailQueueProducer {
 
     this.logger.log(
       `Enqueued provider link confirmation job: ${jobId} for pendingId: ${input.job.pendingId}`,
+    );
+  }
+
+  async enqueueArticleNotification(
+    input: ArticleNotificationJob,
+  ): Promise<void> {
+    const jobId = `${ARTICLE_NOTIFICATION_JOB_ID_PREFIX}${input.eventType}-${input.articleId}-${input.recipientId}`;
+
+    await this.emailQueue.add(ARTICLE_NOTIFICATION_JOB, input, {
+      attempts: EMAIL_QUEUE_ATTEMPTS,
+      backoff: {
+        type: EMAIL_QUEUE_BACKOFF_TYPE,
+        delay: EMAIL_QUEUE_BACKOFF_DELAY_MS,
+      },
+      jobId,
+      removeOnComplete: true,
+      removeOnFail: {
+        age: EMAIL_QUEUE_FAILED_JOB_AGE_SECS,
+        count: EMAIL_QUEUE_FAILED_JOB_MAX_COUNT,
+      },
+    });
+
+    this.logger.log(
+      `Enqueued article notification job: ${jobId} for recipient ${input.recipientId}`,
     );
   }
 }
