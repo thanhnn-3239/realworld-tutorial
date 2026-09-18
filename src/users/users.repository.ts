@@ -46,6 +46,15 @@ export class UsersRepository {
     });
   }
 
+  async findFollowersByAuthorId(
+    authorId: number,
+  ): Promise<Array<{ id: number; email: string; username: string }>> {
+    return this.prisma.user.findMany({
+      where: { following: { some: { id: authorId } } },
+      select: { id: true, email: true, username: true },
+    });
+  }
+
   private publicUserSelect(): Prisma.UserSelect {
     return {
       id: true,

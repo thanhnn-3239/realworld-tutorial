@@ -132,8 +132,8 @@ describe('EmailQueueProducer', () => {
     const notificationJob: ArticleNotificationJob = {
       to: 'author@example.com',
       recipientUsername: 'author1',
-      subject: 'user2 vừa thích bài viết của bạn',
-      body: 'Xin chào author1, user2 vừa thích bài viết "Hello World" của bạn.',
+      subject: 'user2 favorited your article',
+      body: 'Hello author1, user2 just favorited your article "Hello World".',
       eventType: 'ARTICLE_FAVORITED',
       articleId: 99,
       recipientId: 7,

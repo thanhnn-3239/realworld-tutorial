@@ -6,8 +6,6 @@ import { UsersModule } from '../users/users.module';
 import { UsersRepository } from '../users/users.repository';
 import { EmailModule } from '../email/email.module';
 import { EmailQueueProducer } from '../email/email-queue.producer';
-import { PrismaModule } from '../prisma/prisma.module';
-import { PrismaService } from '../prisma/prisma.service';
 import { ArticleEventProducer } from './producers/article-event.producer';
 import { ArticleNotificationConsumer } from './consumers/article-notification.consumer';
 import { KafkaModule } from './kafka.module';
@@ -25,12 +23,6 @@ class MockUsersModule {}
 })
 class MockEmailModule {}
 
-@Module({
-  providers: [{ provide: PrismaService, useValue: {} }],
-  exports: [PrismaService],
-})
-class MockPrismaModule {}
-
 describe('KafkaModule', () => {
   let moduleRef: TestingModule;
 
@@ -46,8 +38,6 @@ describe('KafkaModule', () => {
       .useModule(MockUsersModule)
       .overrideModule(EmailModule)
       .useModule(MockEmailModule)
-      .overrideModule(PrismaModule)
-      .useModule(MockPrismaModule)
       .compile();
   });
 

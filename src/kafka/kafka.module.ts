@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { EmailModule } from '../email/email.module';
-import { PrismaModule } from '../prisma/prisma.module';
 import { UsersModule } from '../users/users.module';
 import { ArticleEventProducer } from './producers/article-event.producer';
 import { ArticleNotificationConsumer } from './consumers/article-notification.consumer';
@@ -12,7 +11,6 @@ import { parseKafkaConfig } from './kafka.config';
   imports: [
     UsersModule,
     EmailModule,
-    PrismaModule,
     ClientsModule.registerAsync([
       {
         name: KAFKA_CLIENT,

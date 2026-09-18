@@ -70,7 +70,7 @@ services:
   kafka:
     image: apache/kafka:4.0.0
     ports:
-      - "127.0.0.1:9092:9092"
+      - 127.0.0.1:${KAFKA_PORT:-9092}:9092
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller

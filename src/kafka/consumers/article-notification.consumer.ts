@@ -3,7 +3,6 @@ import { EventPattern, Payload } from '@nestjs/microservices';
 import { CustomLoggerService } from '../../logger/logger.service';
 import { UsersRepository } from '../../users/users.repository';
 import { EmailQueueProducer } from '../../email/email-queue.producer';
-import { PrismaService } from '../../prisma/prisma.service';
 import {
   EVENT_ARTICLE_CREATED,
   EVENT_ARTICLE_FAVORITED,
@@ -16,7 +15,6 @@ export class ArticleNotificationConsumer {
   constructor(
     private readonly usersRepository: UsersRepository,
     private readonly emailQueueProducer: EmailQueueProducer,
-    private readonly prisma: PrismaService,
     private readonly logger: CustomLoggerService,
   ) {
     this.logger.setContext(ArticleNotificationConsumer.name);
@@ -41,22 +39,12 @@ export class ArticleNotificationConsumer {
       return;
     }
 
-    let actorUsername = event.favoritedByUsername;
-    if (!actorUsername || actorUsername.startsWith('user-')) {
-      const actor = await this.usersRepository.findById(
-        event.favoritedByUserId,
-      );
-      if (actor?.username) {
-        actorUsername = actor.username;
-      }
-    }
-
     await this.emailQueueProducer.enqueueArticleNotification({
       to: author.email,
       recipientId: author.id,
       recipientUsername: author.username,
-      subject: `${actorUsername} đã thích bài viết của bạn`,
-      body: `Xin chào ${author.username}, ${actorUsername} vừa thích bài viết "${event.title}" của bạn.`,
+      subject: `${event.favoritedByUsername} favorited your article`,
+      body: `Hello ${author.username}, ${event.favoritedByUsername} just favorited your article "${event.title}".`,
       eventType: EVENT_ARTICLE_FAVORITED,
       articleId: event.articleId,
     });
@@ -66,10 +54,9 @@ export class ArticleNotificationConsumer {
   async handleArticleCreated(
     @Payload() event: ArticleCreatedEvent,
   ): Promise<void> {
-    const followers = await this.prisma.user.findMany({
-      where: { following: { some: { id: event.authorId } } },
-      select: { id: true, email: true, username: true },
-    });
+    const followers = await this.usersRepository.findFollowersByAuthorId(
+      event.authorId,
+    );
 
     if (followers.length === 0) {
       this.logger.log(
@@ -84,8 +71,8 @@ export class ArticleNotificationConsumer {
           to: follower.email,
           recipientId: follower.id,
           recipientUsername: follower.username,
-          subject: `${event.authorUsername} vừa đăng bài viết mới`,
-          body: `Xin chào ${follower.username}, tác giả ${event.authorUsername} vừa đăng bài viết mới: "${event.title}".`,
+          subject: `${event.authorUsername} published a new article`,
+          body: `Hello ${follower.username}, author ${event.authorUsername} just published a new article: "${event.title}".`,
           eventType: EVENT_ARTICLE_CREATED,
           articleId: event.articleId,
         }),

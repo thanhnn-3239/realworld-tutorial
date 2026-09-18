@@ -45,7 +45,7 @@ export class FavoritesController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('slug') slug: string,
   ) {
-    return this.favoritesService.favorite(user.id, slug, user.username);
+    return this.favoritesService.favorite(user.id, slug);
   }
 
   @Delete()

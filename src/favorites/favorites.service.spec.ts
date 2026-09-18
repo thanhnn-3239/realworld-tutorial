@@ -13,22 +13,12 @@ import {
 } from './testing/favorites-test-fixtures';
 
 describe('FavoritesService', () => {
-  const articlesRepository = {
-    findBySlug: jest.fn(),
-  };
-  const favoritesRepository = {
-    connect: jest.fn(),
-    disconnect: jest.fn(),
-  };
-  const responseMapper = {
-    toResponse: jest.fn((article: unknown) => article),
-  };
-  const i18n = {
-    t: jest.fn((key: string) => `translated:${key}`),
-  };
-  const eventProducer = {
-    emitArticleFavorited: jest.fn(),
-  };
+  const articlesRepository = { findBySlug: jest.fn() };
+  const favoritesRepository = { connect: jest.fn(), disconnect: jest.fn() };
+  const responseMapper = { toResponse: jest.fn((article: unknown) => article) };
+  const i18n = { t: jest.fn((key: string) => `translated:${key}`) };
+  const eventProducer = { emitArticleFavorited: jest.fn() };
+  const usersRepository = { findById: jest.fn() };
 
   let service: FavoritesService;
 
@@ -40,6 +30,7 @@ describe('FavoritesService', () => {
       responseMapper as unknown as ArticleResponseMapper,
       i18n as unknown as I18nService,
       eventProducer as unknown as ArticleEventProducer,
+      usersRepository as unknown as any,
     );
   });
 
@@ -129,11 +120,16 @@ describe('FavoritesService', () => {
       await expect(service.favorite(USER_ID, 'hello')).rejects.toBe(failure);
     });
 
-    it('emits article.favorited event with user info, falling back to user-{id}', async () => {
+    it('emits article.favorited event with acting user info', async () => {
       articlesRepository.findBySlug.mockResolvedValue(notFavorited);
       favoritesRepository.connect.mockResolvedValue(favorited);
+      usersRepository.findById.mockResolvedValue({
+        id: USER_ID,
+        username: 'jake',
+      });
 
-      await service.favorite(USER_ID, 'hello', 'jake');
+      await service.favorite(USER_ID, 'hello');
+      expect(usersRepository.findById).toHaveBeenCalledWith(USER_ID);
       expect(eventProducer.emitArticleFavorited).toHaveBeenCalledWith({
         articleId: 1,
         slug: 'hello',
@@ -143,9 +139,15 @@ describe('FavoritesService', () => {
         favoritedByUsername: 'jake',
         occurredAt: expect.any(String),
       });
+    });
+
+    it('falls back to user-{id} if actor is not found', async () => {
+      articlesRepository.findBySlug.mockResolvedValue(notFavorited);
+      favoritesRepository.connect.mockResolvedValue(favorited);
+      usersRepository.findById.mockResolvedValue(null);
 
       await service.favorite(USER_ID, 'hello');
-      expect(eventProducer.emitArticleFavorited).toHaveBeenLastCalledWith(
+      expect(eventProducer.emitArticleFavorited).toHaveBeenCalledWith(
         expect.objectContaining({ favoritedByUsername: `user-${USER_ID}` }),
       );
     });
@@ -153,7 +155,7 @@ describe('FavoritesService', () => {
     it('does not emit article.favorited on idempotent favorite', async () => {
       articlesRepository.findBySlug.mockResolvedValue(favorited);
 
-      await service.favorite(USER_ID, 'hello', 'jake');
+      await service.favorite(USER_ID, 'hello');
       expect(eventProducer.emitArticleFavorited).not.toHaveBeenCalled();
     });
   });

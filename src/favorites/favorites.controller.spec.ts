@@ -18,7 +18,7 @@ describe('FavoritesController', () => {
   it('delegates favorite with the acting user and slug', async () => {
     await controller.favorite(user, 'article-slug');
 
-    expect(service.favorite).toHaveBeenCalledWith(7, 'article-slug', 'jake');
+    expect(service.favorite).toHaveBeenCalledWith(7, 'article-slug');
   });
 
   it('delegates unfavorite with the acting user and slug', async () => {

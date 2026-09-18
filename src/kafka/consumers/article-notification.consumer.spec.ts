@@ -8,9 +8,11 @@ import {
 
 describe('ArticleNotificationConsumer', () => {
   let consumer: ArticleNotificationConsumer;
-  const mockUsersRepo = { findById: jest.fn() };
+  const mockUsersRepo = {
+    findById: jest.fn(),
+    findFollowersByAuthorId: jest.fn(),
+  };
   const mockEmailQueueProducer = { enqueueArticleNotification: jest.fn() };
-  const mockPrisma = { user: { findMany: jest.fn() } };
   const mockLogger = {
     setContext: jest.fn(),
     log: jest.fn(),
@@ -42,7 +44,6 @@ describe('ArticleNotificationConsumer', () => {
     consumer = new ArticleNotificationConsumer(
       mockUsersRepo as any,
       mockEmailQueueProducer as any,
-      mockPrisma as any,
       mockLogger as any,
     );
   });
@@ -80,41 +81,11 @@ describe('ArticleNotificationConsumer', () => {
         to: 'author@example.com',
         recipientId: 10,
         recipientUsername: 'john',
-        subject: 'jane đã thích bài viết của bạn',
-        body: 'Xin chào john, jane vừa thích bài viết "Great Post" của bạn.',
+        subject: 'jane favorited your article',
+        body: 'Hello john, jane just favorited your article "Great Post".',
         eventType: EVENT_ARTICLE_FAVORITED,
         articleId: 1,
       });
-    });
-
-    it('resolves acting username via UsersRepository when username starts with user-', async () => {
-      mockUsersRepo.findById
-        .mockResolvedValueOnce({
-          id: 10,
-          email: 'author@example.com',
-          username: 'john',
-        })
-        .mockResolvedValueOnce({
-          id: 20,
-          email: 'jake@example.com',
-          username: 'jake',
-        });
-
-      await consumer.handleArticleFavorited({
-        ...baseFavEvent,
-        favoritedByUsername: 'user-20',
-      });
-
-      expect(mockUsersRepo.findById).toHaveBeenCalledWith(10);
-      expect(mockUsersRepo.findById).toHaveBeenCalledWith(20);
-      expect(
-        mockEmailQueueProducer.enqueueArticleNotification,
-      ).toHaveBeenCalledWith(
-        expect.objectContaining({
-          subject: 'jake đã thích bài viết của bạn',
-          body: 'Xin chào john, jake vừa thích bài viết "Great Post" của bạn.',
-        }),
-      );
     });
 
     it('handles author not found gracefully without throwing', async () => {
@@ -138,17 +109,14 @@ describe('ArticleNotificationConsumer', () => {
 
   describe('handleArticleCreated', () => {
     it('queries followers and enqueues notification for each follower', async () => {
-      mockPrisma.user.findMany.mockResolvedValue([
+      mockUsersRepo.findFollowersByAuthorId.mockResolvedValue([
         { id: 21, email: 'follower1@example.com', username: 'follower1' },
         { id: 22, email: 'follower2@example.com', username: 'follower2' },
       ]);
 
       await consumer.handleArticleCreated(baseCreatedEvent);
 
-      expect(mockPrisma.user.findMany).toHaveBeenCalledWith({
-        where: { following: { some: { id: 10 } } },
-        select: { id: true, email: true, username: true },
-      });
+      expect(mockUsersRepo.findFollowersByAuthorId).toHaveBeenCalledWith(10);
       expect(
         mockEmailQueueProducer.enqueueArticleNotification,
       ).toHaveBeenCalledTimes(2);
@@ -156,8 +124,8 @@ describe('ArticleNotificationConsumer', () => {
         to: `${username}@example.com`,
         recipientId: id,
         recipientUsername: username,
-        subject: 'john vừa đăng bài viết mới',
-        body: `Xin chào ${username}, tác giả john vừa đăng bài viết mới: "Brand New Post".`,
+        subject: 'john published a new article',
+        body: `Hello ${username}, author john just published a new article: "Brand New Post".`,
         eventType: EVENT_ARTICLE_CREATED,
         articleId: 5,
       });
@@ -170,14 +138,11 @@ describe('ArticleNotificationConsumer', () => {
     });
 
     it('handles author with no followers gracefully', async () => {
-      mockPrisma.user.findMany.mockResolvedValue([]);
+      mockUsersRepo.findFollowersByAuthorId.mockResolvedValue([]);
 
       await consumer.handleArticleCreated(baseCreatedEvent);
 
-      expect(mockPrisma.user.findMany).toHaveBeenCalledWith({
-        where: { following: { some: { id: 10 } } },
-        select: { id: true, email: true, username: true },
-      });
+      expect(mockUsersRepo.findFollowersByAuthorId).toHaveBeenCalledWith(10);
       expect(
         mockEmailQueueProducer.enqueueArticleNotification,
       ).not.toHaveBeenCalled();
