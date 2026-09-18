@@ -1,14 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { of, throwError } from 'rxjs';
-import { CustomLoggerService } from '../logger/logger.service';
+import { CustomLoggerService } from '../../logger/logger.service';
 import { ArticleEventProducer } from './article-event.producer';
 import {
   EVENT_ARTICLE_CREATED,
   EVENT_ARTICLE_FAVORITED,
   KAFKA_CLIENT,
-} from './constants/kafka.constants';
-import { ArticleCreatedEvent } from './events/article-created.event';
-import { ArticleFavoritedEvent } from './events/article-favorited.event';
+} from '../constants/kafka.constants';
+import { ArticleCreatedEvent } from '../events/article-created.event';
+import { ArticleFavoritedEvent } from '../events/article-favorited.event';
 
 describe('ArticleEventProducer', () => {
   let producer: ArticleEventProducer;

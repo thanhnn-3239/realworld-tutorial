@@ -3,7 +3,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { EmailModule } from '../email/email.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { UsersModule } from '../users/users.module';
-import { ArticleEventProducer } from './article-event.producer';
+import { ArticleEventProducer } from './producers/article-event.producer';
 import { ArticleNotificationConsumer } from './consumers/article-notification.consumer';
 import { KAFKA_CLIENT } from './constants/kafka.constants';
 import { parseKafkaConfig } from './kafka.config';

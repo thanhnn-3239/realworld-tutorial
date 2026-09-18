@@ -5,7 +5,7 @@ import { ArticlesRepository } from '../articles/articles.repository';
 import { ArticleRecord } from '../articles/article-select';
 import { ArticleResponse } from '../articles/interfaces/article-response.interface';
 import { Prisma } from '../generated/prisma/client';
-import { ArticleEventProducer } from '../kafka/article-event.producer';
+import { ArticleEventProducer } from '../kafka/producers/article-event.producer';
 import { FavoritesRepository } from './favorites.repository';
 
 @Injectable()

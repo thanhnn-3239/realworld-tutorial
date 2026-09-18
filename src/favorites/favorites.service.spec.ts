@@ -3,7 +3,7 @@ import { I18nService } from 'nestjs-i18n';
 import { ArticleResponseMapper } from '../articles/article-response.mapper';
 import { ArticlesRepository } from '../articles/articles.repository';
 import { Prisma } from '../generated/prisma/client';
-import { ArticleEventProducer } from '../kafka/article-event.producer';
+import { ArticleEventProducer } from '../kafka/producers/article-event.producer';
 import { FavoritesRepository } from './favorites.repository';
 import { FavoritesService } from './favorites.service';
 import {

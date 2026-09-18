@@ -1,13 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
-import { CustomLoggerService } from '../logger/logger.service';
+import { CustomLoggerService } from '../../logger/logger.service';
 import {
   EVENT_ARTICLE_CREATED,
   EVENT_ARTICLE_FAVORITED,
   KAFKA_CLIENT,
-} from './constants/kafka.constants';
-import { ArticleCreatedEvent } from './events/article-created.event';
-import { ArticleFavoritedEvent } from './events/article-favorited.event';
+} from '../constants/kafka.constants';
+import { ArticleCreatedEvent } from '../events/article-created.event';
+import { ArticleFavoritedEvent } from '../events/article-favorited.event';
 
 @Injectable()
 export class ArticleEventProducer {

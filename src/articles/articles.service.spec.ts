@@ -9,7 +9,7 @@ import { ArticleSlugService } from './article-slug.service';
 import { ArticlesRepository } from './articles.repository';
 import { ArticlesService } from './articles.service';
 import { FileStorageService } from '../file-storage/file-storage.service';
-import { ArticleEventProducer } from '../kafka/article-event.producer';
+import { ArticleEventProducer } from '../kafka/producers/article-event.producer';
 
 // Fixtures below never carry an image, so a passthrough is enough here; the
 // mapper's own conversion behavior is covered in article-response.mapper.spec.ts.

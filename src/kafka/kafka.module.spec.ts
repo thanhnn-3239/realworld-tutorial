@@ -8,7 +8,7 @@ import { EmailModule } from '../email/email.module';
 import { EmailQueueProducer } from '../email/email-queue.producer';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PrismaService } from '../prisma/prisma.service';
-import { ArticleEventProducer } from './article-event.producer';
+import { ArticleEventProducer } from './producers/article-event.producer';
 import { ArticleNotificationConsumer } from './consumers/article-notification.consumer';
 import { KafkaModule } from './kafka.module';
 import { KAFKA_CLIENT } from './constants/kafka.constants';

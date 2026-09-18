@@ -13,7 +13,7 @@ import {
 } from '../prisma/prisma.extension';
 import { ArticleResponseMapper } from './article-response.mapper';
 import { ArticleSlugService } from './article-slug.service';
-import { ArticleEventProducer } from '../kafka/article-event.producer';
+import { ArticleEventProducer } from '../kafka/producers/article-event.producer';
 import {
   buildArticleFilter,
   hasEffectiveUpdate,
