@@ -6,17 +6,21 @@ import {
   MODULE_METADATA,
   PATH_METADATA,
 } from '@nestjs/common/constants';
+import { DECORATORS } from '@nestjs/swagger/dist/constants';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { AuthModule } from '../auth/auth.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AppModule } from '../app.module';
+import { ContentPreviewModule } from '../content-preview/content-preview.module';
+import { ArticlePreviewClientService } from './article-preview-client.service';
 import { ArticleResponseMapper } from './article-response.mapper';
 import { ArticleSlugService } from './article-slug.service';
 import { ArticlesController } from './articles.controller';
 import { ArticlesModule } from './articles.module';
 import { ArticlesRepository } from './articles.repository';
 import { ArticlesService } from './articles.service';
+import { ArticlePreviewResponseDto } from './dto/article-preview-response.dto';
 
 describe('ArticlesController', () => {
   const service = {
@@ -27,8 +31,12 @@ describe('ArticlesController', () => {
     list: jest.fn(),
     feed: jest.fn(),
   };
+  const previewClient = {
+    analyze: jest.fn(),
+  };
   const controller = new ArticlesController(
     service as unknown as ArticlesService,
+    previewClient as unknown as ArticlePreviewClientService,
   );
   const user = { id: 7, email: 'jake@example.com', username: 'jake' };
 
@@ -92,21 +100,46 @@ describe('ArticlesController', () => {
     expect(service.feed).toHaveBeenCalledWith(7, query);
   });
 
+  it('delegates preview to preview client with body', async () => {
+    const dto = { body: 'Draft' };
+    const previewResult = {
+      excerpt: 'Draft',
+      wordCount: 1,
+      readingTimeMinutes: 1,
+    };
+    previewClient.analyze.mockResolvedValue(previewResult);
+
+    const result = await controller.preview(dto);
+
+    expect(previewClient.analyze).toHaveBeenCalledWith('Draft');
+    expect(result).toEqual(previewResult);
+  });
+
   // Nest matches routes in declaration order, so ':slug' declared first would
-  // swallow '/articles/feed' and answer 404.
-  it('declares feed before the slug route', () => {
+  // swallow '/articles/feed' and '/articles/preview' and answer 404.
+  it('declares feed and preview before the slug route', () => {
     const methods = Object.getOwnPropertyNames(ArticlesController.prototype);
 
     expect(methods.indexOf('feed')).toBeGreaterThan(-1);
     expect(methods.indexOf('feed')).toBeLessThan(methods.indexOf('getBySlug'));
+    expect(methods.indexOf('preview')).toBeGreaterThan(-1);
+    expect(methods.indexOf('preview')).toBeLessThan(
+      methods.indexOf('getBySlug'),
+    );
   });
 
-  it('guards list with optional jwt and protects feed with jwt', () => {
+  it('guards list with optional jwt and protects feed and preview with jwt', () => {
     expect(
       Reflect.getMetadata(GUARDS_METADATA, ArticlesController.prototype.list),
     ).toContain(OptionalJwtAuthGuard);
     expect(
       Reflect.getMetadata(GUARDS_METADATA, ArticlesController.prototype.feed),
+    ).toContain(JwtAuthGuard);
+    expect(
+      Reflect.getMetadata(
+        GUARDS_METADATA,
+        ArticlesController.prototype.preview,
+      ),
     ).toContain(JwtAuthGuard);
   });
 
@@ -212,12 +245,20 @@ describe('ArticlesController', () => {
         ArticlesController.prototype.remove,
       ),
     ).toBe(HttpStatus.OK);
+    expect(
+      Reflect.getMetadata(
+        HTTP_CODE_METADATA,
+        ArticlesController.prototype.preview,
+      ),
+    ).toBe(HttpStatus.OK);
   });
 
   it('wires the articles module and registers it in the application module', () => {
     expect(
       Reflect.getMetadata(MODULE_METADATA.IMPORTS, ArticlesModule),
-    ).toEqual(expect.arrayContaining([PrismaModule, AuthModule]));
+    ).toEqual(
+      expect.arrayContaining([PrismaModule, AuthModule, ContentPreviewModule]),
+    );
     expect(
       Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, ArticlesModule),
     ).toContain(ArticlesController);
@@ -233,6 +274,27 @@ describe('ArticlesController', () => {
     );
     expect(Reflect.getMetadata(MODULE_METADATA.IMPORTS, AppModule)).toContain(
       ArticlesModule,
+    );
+  });
+});
+
+describe('ArticlesController Swagger metadata', () => {
+  it('documents the preview success response as the standard envelope', () => {
+    const handler = ArticlesController.prototype.preview;
+    const responses = Reflect.getMetadata(DECORATORS.API_RESPONSE, handler);
+
+    expect(responses[HttpStatus.OK]).toMatchObject({
+      schema: {
+        required: ['statusCode', 'message', 'data'],
+        properties: {
+          data: {
+            $ref: '#/components/schemas/ArticlePreviewResponseDto',
+          },
+        },
+      },
+    });
+    expect(Reflect.getMetadata(DECORATORS.API_EXTRA_MODELS, handler)).toContain(
+      ArticlePreviewResponseDto,
     );
   });
 });

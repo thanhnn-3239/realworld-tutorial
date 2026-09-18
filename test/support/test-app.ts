@@ -6,6 +6,7 @@ import { App } from 'supertest/types';
 
 import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/common/bootstrap/configure-app';
+import { createContentPreviewGrpcOptions } from '../../src/content-preview/content-preview-grpc.config';
 import { IMAGE_PROCESSING_WORKER_PATH_TOKEN } from '../../src/image-processing/constants/image-processing-worker.constants';
 import type { E2eSuiteConfig } from './e2e-config';
 import { TestDatabase } from './test-database';
@@ -18,6 +19,7 @@ export interface TestOverride {
 export interface TestAppOptions {
   readonly providerOverrides?: readonly TestOverride[];
   readonly guardOverrides?: readonly TestOverride[];
+  readonly startContentPreviewGrpc?: boolean;
 }
 
 // ts-jest loads source modules, but the real Piscina thread must execute built JS.
@@ -97,6 +99,11 @@ export async function createTestApp(
   const app = moduleRef.createNestApplication<INestApplication<App>>();
   configureApp(app);
   await app.init();
+
+  if (options.startContentPreviewGrpc) {
+    app.connectMicroservice(createContentPreviewGrpcOptions());
+    await app.startAllMicroservices();
+  }
 
   return app;
 }

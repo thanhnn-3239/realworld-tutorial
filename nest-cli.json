@@ -8,6 +8,10 @@
       {
         "include": "i18n/**/*",
         "watchAssets": true
+      },
+      {
+        "include": "content-preview/**/*.proto",
+        "watchAssets": true
       }
     ]
   }

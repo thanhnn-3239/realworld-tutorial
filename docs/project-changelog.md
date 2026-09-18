@@ -15,6 +15,25 @@ Each entry includes:
 
 ---
 
+## 2026-09-18
+
+### Feat: Article Draft Preview over Loopback gRPC
+
+- **Severity:** Medium
+- **Status:** Complete
+- **Impact:** Authenticated users can generate preview metadata (Unicode-normalized excerpt capped at 160 characters, word count, and estimated reading time) for article drafts before publishing.
+- **Details:**
+  - Defined canonical Protocol Buffers contract (`src/content-preview/content-preview.proto`) with package `content.preview.v1`, service `ContentPreviewService`, and unary method `Analyze`.
+  - Implemented pure normalization and metadata calculator (`ContentPreviewAnalyzerService`) with zero external database, queue, or storage dependencies.
+  - Implemented `@GrpcMethod` adapter (`ContentPreviewGrpcController`) rejecting blank bodies with `RpcException` (`status.INVALID_ARGUMENT`).
+  - Configured NestJS hybrid application: main application starts loopback-only gRPC transport on `127.0.0.1:50051` alongside HTTP, ensuring single-process hosting on Render Free with no public gRPC port exposure.
+  - Implemented REST client boundary (`ArticlePreviewClientService`) with 300 ms RxJS deadline, mapping gRPC errors/timeouts to generic `503 Service Unavailable` without logging the article draft body.
+  - Exposed authenticated `POST /v1/articles/preview` endpoint guarded by `JwtAuthGuard` and validated by `PreviewArticleDto` (using i18n non-blank string rules). Documented with standard `{ statusCode, message, data }` Swagger envelope decorator (`@ApiArticlePreviewResponse`).
+  - Opt-in E2E integration testing (`test/article-draft-preview.e2e-spec.ts`) exercising full HTTP -> `ClientGrpc` -> `@GrpcMethod` communication over real loopback gRPC transport.
+  - Scope boundaries enforced: zero Prisma database writes, zero Kafka event emissions, no public gRPC port, and no second deployed service.
+
+---
+
 ## 2026-09-16
 
 ### Feat: Google Account Link Confirmation Email via BullMQ & Redis

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
+import { ContentPreviewModule } from '../content-preview/content-preview.module';
 import { KafkaModule } from '../kafka/kafka.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { ArticleResponseMapper } from './article-response.mapper';
@@ -9,7 +10,7 @@ import { ArticlesRepository } from './articles.repository';
 import { ArticlesService } from './articles.service';
 
 @Module({
-  imports: [PrismaModule, AuthModule, KafkaModule],
+  imports: [PrismaModule, AuthModule, KafkaModule, ContentPreviewModule],
   controllers: [ArticlesController],
   providers: [
     ArticlesService,
