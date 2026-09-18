@@ -5,6 +5,10 @@ export const AUTH_PROVIDER_LINK_CONFIRMATION_JOB =
 
 export const EMAIL_JOB_ID_PREFIX = 'google-link-';
 
+export const ARTICLE_NOTIFICATION_JOB = 'article-notification';
+
+export const ARTICLE_NOTIFICATION_JOB_ID_PREFIX = 'article-notification-';
+
 export const EMAIL_QUEUE_ATTEMPTS = 3;
 
 export const EMAIL_QUEUE_BACKOFF_DELAY_MS = 5_000;

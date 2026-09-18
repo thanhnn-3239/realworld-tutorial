@@ -24,6 +24,7 @@ Các địa chỉ mặc định:
 - Swagger: `http://localhost:3000/docs`
 - Mailpit UI: `http://localhost:8025`
 - Redis: `localhost:6379`
+- Kafka: `localhost:9092`
 
 Các biến của app nằm trong `.env`. Compose chỉ ghi đè `DATABASE_URL` để đổi hostname từ `localhost` sang service `postgres`; nhờ vậy cùng một `.env` dùng được cho cả lệnh chạy trên host và app trong container.
 
@@ -37,6 +38,71 @@ Hệ thống sử dụng BullMQ và Redis để xử lý tác vụ nền (gửi 
 - Redis chạy qua Docker service `redis` (cổng 6379, cấu hình qua `REDIS_URL`).
 - Email được gửi qua Mailpit SMTP server (cổng 1025) và có thể xem trực tiếp qua web UI tại `http://localhost:8025` (cấu hình qua `MAILPIT_UI_PORT`).
 - Production yêu cầu dịch vụ Redis và SMTP provider được quản lý (managed services); các biến cấu hình gồm `REDIS_URL`, `REDIS_PREFIX`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_SECURE`, `SMTP_REQUIRE_TLS`, `MAIL_FROM`, `GOOGLE_LINK_CONFIRM_URL`.
+
+## Apache Kafka & Article Notifications
+
+Hệ thống sử dụng Apache Kafka để triển khai kiến trúc Event-Driven cho các sự kiện bài viết (article notification):
+- Khi bài viết mới được tạo (`POST /api/articles`), sự kiện được gửi lên Kafka topic `article.created`. Consumer nhận event và đưa email thông báo cho tất cả người theo dõi (followers) của tác giả vào BullMQ email queue.
+- Khi người dùng thích bài viết (`POST /api/articles/:slug/favorite`), sự kiện được gửi lên Kafka topic `article.favorited`. Consumer nhận event và đưa email thông báo cho tác giả bài viết vào BullMQ email queue (bỏ qua nếu tác giả tự thích bài viết của mình).
+
+### Khởi động Kafka ở môi trường Local
+
+Khi chạy `make dev`, container Kafka (chạy chế độ KRaft, không cần Zookeeper) tự động được khởi động cùng stack.
+
+Nếu muốn khởi động hoặc kiểm tra riêng dịch vụ Kafka:
+
+```bash
+docker compose up -d kafka
+```
+
+Để theo dõi các sự kiện được publish lên topic `article.favorited` (hoặc thay bằng `--topic article.created`) qua console consumer:
+
+```bash
+docker compose exec kafka /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic article.favorited --from-beginning
+```
+
+Hoặc nếu chạy trực tiếp trên môi trường có sẵn Kafka CLI:
+
+```bash
+/opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic article.favorited --from-beginning
+```
+
+### Kết nối Aiven Kafka Cloud (Free Tier) với SSL/SASL
+
+Hệ thống hỗ trợ kết nối trực tiếp đến Apache Kafka đám mây (như gói Free Tier của Aiven) thông qua giao thức bảo mật SSL và cơ chế xác thực SASL/PLAIN.
+
+**Bắt buộc bật SASL trên Aiven trước khi cấu hình app.** Mặc định service Aiven chỉ mở listener xác thực bằng client certificate (mTLS), nên app dùng SASL sẽ bị broker từ chối ngay ở bước TLS handshake. Trong Aiven Console → **Service settings** → **Advanced configuration** → **Configure** → **Add configuration options**, thêm:
+
+- `kafka_authentication_methods.sasl` = **Enabled** — mở listener SASL_SSL.
+
+Sau khi lưu, mở tab **Overview** → **Connect information** → tab **Apache Kafka**, chọn authentication method **SASL**. Lấy hai thứ ở đây:
+
+1. **Port** — port SASL **khác** port của Client certificate; dùng đúng port SASL cho `KAFKA_BROKER`.
+2. **CA certificate** — bấm **Show** rồi copy toàn bộ nội dung PEM, đưa vào `KAFKA_SSL_CA`.
+
+Cần `KAFKA_SSL_CA` vì broker của Aiven dùng certificate do **Project CA riêng của tổ chức** ký, không nằm trong trust store mặc định của Node — thiếu nó kết nối sẽ fail với `self-signed certificate in certificate chain`. (Có thể bỏ được `KAFKA_SSL_CA` nếu bật thêm advanced option `letsencrypt_sasl` = Enabled để Aiven cấp certificate do Let's Encrypt ký.)
+
+Cấu hình các biến môi trường trong file `.env`:
+
+```env
+# Kafka Configuration (Aiven Cloud)
+# Lưu ý: dùng port SASL trong Connect information, KHÔNG dùng port của Client certificate
+KAFKA_BROKER=kafka-<service-name>-<project-name>.aivencloud.com:<sasl-port>
+KAFKA_CLIENT_ID=realworld-api
+KAFKA_GROUP_ID=realworld-notification-group
+KAFKA_SSL=true
+KAFKA_SSL_CA="-----BEGIN CERTIFICATE-----\nMIID...\n-----END CERTIFICATE-----"
+KAFKA_SASL_MECHANISM=plain
+KAFKA_USERNAME=avnadmin
+KAFKA_PASSWORD=<mật-khẩu-từ-aiven-console>
+ENABLE_KAFKA=true
+```
+
+- `KAFKA_SSL=true`: Kích hoạt mã hóa kết nối TLS/SSL tới cloud broker.
+- `KAFKA_SSL_CA`: CA certificate của broker. Chấp nhận PEM nhiều dòng, hoặc dạng một dòng với `\n` (các dashboard như Render chỉ lưu được giá trị một dòng). Khai báo biến này cũng tự bật TLS, kể cả khi quên `KAFKA_SSL=true`.
+- `KAFKA_SASL_MECHANISM=plain`: Cơ chế chứng thực SASL (hỗ trợ `plain`, `scram-sha-256`, `scram-sha-512`).
+- `KAFKA_USERNAME` & `KAFKA_PASSWORD`: Thông tin tài khoản quản trị viên được cung cấp trong Aiven Web Console.
+- `ENABLE_KAFKA=false`: Tùy chọn tắt microservice Kafka khi không có nhu cầu sử dụng.
 
 ## Storage driver
 

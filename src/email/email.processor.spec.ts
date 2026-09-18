@@ -1,5 +1,8 @@
 import { Job } from 'bullmq';
-import { AUTH_PROVIDER_LINK_CONFIRMATION_JOB } from './constants/email-queue.constants';
+import {
+  ARTICLE_NOTIFICATION_JOB,
+  AUTH_PROVIDER_LINK_CONFIRMATION_JOB,
+} from './constants/email-queue.constants';
 import { EmailJobHandler } from './interfaces/email-job-handler.interface';
 import { EmailProcessor } from './email.processor';
 import { EmailJobRegistry } from './email-job.registry';
@@ -10,6 +13,10 @@ describe('EmailProcessor', () => {
   let registry: EmailJobRegistry;
   const mockLinkHandler: EmailJobHandler = {
     jobName: AUTH_PROVIDER_LINK_CONFIRMATION_JOB,
+    handle: jest.fn().mockResolvedValue(undefined),
+  };
+  const mockNotificationHandler: EmailJobHandler = {
+    jobName: ARTICLE_NOTIFICATION_JOB,
     handle: jest.fn().mockResolvedValue(undefined),
   };
   const mockLogger = {
@@ -23,6 +30,7 @@ describe('EmailProcessor', () => {
     jest.clearAllMocks();
     registry = new EmailJobRegistry();
     registry.register(mockLinkHandler);
+    registry.register(mockNotificationHandler);
 
     processor = new EmailProcessor(
       registry,
@@ -30,7 +38,7 @@ describe('EmailProcessor', () => {
     );
   });
 
-  it('dispatches confirmation job to registered handler', async () => {
+  it('dispatches confirmation job to ProviderLinkConfirmationHandler', async () => {
     const job = { name: AUTH_PROVIDER_LINK_CONFIRMATION_JOB } as Job<
       unknown,
       void,
@@ -39,6 +47,19 @@ describe('EmailProcessor', () => {
     await processor.process(job);
 
     expect(mockLinkHandler.handle).toHaveBeenCalledWith(job);
+    expect(mockNotificationHandler.handle).not.toHaveBeenCalled();
+  });
+
+  it('dispatches article notification job to ArticleNotificationHandler', async () => {
+    const job = { name: ARTICLE_NOTIFICATION_JOB } as Job<
+      unknown,
+      void,
+      string
+    >;
+    await processor.process(job);
+
+    expect(mockNotificationHandler.handle).toHaveBeenCalledWith(job);
+    expect(mockLinkHandler.handle).not.toHaveBeenCalled();
   });
 
   it('throws error for unregistered job name', async () => {
