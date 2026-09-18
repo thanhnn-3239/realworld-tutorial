@@ -71,14 +71,27 @@ Hoặc nếu chạy trực tiếp trên môi trường có sẵn Kafka CLI:
 
 Hệ thống hỗ trợ kết nối trực tiếp đến Apache Kafka đám mây (như gói Free Tier của Aiven) thông qua giao thức bảo mật SSL và cơ chế xác thực SASL/PLAIN.
 
+**Bắt buộc bật SASL trên Aiven trước khi cấu hình app.** Mặc định service Aiven chỉ mở listener xác thực bằng client certificate (mTLS), nên app dùng SASL sẽ bị broker từ chối ngay ở bước TLS handshake. Trong Aiven Console → **Service settings** → **Advanced configuration** → **Configure** → **Add configuration options**, thêm:
+
+- `kafka_authentication_methods.sasl` = **Enabled** — mở listener SASL_SSL.
+
+Sau khi lưu, mở tab **Overview** → **Connect information** → tab **Apache Kafka**, chọn authentication method **SASL**. Lấy hai thứ ở đây:
+
+1. **Port** — port SASL **khác** port của Client certificate; dùng đúng port SASL cho `KAFKA_BROKER`.
+2. **CA certificate** — bấm **Show** rồi copy toàn bộ nội dung PEM, đưa vào `KAFKA_SSL_CA`.
+
+Cần `KAFKA_SSL_CA` vì broker của Aiven dùng certificate do **Project CA riêng của tổ chức** ký, không nằm trong trust store mặc định của Node — thiếu nó kết nối sẽ fail với `self-signed certificate in certificate chain`. (Có thể bỏ được `KAFKA_SSL_CA` nếu bật thêm advanced option `letsencrypt_sasl` = Enabled để Aiven cấp certificate do Let's Encrypt ký.)
+
 Cấu hình các biến môi trường trong file `.env`:
 
 ```env
 # Kafka Configuration (Aiven Cloud)
-KAFKA_BROKER=kafka-<service-name>-<project-name>.aivencloud.com:12345
+# Lưu ý: dùng port SASL trong Connect information, KHÔNG dùng port của Client certificate
+KAFKA_BROKER=kafka-<service-name>-<project-name>.aivencloud.com:<sasl-port>
 KAFKA_CLIENT_ID=realworld-api
 KAFKA_GROUP_ID=realworld-notification-group
 KAFKA_SSL=true
+KAFKA_SSL_CA="-----BEGIN CERTIFICATE-----\nMIID...\n-----END CERTIFICATE-----"
 KAFKA_SASL_MECHANISM=plain
 KAFKA_USERNAME=avnadmin
 KAFKA_PASSWORD=<mật-khẩu-từ-aiven-console>
@@ -86,6 +99,7 @@ ENABLE_KAFKA=true
 ```
 
 - `KAFKA_SSL=true`: Kích hoạt mã hóa kết nối TLS/SSL tới cloud broker.
+- `KAFKA_SSL_CA`: CA certificate của broker. Chấp nhận PEM nhiều dòng, hoặc dạng một dòng với `\n` (các dashboard như Render chỉ lưu được giá trị một dòng). Khai báo biến này cũng tự bật TLS, kể cả khi quên `KAFKA_SSL=true`.
 - `KAFKA_SASL_MECHANISM=plain`: Cơ chế chứng thực SASL (hỗ trợ `plain`, `scram-sha-256`, `scram-sha-512`).
 - `KAFKA_USERNAME` & `KAFKA_PASSWORD`: Thông tin tài khoản quản trị viên được cung cấp trong Aiven Web Console.
 - `ENABLE_KAFKA=false`: Tùy chọn tắt microservice Kafka khi không có nhu cầu sử dụng.
