@@ -10,6 +10,7 @@ import { EmailJobRegistry } from './email-job.registry';
 import { EmailQueueProducer } from './email-queue.producer';
 import { EmailQueueReadinessService } from './email-queue-readiness.service';
 import { EmailProcessor } from './email.processor';
+import { ArticleNotificationHandler } from './handlers/article-notification.handler';
 import { ProviderLinkConfirmationHandler } from './handlers/provider-link-confirmation.handler';
 import { ProviderLinkEmailTemplateService } from './provider-link-email-template.service';
 import { SmtpMailSender } from './smtp-mail-sender';
@@ -31,6 +32,7 @@ import { SmtpMailSender } from './smtp-mail-sender';
     EmailQueueReadinessService,
     EmailProcessor,
     ProviderLinkConfirmationHandler,
+    ArticleNotificationHandler,
     ProviderLinkEmailTemplateService,
     {
       provide: SMTP_MAIL_SENDER,

@@ -1,6 +1,9 @@
 import { Job } from 'bullmq';
 import { CustomLoggerService } from '../../logger/logger.service';
+import { EmailJobRegistry } from '../email-job.registry';
 import { EmailProcessor } from '../email.processor';
+import { ArticleNotificationHandler } from '../handlers/article-notification.handler';
+import { ProviderLinkConfirmationHandler } from '../handlers/provider-link-confirmation.handler';
 import { MailSender } from '../interfaces/send-mail-options.interface';
 import { ProviderLinkEmailTemplateService } from '../provider-link-email-template.service';
 
@@ -18,6 +21,8 @@ export function createMockJob<T>(
 }
 
 export function createEmailProcessorTestContext() {
+  const registry = new EmailJobRegistry();
+
   const mockTemplateService = {
     render: jest.fn().mockReturnValue({
       subject: 'Confirm your Google account link',
@@ -38,14 +43,31 @@ export function createEmailProcessorTestContext() {
     setContext: jest.fn(),
   };
 
-  const processor = new EmailProcessor(
+  const linkHandler = new ProviderLinkConfirmationHandler(
+    registry,
     mockTemplateService as unknown as ProviderLinkEmailTemplateService,
     mockMailSender as unknown as MailSender,
+    mockLogger as unknown as CustomLoggerService,
+  );
+  linkHandler.onModuleInit();
+
+  const notificationHandler = new ArticleNotificationHandler(
+    registry,
+    mockMailSender as unknown as MailSender,
+    mockLogger as unknown as CustomLoggerService,
+  );
+  notificationHandler.onModuleInit();
+
+  const processor = new EmailProcessor(
+    registry,
     mockLogger as unknown as CustomLoggerService,
   );
 
   return {
     processor,
+    registry,
+    linkHandler,
+    notificationHandler,
     mockTemplateService,
     mockMailSender,
     mockLogger,
