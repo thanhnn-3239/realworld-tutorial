@@ -11,7 +11,7 @@ Building a fully-featured RealWorld backend in NestJS with PostgreSQL, deployed 
 **Overall Progress:** Core API implemented; file upload (with bounded server-side image
 validation/normalization) and isolated E2E infrastructure complete.
 
-**Last Updated:** 2026-09-15
+**Last Updated:** 2026-09-18
 
 ## Phases
 
@@ -29,7 +29,8 @@ validation/normalization) and isolated E2E infrastructure complete.
 | P10     | File upload & avatar management                     | Complete     | 2026-09-08     | Multipart upload sets/replaces the avatar; `User.image` holds the S3 key with a `FOR UPDATE` row lock ordering concurrent replacements; `StorageDriver` seam with a single S3-compatible implementation                                                                                                         |
 | P11     | Isolated E2E test foundation                        | Complete     | 2026-09-11     | Shared local/CI Compose flow, per-suite PostgreSQL/MinIO isolation, before-each reset, thin contexts and hybrid fixtures; 15.47s median wall time, 20.6% over baseline                                                                                                                                          |
 | P12     | Server-side avatar image validation & normalization | Complete     | 2026-09-14     | Declared-MIME allowlist narrowed to jpeg/png/webp; Sharp decode/validate/resize uses the shared bounded Piscina worker pool (max 2 threads, 2x queue, 10s task timeout, 30s shutdown drain); every accepted avatar re-encoded to a static 512x512 WebP, stripping source metadata; generic 422/503 on rejection |
-| **P13** | **Google account link confirmation email**          | **Complete** | **2026-09-16** | **Durable email confirmation via BullMQ, Redis, and SMTP for Google account link collisions; single-use 32-byte token with SHA-256 hash persistence, 15m TTL, 60s cooldown; preserves existing passwords and sessions; atomic transaction confirmation; daily 04:00 expired link cleanup**                      |
+| P13     | Google account link confirmation email              | Complete     | 2026-09-16     | Durable email confirmation via BullMQ, Redis, and SMTP for Google account link collisions; single-use 32-byte token with SHA-256 hash persistence, 15m TTL, 60s cooldown; preserves existing passwords and sessions; atomic transaction confirmation; daily 04:00 expired link cleanup                      |
+| **P14** | **Article draft preview over gRPC**                 | **Complete** | **2026-09-18** | **JWT-protected draft preview (`POST /v1/articles/preview`) using NestJS hybrid application architecture; loopback-only gRPC transport (`127.0.0.1:50051`) with unary `Analyze` RPC; deterministic metadata (Unicode whitespace normalization, 160-char excerpt, word count, reading time ceil(words/200)); REST boundary with 300 ms deadline and 503 fallback; opt-in E2E harness; zero DB persistence or Kafka events; single Render Free process.** |
 
 ## Milestones
 

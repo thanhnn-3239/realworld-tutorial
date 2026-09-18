@@ -24,17 +24,23 @@ import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { PaginationDto } from '../common/dto/api-response.dto';
 import { ResponseMessage } from '../common/decorators/response-message.decorator';
+import { ArticlePreviewClientService } from './article-preview-client.service';
 import { ArticlesService } from './articles.service';
 import { ArticleResponseDto } from './dto/article-response.dto';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { ListArticlesQueryDto } from './dto/list-articles-query.dto';
 import { PaginatedArticlesResponseDto } from './dto/paginated-articles-response.dto';
+import { PreviewArticleDto } from './dto/preview-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
+import { ApiArticlePreviewResponse } from './decorators/article-preview-api-response.decorator';
 
 @ApiTags('Articles')
 @Controller('articles')
 export class ArticlesController {
-  constructor(private readonly articlesService: ArticlesService) {}
+  constructor(
+    private readonly articlesService: ArticlesService,
+    private readonly articlePreviewClient: ArticlePreviewClientService,
+  ) {}
 
   @Post()
   @UseGuards(JwtAuthGuard)
@@ -99,6 +105,22 @@ export class ArticlesController {
   })
   feed(@CurrentUser() user: AuthenticatedUser, @Query() query: PaginationDto) {
     return this.articlesService.feed(user.id, query);
+  }
+
+  @Post('preview')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage('Article preview generated successfully')
+  @ApiOperation({ summary: 'Preview an article draft' })
+  @ApiArticlePreviewResponse()
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
+  @ApiResponse({
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    description: 'Validation error',
+  })
+  preview(@Body() dto: PreviewArticleDto) {
+    return this.articlePreviewClient.analyze(dto.body);
   }
 
   @Get(':slug')

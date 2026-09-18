@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package content.preview.v1;
+
+service ContentPreviewService {
+  rpc Analyze (AnalyzeRequest) returns (AnalyzeResponse);
+}
+
+message AnalyzeRequest { string body = 1; }
+message AnalyzeResponse {
+  string excerpt = 1;
+  int32 wordCount = 2;
+  int32 readingTimeMinutes = 3;
+}
