@@ -6,7 +6,7 @@ import {
   CONTENT_PREVIEW_GRPC_DEADLINE_MS,
   CONTENT_PREVIEW_GRPC_SERVICE,
 } from '../content-preview/content-preview.constants';
-import type { ArticlePreview } from '../content-preview/content-preview-analyzer.service';
+import type { ArticlePreview } from '../content-preview/interfaces/content-preview.interface';
 import { ArticlePreviewClientService } from './article-preview-client.service';
 
 describe('ArticlePreviewClientService', () => {

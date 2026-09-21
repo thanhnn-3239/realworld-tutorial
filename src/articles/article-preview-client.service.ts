@@ -7,17 +7,16 @@ import {
 } from '@nestjs/common';
 import { status } from '@grpc/grpc-js';
 import type { ClientGrpc } from '@nestjs/microservices';
-import { firstValueFrom, Observable, timeout } from 'rxjs';
+import { firstValueFrom, timeout } from 'rxjs';
 import {
   CONTENT_PREVIEW_GRPC_CLIENT,
   CONTENT_PREVIEW_GRPC_DEADLINE_MS,
   CONTENT_PREVIEW_GRPC_SERVICE,
 } from '../content-preview/content-preview.constants';
-import type { ArticlePreview } from '../content-preview/content-preview-analyzer.service';
-
-interface ContentPreviewGrpcService {
-  analyze(request: { body: string }): Observable<ArticlePreview>;
-}
+import type {
+  ArticlePreview,
+  ContentPreviewGrpcService,
+} from '../content-preview/interfaces/content-preview.interface';
 
 @Injectable()
 export class ArticlePreviewClientService implements OnModuleInit {

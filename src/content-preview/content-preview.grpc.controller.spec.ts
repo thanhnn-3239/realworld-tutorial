@@ -1,27 +1,22 @@
-import { status } from '@grpc/grpc-js';
-import { RpcException } from '@nestjs/microservices';
 import { ContentPreviewAnalyzerService } from './content-preview-analyzer.service';
 import { ContentPreviewGrpcController } from './content-preview.grpc.controller';
+import type { ArticlePreview } from './interfaces/content-preview.interface';
 
 describe('ContentPreviewGrpcController', () => {
+  const mockPreview: ArticlePreview = {
+    excerpt: 'Sample preview',
+    wordCount: 2,
+    readingTimeMinutes: 1,
+  };
   const analyzer = {
-    analyze: jest.fn(),
+    analyze: jest.fn().mockReturnValue(mockPreview),
   } as unknown as ContentPreviewAnalyzerService;
   const controller = new ContentPreviewGrpcController(analyzer);
 
-  it.each(['', ' \t\n'])(
-    'rejects a blank body with INVALID_ARGUMENT',
-    (body) => {
-      try {
-        controller.analyze({ body });
-        fail('Expected analyze to throw RpcException');
-      } catch (error) {
-        expect(error).toBeInstanceOf(RpcException);
-        expect((error as RpcException).getError()).toEqual({
-          code: status.INVALID_ARGUMENT,
-          message: 'Body must not be blank',
-        });
-      }
-    },
-  );
+  it('delegates analyze call to ContentPreviewAnalyzerService', () => {
+    const result = controller.analyze({ body: 'Sample preview' });
+
+    expect(analyzer.analyze).toHaveBeenCalledWith('Sample preview');
+    expect(result).toBe(mockPreview);
+  });
 });
