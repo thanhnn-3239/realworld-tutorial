@@ -165,6 +165,49 @@ request.
 
 ---
 
+## Preview Article Draft
+
+Obtains deterministic preview metadata (normalized excerpt, word count, reading time) for an article draft via internal loopback gRPC.
+
+|              |                     |
+| ------------ | ------------------- |
+| **Method**   | `POST`              |
+| **Endpoint** | `/articles/preview` |
+| **Auth**     | Yes                 |
+
+**Request Body:**
+
+```json
+{
+  "body": "Draft body text..."
+}
+```
+
+**Required Fields:** `body` (must be a non-empty string containing at least one non-whitespace character)
+
+> **Note:** Preview is purely computational and handled in-memory via loopback gRPC; it does not persist an article in the database or publish any Kafka events.
+
+**Errors:**
+- `401 Unauthorized`: missing, invalid, or expired bearer token.
+- `422 Unprocessable Entity`: missing `body` or blank body containing only whitespace.
+- `503 Service Unavailable`: internal gRPC preview transport timeout (300 ms deadline) or service unavailable.
+
+**Response:**
+
+```json
+{
+  "statusCode": 200,
+  "message": "Article preview generated successfully",
+  "data": {
+    "excerpt": "Draft body text...",
+    "wordCount": 3,
+    "readingTimeMinutes": 1
+  }
+}
+```
+
+---
+
 ## Update Article
 
 |              |                   |

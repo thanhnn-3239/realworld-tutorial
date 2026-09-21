@@ -21,6 +21,7 @@ High-level overview of the RealWorld API backend, its components, data flow, and
 │  │  - CommentsController (CRUD on articles)             │   │
 │  │  - ProfilesController (GET, follow/unfollow)         │   │
 │  │  - HealthController (readiness check)                │   │
+│  │  - ContentPreviewGrpcController (@GrpcMethod)        │   │
 │  └──────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │  Services (Business Logic)                           │   │
@@ -31,6 +32,8 @@ High-level overview of the RealWorld API backend, its components, data flow, and
 │  │  - SmtpMailSender (SMTP transport adapter)           │   │
 │  │  - AvatarReplacementService (locked swap of the key) │   │
 │  │  - FileStorageService -> StorageDriver (S3)          │   │
+│  │  - ContentPreviewAnalyzerService (pure metadata)     │   │
+│  │  - ArticlePreviewClientService (REST-to-gRPC client) │   │
 │  └──────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │  Infrastructure                                      │   │
@@ -39,6 +42,7 @@ High-level overview of the RealWorld API backend, its components, data flow, and
 │  │  - Multer for multipart file handling                │   │
 │  │  - Prisma ORM with PostgreSQL adapter                │   │
 │  │  - Winston logger                                    │   │
+│  │  - Loopback gRPC transport (127.0.0.1:50051)         │   │
 │  └──────────────────────────────────────────────────────┘   │
 └──────────────────────────────────────────────────────────────┘
            │                  │                │
@@ -61,7 +65,10 @@ High-level overview of the RealWorld API backend, its components, data flow, and
 ### NestJS Application
 
 - **Framework:** NestJS 11 with TypeScript 5.7 in strict mode
-- **Port:** 3000
+- **Architecture:** Hybrid application running public HTTP and loopback-only gRPC inside a single OS process
+- **HTTP Port:** 3000 (local) / Render dynamic `PORT` in production
+- **gRPC Transport:** Loopback-only `127.0.0.1:50051` (`ContentPreviewService` unary `Analyze` RPC)
+- **Deployment:** Single process deployed on Render Free web service; gRPC is internal-only and not an independently deployed microservice
 - **Health Check:** GET /health (database- and Redis queue-aware)
 - **Swagger Docs:** GET /docs
 - **Database Connection:** Prisma ORM with PostgreSQL native adapter
@@ -83,7 +90,7 @@ High-level overview of the RealWorld API backend, its components, data flow, and
 | Authentication | POST /register, POST /login, POST /refresh, POST /logout                                    | Complete                                                                                    |
 | Google Auth    | GET /auth/google, GET /auth/google/callback, POST /auth/google/link/confirm                 | Complete                                                                                    |
 | Users          | GET /user, PUT /user                                                                        | Complete                                                                                    |
-| Articles       | GET /articles, POST /articles, PUT /articles/:slug, DELETE /articles/:slug                  | Complete                                                                                    |
+| Articles       | GET /articles, POST /articles, POST /articles/preview, PUT /articles/:slug, DELETE /articles/:slug | Complete                                                                                    |
 | Comments       | POST /articles/:slug/comments, DELETE /articles/:slug/comments/:id                          | Complete                                                                                    |
 | Favorites      | POST /articles/:slug/favorite, DELETE /articles/:slug/favorite                              | Complete                                                                                    |
 | Profiles       | GET /profiles/:username, POST /profiles/:username/follow, DELETE /profiles/:username/follow | Complete                                                                                    |
